@@ -1,16 +1,14 @@
 import { useContext } from 'react';
 import AuthContext from '../auth'
 import MUIErrorModal from './MUIErrorModal'
-import Copyright from './Copyright'
 
 import Avatar from '@mui/material/Avatar';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
+import Container from '@mui/material/Container';
 import CssBaseline from '@mui/material/CssBaseline';
-import Grid from '@mui/material/Grid';
 import Link from '@mui/material/Link';
 import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
-import Paper from '@mui/material/Paper';
 import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
 
@@ -35,48 +33,52 @@ export default function LoginScreen() {
     console.log(modalJSX);
 
     return (
-        <Grid container component="main" sx={{ height: '100vh' }}>
-            <CssBaseline />
-            <Grid
-                item
-                xs={false}
-                sm={4}
-                md={7}
+        <Box sx={{ height: '100vh', bgcolor: '#f0e6f6' }}>
+            <Box
                 sx={{
-                    backgroundImage: 'url(https://static.displate.com/857x1200/displate/2021-09-09/acaf2be9f58d1c05de9e4e47c580ee00_0da6a981d11a923cf24cf3f465fa81cc.jpg)',
-                    backgroundRepeat: 'no-repeat',
-                    backgroundColor: (t) =>
-                        t.palette.mode === 'light' ? t.palette.grey[50] : t.palette.grey[900],
-                    backgroundSize: 'cover',
-                    backgroundPosition: 'center',
+                    height: '60px',
+                    bgcolor: '#FF00FF',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    px: 2
                 }}
-            />
-            <Grid item xs={12} sm={8} md={5} component={Paper} elevation={6} square>
+            >
+                <Box sx={{ color: 'white', fontSize: '24px' }}>🏠</Box>
+                <Box sx={{ color: 'white', fontSize: '24px', cursor: 'pointer' }}>👤</Box>
+            </Box>
+
+            <Container component="main" maxWidth="xs">
+                <CssBaseline />
                 <Box
                     sx={{
-                        my: 8,
-                        mx: 4,
+                        marginTop: 8,
                         display: 'flex',
                         flexDirection: 'column',
                         alignItems: 'center',
+                        bgcolor: '#FFFACD',
+                        padding: 4,
+                        borderRadius: 2,
+                        border: '2px solid #000'
                     }}
                 >
-                    <Avatar sx={{ m: 1, bgcolor: 'secondary.main' }}>
+                    <Avatar sx={{ m: 1, bgcolor: '#9C27B0' }}>
                         <LockOutlinedIcon/>
                     </Avatar>
-                    <Typography component="h1" variant="h5">
-                        Sign in
+                    <Typography component="h1" variant="h5" sx={{ mb: 3 }}>
+                        Sign In
                     </Typography>
-                    <Box component="form" noValidate onSubmit={handleSubmit} sx={{ mt: 1 }}>
+                    <Box component="form" noValidate onSubmit={handleSubmit} sx={{ width: '100%' }}>
                         <TextField
                             margin="normal"
                             required
                             fullWidth
                             id="email"
-                            label="Email Address"
+                            label="Email"
                             name="email"
                             autoComplete="email"
                             autoFocus
+                            sx={{ bgcolor: '#E8E8E8' }}
                         />
                         <TextField
                             margin="normal"
@@ -87,27 +89,34 @@ export default function LoginScreen() {
                             type="password"
                             id="password"
                             autoComplete="current-password"
+                            sx={{ bgcolor: '#E8E8E8' }}
                         />
                         <Button
                             type="submit"
                             fullWidth
                             variant="contained"
-                            sx={{ mt: 3, mb: 2 }}
+                            sx={{ 
+                                mt: 3, 
+                                mb: 2,
+                                bgcolor: '#333',
+                                color: '#fff',
+                                '&:hover': { bgcolor: '#555' }
+                            }}
                         >
-                            Sign In
+                            SIGN IN
                         </Button>
-                        <Grid container>
-                            <Grid item>
-                                <Link href="/register/" variant="body2">
-                                    Don't have an account? Sign Up
-                                </Link>
-                            </Grid>
-                        </Grid>
-                        <Copyright sx={{ mt: 5 }} />
+                        <Box sx={{ textAlign: 'center' }}>
+                            <Link href="/register/" variant="body2" sx={{ color: 'red' }}>
+                                Don't have an account? Sign Up
+                            </Link>
+                        </Box>
+                        <Typography variant="body2" color="text.secondary" align="center" sx={{ mt: 3 }}>
+                            Copyright © Playlister 2025
+                        </Typography>
                     </Box>
                 </Box>
-            </Grid>
+            </Container>
             { modalJSX }
-        </Grid>
+        </Box>
     );
 }

@@ -74,7 +74,8 @@ loginUser = async (req, res) => {
             success: true,
             user: {
                 firstName: existingUser.firstName,
-                lastName: existingUser.lastName,  
+                lastName: existingUser.lastName,
+                username: existingUser.username,  
                 email: existingUser.email              
             }
         })
@@ -139,7 +140,7 @@ registerUser = async (req, res) => {
 
         //const newUser = new User({firstName, lastName, email, passwordHash});
         //const savedUser = await newUser.save();
-        const savedUser = await dbManager.createUser({firstName, lastName, email, passwordHash});
+        const savedUser = await dbManager.createUser({firstName, lastName, username, email, passwordHash});
         console.log("new user saved: " + (savedUser.id || savedUser._id));
 
         // LOGIN THE USER
@@ -154,7 +155,8 @@ registerUser = async (req, res) => {
             success: true,
             user: {
                 firstName: savedUser.firstName,
-                lastName: savedUser.lastName,  
+                lastName: savedUser.lastName, 
+                username: savedUser.username, 
                 email: savedUser.email              
             }
         })
