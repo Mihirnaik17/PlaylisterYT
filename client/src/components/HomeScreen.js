@@ -89,12 +89,13 @@ const HomeScreen = () => {
                             endAdornment: searchName && (
                                 <InputAdornment position="end">
                                     <IconButton onClick={() => setSearchName('')} edge="end">
-                                        <ClearIcon />
+                                    <ClearIcon />
                                     </IconButton>
                                 </InputAdornment>
                             )
                         }}
                     />
+
 
                     <TextField
                         fullWidth
@@ -102,7 +103,7 @@ const HomeScreen = () => {
                         value={searchUser}
                         onChange={(e) => setSearchUser(e.target.value)}
                         sx={{ mb: 3, bgcolor: '#E8E8E8' }}
-                        InputProps={{
+                         InputProps={{
                             endAdornment: searchUser && (
                                 <InputAdornment position="end">
                                     <IconButton onClick={() => setSearchUser('')} edge="end">
@@ -146,6 +147,7 @@ const HomeScreen = () => {
                             )
                         }}
                     />
+
 
                     <TextField
                         fullWidth
