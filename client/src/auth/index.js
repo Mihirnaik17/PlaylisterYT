@@ -5,18 +5,19 @@ import authRequestSender from './requests'
 const AuthContext = createContext();
 console.log("create AuthContext: " + AuthContext);
 
-// THESE ARE ALL THE TYPES OF UPDATES TO OUR AUTH STATE THAT CAN BE PROCESSED
 export const AuthActionType = {
     GET_LOGGED_IN: "GET_LOGGED_IN",
     LOGIN_USER: "LOGIN_USER",
     LOGOUT_USER: "LOGOUT_USER",
-    REGISTER_USER: "REGISTER_USER"
+    REGISTER_USER: "REGISTER_USER",
+    GUEST_MODE: "GUEST_MODE"
 }
 
 function AuthContextProvider(props) {
     const [auth, setAuth] = useState({
         user: null,
         loggedIn: false,
+        isGuest: false,
         errorMessage: null
     });
     const history = useHistory();
@@ -32,6 +33,7 @@ function AuthContextProvider(props) {
                 return setAuth({
                     user: payload.user,
                     loggedIn: payload.loggedIn,
+                    isGuest: false,
                     errorMessage: null
                 });
             }
@@ -39,6 +41,7 @@ function AuthContextProvider(props) {
                 return setAuth({
                     user: payload.user,
                     loggedIn: payload.loggedIn,
+                    isGuest: false,
                     errorMessage: payload.errorMessage
                 })
             }
@@ -46,6 +49,7 @@ function AuthContextProvider(props) {
                 return setAuth({
                     user: null,
                     loggedIn: false,
+                    isGuest: false,
                     errorMessage: null
                 })
             }
@@ -53,7 +57,16 @@ function AuthContextProvider(props) {
                 return setAuth({
                     user: payload.user,
                     loggedIn: payload.loggedIn,
+                    isGuest: false,
                     errorMessage: payload.errorMessage
+                })
+            }
+            case AuthActionType.GUEST_MODE: {
+                return setAuth({
+                    user: null,
+                    loggedIn: false,
+                    isGuest: true,
+                    errorMessage: null
                 })
             }
             default:
@@ -150,6 +163,14 @@ function AuthContextProvider(props) {
         }
         console.log("user initials: " + initials);
         return initials;
+    }
+
+    auth.continueAsGuest = function() {
+        authReducer({
+            type: AuthActionType.GUEST_MODE,
+            payload: null
+        })
+        history.push("/");
     }
 
     return (

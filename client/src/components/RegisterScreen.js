@@ -65,7 +65,12 @@ export default function RegisterScreen() {
                     px: 2
                 }}
             >
-                <Box sx={{ color: 'white', fontSize: '24px' }}>🏠</Box>
+                <Box 
+                    onClick={() => window.location.href = '/'} 
+                    sx={{ color: 'white', fontSize: '24px', cursor: 'pointer' }}
+                >
+                    🏠
+                </Box>
                 <Box sx={{ color: 'white', fontSize: '24px', cursor: 'pointer' }}>👤</Box>
             </Box>
             <Container component="main" maxWidth="xs">

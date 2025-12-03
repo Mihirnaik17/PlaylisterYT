@@ -33,6 +33,14 @@ export default function NavigationBar() {
         history.push('/edit-account');
     };
 
+    const handleHomeClick = () => {
+        if (auth.loggedIn || auth.isGuest) {
+            history.push('/');
+        } else {
+            history.push('/');
+        }
+    };
+
     return (
         <Box
             sx={{
@@ -46,7 +54,7 @@ export default function NavigationBar() {
         >
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                 <IconButton
-                    onClick={() => history.push('/')}
+                    onClick={handleHomeClick}
                     sx={{
                         bgcolor: 'white',
                         '&:hover': { bgcolor: '#f0f0f0' },

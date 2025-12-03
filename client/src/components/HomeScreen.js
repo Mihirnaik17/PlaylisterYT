@@ -1,5 +1,7 @@
 import { useContext, useEffect, useState } from 'react'
+import { useHistory } from 'react-router-dom'
 import { GlobalStoreContext } from '../store'
+import AuthContext from '../auth'
 import PlaylistCard from './PlaylistCard.js'
 import MUIDeleteModal from './MUIDeleteModal'
 import NavigationBar from './NavigationBar'
@@ -18,6 +20,7 @@ import InputAdornment from '@mui/material/InputAdornment';
 
 const HomeScreen = () => {
     const { store } = useContext(GlobalStoreContext);
+    const { auth } = useContext(AuthContext);
     const [searchName, setSearchName] = useState('');
     const [searchUser, setSearchUser] = useState('');
     const [searchSongTitle, setSearchSongTitle] = useState('');
@@ -26,16 +29,38 @@ const HomeScreen = () => {
     const [sortBy, setSortBy] = useState('Listeners (Hi-Lo)');
     const [anchorEl, setAnchorEl] = useState(null);
 
+    const [filteredPlaylists, setFilteredPlaylists] = useState([]);
+
     useEffect(() => {
         store.loadIdNamePairs();
     }, []);
+
+    useEffect(() => {
+        store.loadIdNamePairs();
+    }, []);
+
+    useEffect(() => {   
+        if (store.idNamePairs) {
+        setFilteredPlaylists(store.idNamePairs);
+        }
+    }, [store.idNamePairs]);
 
     function handleCreateNewList() {
         store.createNewList();
     }
 
     function handleSearch() {
-        console.log('Search clicked');
+        let filtered = store.idNamePairs;
+
+        if(searchName){
+            filtered = filtered.filter(pair => pair.name.toLowerCase().includes(searchName.toLowerCase()));
+
+        }
+
+        if(searchUser){
+            filtered = filtered.filter(pair=> pair.ownerEmail && pair.ownerEmail.toLowerCase().includes(searchUser.toLowerCase()));
+        }
+        setFilteredPlaylists(filtered);
     }
 
     function handleClear() {
@@ -44,6 +69,7 @@ const HomeScreen = () => {
         setSearchSongTitle('');
         setSearchArtist('');
         setSearchYear('');
+        setFilteredPlaylists(store.idNamePairs);
     }
 
     function handleSortClick(event) {
@@ -57,11 +83,37 @@ const HomeScreen = () => {
     function handleSortSelect(sortOption) {
         setSortBy(sortOption);
         handleSortClose();
+
+        let sorted = [...filteredPlaylists];
+            switch(sortOption) {
+        case 'Name (A-Z)':
+            sorted.sort((a, b) => a.name.localeCompare(b.name));
+            break;
+        case 'Name (Z-A)':
+            sorted.sort((a, b) => b.name.localeCompare(a.name));
+            break;
+        case 'User (A-Z)':
+            sorted.sort((a, b) => (a.ownerEmail || '').localeCompare(b.ownerEmail || ''));
+            break;
+        case 'User (Z-A)':
+            sorted.sort((a, b) => (b.ownerEmail || '').localeCompare(a.ownerEmail || ''));
+            break;
+        case 'Listeners (Hi-Lo)':
+            break;
+        case 'Listeners (Lo-Hi)':
+            break;
+        default:
+            break;
+        }
+
+        setFilteredPlaylists(sorted);
+
+
     }
 
     let listCard = "";
-    if (store) {
-        listCard = store.idNamePairs.map((pair) => (
+    if (filteredPlaylists && filteredPlaylists.length > 0) {
+        listCard = filteredPlaylists.map((pair) => (
             <PlaylistCard
                 key={pair._id}
                 idNamePair={pair}
@@ -224,7 +276,7 @@ const HomeScreen = () => {
                             </Menu>
                         </Box>
                         <Typography variant="body1">
-                            {store.idNamePairs ? store.idNamePairs.length : 0} Playlists
+                            {filteredPlaylists ? filteredPlaylists.length : 0} Playlists
                         </Typography>
                     </Box>
 
@@ -232,21 +284,23 @@ const HomeScreen = () => {
                         {listCard}
                     </Box>
 
-                    <Button
-                        variant="contained"
-                        startIcon={<AddIcon />}
-                        onClick={handleCreateNewList}
-                        sx={{
-                            position: 'absolute',
-                            bottom: 20,
-                            right: 20,
-                            bgcolor: '#7B68EE',
-                            color: '#fff',
-                            '&:hover': { bgcolor: '#6A5ACD' }
-                        }}
-                    >
-                        NEW PLAYLIST
-                    </Button>
+                    {!auth.isGuest && (
+                        <Button
+                            variant="contained"
+                            startIcon={<AddIcon />}
+                            onClick={handleCreateNewList}
+                            sx={{
+                                position: 'absolute',
+                                bottom: 20,
+                                right: 20,
+                                bgcolor: '#7B68EE',
+                                color: '#fff',
+                                '&:hover': { bgcolor: '#6A5ACD' }
+                            }}
+                        >
+                            NEW PLAYLIST
+                        </Button>
+                    )}
                 </Box>
             </Box>
             <MUIDeleteModal />

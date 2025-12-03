@@ -6,12 +6,15 @@
 //     )
 // }
 
+import { useContext } from 'react';
 import { useHistory } from 'react-router-dom';
+import AuthContext from '../auth';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Typography from '@mui/material/Typography';
 
 export default function SplashScreen() {
+    const { auth } = useContext(AuthContext);
     const history = useHistory();
 
     return (
@@ -70,7 +73,7 @@ export default function SplashScreen() {
             <Box sx={{ display: 'flex', gap: 2 }}>
                 <Button
                     variant="contained"
-                    onClick={() => history.push('/')} 
+                    onClick={() => auth.continueAsGuest()} 
                     sx={{
                         bgcolor: '#333',
                         color: '#fff',

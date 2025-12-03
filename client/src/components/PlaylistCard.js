@@ -1,35 +1,26 @@
 import { useContext, useState } from 'react'
 import { GlobalStoreContext } from '../store'
+import AuthContext from '../auth'
 import Box from '@mui/material/Box';
-import DeleteIcon from '@mui/icons-material/Delete';
-import EditIcon from '@mui/icons-material/Edit';
-import IconButton from '@mui/material/IconButton';
 import Button from '@mui/material/Button';
 import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
 import Avatar from '@mui/material/Avatar';
-import FileCopyIcon from '@mui/icons-material/FileCopy';
-import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
+import IconButton from '@mui/material/IconButton';
 
 function PlaylistCard(props) {
     const { store } = useContext(GlobalStoreContext);
+    const { auth } = useContext(AuthContext);
     const [editActive, setEditActive] = useState(false);
     const [expanded, setExpanded] = useState(false);
     const [text, setText] = useState("");
     const { idNamePair } = props;
 
-    function handleLoadList(event, id) {
-        console.log("handleLoadList for " + id);
-        if (!event.target.disabled) {
-            let _id = event.target.id;
-            if (_id.indexOf('list-card-text-') >= 0)
-                _id = ("" + _id).substring("list-card-text-".length);
-
-            console.log("load " + event.target.id);
-
-            store.setCurrentList(id);
+    function handleLoadList(event) {
+        if (!event.target.disabled && !editActive) {
+            store.setCurrentList(idNamePair._id);
         }
     }
 
@@ -42,13 +33,14 @@ function PlaylistCard(props) {
         let newActive = !editActive;
         if (newActive) {
             store.setIsListNameEditActive();
+            setText(idNamePair.name);
         }
         setEditActive(newActive);
     }
 
-    async function handleDeleteList(event, id) {
+    async function handleDeleteList(event) {
         event.stopPropagation();
-        store.markListForDeletion(id);
+        store.markListForDeletion(idNamePair._id);
     }
 
     function handleCopyPlaylist(event) {
@@ -63,8 +55,7 @@ function PlaylistCard(props) {
 
     function handleKeyPress(event) {
         if (event.code === "Enter") {
-            let id = event.target.id.substring("list-".length);
-            store.changeListName(id, text);
+            store.changeListName(idNamePair._id, text);
             toggleEdit();
         }
     }
@@ -81,50 +72,66 @@ function PlaylistCard(props) {
     let cardElement =
         <Box
             sx={{
-                bgcolor: '#d4c5f9',
+                bgcolor: 'white',
                 borderRadius: '8px',
                 mb: 2,
                 p: 2,
-                border: '1px solid #999'
+                border: '2px solid #1976d2'
             }}
         >
             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flex: 1 }}>
-                    <Avatar sx={{ bgcolor: '#1976d2', width: 48, height: 48 }}>
-                        👤
+                    <Avatar sx={{ bgcolor: '#FFA500', width: 56, height: 56 }}>
+                        <Box component="img" src="/path-to-avatar.png" alt="avatar" sx={{ width: '100%', height: '100%' }} />
                     </Avatar>
                     <Box>
-                        <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
+                        <Typography variant="h6" sx={{ fontWeight: 'bold', color: '#000' }}>
                             {idNamePair.name}
                         </Typography>
                         <Typography variant="body2" sx={{ color: '#666' }}>
-                            By: {idNamePair.ownerEmail || 'Unknown'}
-                        </Typography>
-                        <Typography variant="caption" sx={{ color: '#666' }}>
-                            137 Listeners
+                            {idNamePair.ownerEmail || 'Unknown'}
                         </Typography>
                     </Box>
                 </Box>
 
-                <Box sx={{ display: 'flex', gap: 1 }}>
-                    <Button
-                        variant="contained"
-                        size="small"
-                        onClick={handleToggleEdit}
-                        sx={{
-                            bgcolor: '#1976d2',
-                            minWidth: '60px',
-                            '&:hover': { bgcolor: '#1565c0' }
-                        }}
-                    >
-                        Edit
-                    </Button>
+                <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+                    {!auth.isGuest && (
+                        <>
+                            <Button
+                                variant="contained"
+                                size="small"
+                                onClick={handleDeleteList}
+                                sx={{
+                                    bgcolor: '#f44336',
+                                    color: 'white',
+                                    minWidth: '70px',
+                                    '&:hover': { bgcolor: '#d32f2f' }
+                                }}
+                            >
+                                Delete
+                            </Button>
+                            <Button
+                                variant="contained"
+                                size="small"
+                                onClick={handleToggleEdit}
+                                sx={{
+                                    bgcolor: '#1976d2',
+                                    color: 'white',
+                                    minWidth: '60px',
+                                    '&:hover': { bgcolor: '#1565c0' }
+                                }}
+                            >
+                                Edit
+                            </Button>
+                        </>
+                    )}
                     <Button
                         variant="contained"
                         size="small"
                         onClick={handleCopyPlaylist}
                         sx={{
                             bgcolor: '#4caf50',
+                            color: 'white',
                             minWidth: '60px',
                             '&:hover': { bgcolor: '#45a049' }
                         }}
@@ -137,6 +144,7 @@ function PlaylistCard(props) {
                         onClick={handlePlayPlaylist}
                         sx={{
                             bgcolor: '#e91e63',
+                            color: 'white',
                             minWidth: '60px',
                             '&:hover': { bgcolor: '#c2185b' }
                         }}
@@ -148,6 +156,10 @@ function PlaylistCard(props) {
                     </IconButton>
                 </Box>
             </Box>
+
+            <Typography variant="body2" sx={{ color: '#1976d2', mt: 1 }}>
+                137 Listeners
+            </Typography>
 
             {expanded && (
                 <Box sx={{ mt: 2, pl: 8 }}>
