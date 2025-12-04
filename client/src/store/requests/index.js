@@ -24,7 +24,7 @@
 // // CUSTOM FILTERS FOR QUERIES
 
 
-const baseURL = 'http://localhost:4000/store';
+const baseURL = 'http://localhost:4000/api';
 
 const handleresponse =  async (response) => {
     if(!response.ok){
@@ -54,7 +54,6 @@ const handleresponse =  async (response) => {
 }
 
 export const createPlaylist = async (newListName, newSongs, userEmail) => {   
-        // SPECIFY THE PAYLOAD
         const payload = {
         name: newListName,
         songs: newSongs,
@@ -144,6 +143,143 @@ export const updatePlaylistById = async (id, playlist) => {
 
 }
 
+export const publishPlaylist = async (id, published) => {
+    const payload = {
+        published: published
+    };
+    try{
+        const response = await fetch(`${baseURL}/playlist/${id}/publish`,{
+            method: 'PUT',
+            credentials: "include",
+            headers: { 
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(payload)
+        });
+        const data = await handleresponse(response);
+        return data;
+    } catch (error){
+        console.error(error);
+        throw error;
+    }
+}
+
+export const likePlaylist = async (id) => {
+    try{
+        const response = await fetch(`${baseURL}/playlist/${id}/like`,{
+            method: 'PUT',
+            credentials: "include"
+        });
+        const data = await handleresponse(response);
+        return data;
+    } catch (error){
+        console.error(error);
+        throw error;
+    }
+}
+
+export const dislikePlaylist = async (id) => {
+    try{
+        const response = await fetch(`${baseURL}/playlist/${id}/dislike`,{
+            method: 'PUT',
+            credentials: "include"
+        });
+        const data = await handleresponse(response);
+        return data;
+    } catch (error){
+        console.error(error);
+        throw error;
+    }
+}
+
+export const addComment = async (id, comment) => {
+    const payload = {
+        comment: comment
+    };
+    try{
+        const response = await fetch(`${baseURL}/playlist/${id}/comment`,{
+            method: 'POST',
+            credentials: "include",
+            headers: { 
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(payload)
+        });
+        const data = await handleresponse(response);
+        return data;
+    } catch (error){
+        console.error(error);
+        throw error;
+    }
+}
+
+export const deleteComment = async (id, commentIndex) => {
+    try{
+        const response = await fetch(`${baseURL}/playlist/${id}/comment/${commentIndex}`,{
+            method: 'DELETE',
+            credentials: "include"
+        });
+        const data = await handleresponse(response);
+        return data;
+    } catch (error){
+        console.error(error);
+        throw error;
+    }
+}
+
+export const incrementListens = async (id) => {
+    try{
+        const response = await fetch(`${baseURL}/playlist/${id}/listen`,{
+            method: 'PUT',
+            credentials: "include"
+        });
+        const data = await handleresponse(response);
+        return data;
+    } catch (error){
+        console.error(error);
+        throw error;
+    }
+}
+
+export const getPublishedPlaylists = async () => {
+    try{
+        const response = await fetch(`${baseURL}/playlists/published`,{
+            credentials: "include"
+        });
+        const data = await handleresponse(response);
+        return data;
+    } catch (error){
+        console.error(error);
+        throw error;
+    }
+}
+
+export const searchPlaylists = async (query) => {
+    try{
+        const response = await fetch(`${baseURL}/playlists/search?query=${encodeURIComponent(query)}`,{
+            credentials: "include"
+        });
+        const data = await handleresponse(response);
+        return data;
+    } catch (error){
+        console.error(error);
+        throw error;
+    }
+}
+
+export const getPlaylistsByUsername = async (username) => {
+    try{
+        const response = await fetch(`${baseURL}/playlists/user/${username}`,{
+            credentials: "include"
+        });
+        const data = await handleresponse(response);
+        return data;
+    } catch (error){
+        console.error(error);
+        throw error;
+    }
+}
+
 
 
 // export const deletePlaylistById = (id) => api.delete(`/playlist/${id}`)
@@ -161,11 +297,19 @@ const apis = {
     deletePlaylistById,
     getPlaylistById,
     getPlaylistPairs,
-    updatePlaylistById
+    updatePlaylistById,
+    publishPlaylist,
+    likePlaylist,
+    dislikePlaylist,
+    addComment,
+    deleteComment,
+    incrementListens,
+    getPublishedPlaylists,
+    searchPlaylists,
+    getPlaylistsByUsername
 }
 
 export default apis
 
 
 //we are gonna create create playlist with fetch
-

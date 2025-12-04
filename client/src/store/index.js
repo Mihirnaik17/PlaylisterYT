@@ -31,7 +31,9 @@ export const GlobalStoreActionType = {
     SET_LIST_NAME_EDIT_ACTIVE: "SET_LIST_NAME_EDIT_ACTIVE",
     EDIT_SONG: "EDIT_SONG",
     REMOVE_SONG: "REMOVE_SONG",
-    HIDE_MODALS: "HIDE_MODALS"
+    HIDE_MODALS: "HIDE_MODALS",
+    OPEN_EDIT_PLAYLIST_MODAL: "OPEN_EDIT_PLAYLIST_MODAL",
+    OPEN_PLAY_PLAYLIST_MODAL: "OPEN_PLAY_PLAYLIST_MODAL"
 }
 
 // WE'LL NEED THIS TO PROCESS TRANSACTIONS
@@ -41,6 +43,8 @@ const CurrentModal = {
     NONE : "NONE",
     DELETE_LIST : "DELETE_LIST",
     EDIT_SONG : "EDIT_SONG",
+    EDIT_PLAYLIST : "EDIT_PLAYLIST",
+    PLAY_PLAYLIST : "PLAY_PLAYLIST",
     ERROR : "ERROR"
 }
 
@@ -210,6 +214,32 @@ function GlobalStoreContextProvider(props) {
                     listMarkedForDeletion: null
                 });
             }
+            case GlobalStoreActionType.OPEN_EDIT_PLAYLIST_MODAL: {
+                return setStore({
+                    currentModal : CurrentModal.EDIT_PLAYLIST,
+                    idNamePairs: store.idNamePairs,
+                    currentList: payload,
+                    currentSongIndex: -1,
+                    currentSong: null,
+                    newListCounter: store.newListCounter,
+                    listNameActive: false,
+                    listIdMarkedForDeletion: null,
+                    listMarkedForDeletion: null
+                });
+            }
+            case GlobalStoreActionType.OPEN_PLAY_PLAYLIST_MODAL: {
+                return setStore({
+                    currentModal : CurrentModal.PLAY_PLAYLIST,
+                    idNamePairs: store.idNamePairs,
+                    currentList: payload,
+                    currentSongIndex: -1,
+                    currentSong: null,
+                    newListCounter: store.newListCounter,
+                    listNameActive: false,
+                    listIdMarkedForDeletion: null,
+                    listMarkedForDeletion: null
+                });
+            }
             default:
                 return store;
         }
@@ -257,7 +287,6 @@ function GlobalStoreContextProvider(props) {
                                         playlist: playlist
                                     }
                                 });
-                                store.setCurrentList(id);
                             }
                         }
                         getListPairs(playlist);
@@ -276,7 +305,6 @@ function GlobalStoreContextProvider(props) {
             payload: {}
         });
         tps.clearAllTransactions();
-        history.push("/");
     }
 
     // THIS FUNCTION CREATES A NEW LIST
@@ -374,6 +402,12 @@ function GlobalStoreContextProvider(props) {
     store.isEditSongModalOpen = () => {
         return store.currentModal === CurrentModal.EDIT_SONG;
     }
+    store.isEditPlaylistModalOpen = () => {
+        return store.currentModal === CurrentModal.EDIT_PLAYLIST;
+    }
+    store.isPlayPlaylistModalOpen = () => {
+        return store.currentModal === CurrentModal.PLAY_PLAYLIST;
+    }
     store.isErrorModalOpen = () => {
         return store.currentModal === CurrentModal.ERROR;
     }
@@ -399,6 +433,138 @@ function GlobalStoreContextProvider(props) {
             }
         }
         asyncSetCurrentList(id);
+    }
+
+    store.openEditPlaylistModal = function (id) {
+        async function asyncOpenEditPlaylistModal(id) {
+            let response = await storeRequestSender.getPlaylistById(id);
+            if (response.data.success) {
+                let playlist = response.data.playlist;
+                tps.clearAllTransactions();
+                storeReducer({
+                    type: GlobalStoreActionType.OPEN_EDIT_PLAYLIST_MODAL,
+                    payload: playlist
+                });
+            }
+        }
+        asyncOpenEditPlaylistModal(id);
+    }
+
+    store.openPlayPlaylistModal = function (id) {
+        async function asyncOpenPlayPlaylistModal(id) {
+            let response = await storeRequestSender.getPlaylistById(id);
+            if (response.data.success) {
+                let playlist = response.data.playlist;
+                await storeRequestSender.incrementListens(id);
+                storeReducer({
+                    type: GlobalStoreActionType.OPEN_PLAY_PLAYLIST_MODAL,
+                    payload: playlist
+                });
+            }
+        }
+        asyncOpenPlayPlaylistModal(id);
+    }
+
+    store.publishPlaylist = function (id) {
+        async function asyncPublishPlaylist(id) {
+            let response = await storeRequestSender.publishPlaylist(id, true);
+            if (response.data.success) {
+                store.loadIdNamePairs();
+            }
+        }
+        asyncPublishPlaylist(id);
+    }
+
+    store.unpublishPlaylist = function (id) {
+        async function asyncUnpublishPlaylist(id) {
+            let response = await storeRequestSender.publishPlaylist(id, false);
+            if (response.data.success) {
+                store.loadIdNamePairs();
+            }
+        }
+        asyncUnpublishPlaylist(id);
+    }
+
+    store.likePlaylist = function (id) {
+        async function asyncLikePlaylist(id) {
+            let response = await storeRequestSender.likePlaylist(id);
+            if (response.data.success) {
+                store.loadIdNamePairs();
+            }
+        }
+        asyncLikePlaylist(id);
+    }
+
+    store.dislikePlaylist = function (id) {
+        async function asyncDislikePlaylist(id) {
+            let response = await storeRequestSender.dislikePlaylist(id);
+            if (response.data.success) {
+                store.loadIdNamePairs();
+            }
+        }
+        asyncDislikePlaylist(id);
+    }
+
+    store.addComment = function (id, comment) {
+        async function asyncAddComment(id, comment) {
+            let response = await storeRequestSender.addComment(id, comment);
+            if (response.data.success) {
+                store.loadIdNamePairs();
+            }
+        }
+        asyncAddComment(id, comment);
+    }
+
+    store.deleteComment = function (id, commentIndex) {
+        async function asyncDeleteComment(id, commentIndex) {
+            let response = await storeRequestSender.deleteComment(id, commentIndex);
+            if (response.data.success) {
+                store.loadIdNamePairs();
+            }
+        }
+        asyncDeleteComment(id, commentIndex);
+    }
+
+    store.searchPlaylists = function (query) {
+        async function asyncSearchPlaylists(query) {
+            let response = await storeRequestSender.searchPlaylists(query);
+            if (response.data.success) {
+                let pairsArray = response.data.data;
+                storeReducer({
+                    type: GlobalStoreActionType.LOAD_ID_NAME_PAIRS,
+                    payload: pairsArray
+                });
+            }
+        }
+        asyncSearchPlaylists(query);
+    }
+
+    store.getPublishedPlaylists = function () {
+        async function asyncGetPublishedPlaylists() {
+            let response = await storeRequestSender.getPublishedPlaylists();
+            if (response.data.success) {
+                let pairsArray = response.data.data;
+                storeReducer({
+                    type: GlobalStoreActionType.LOAD_ID_NAME_PAIRS,
+                    payload: pairsArray
+                });
+            }
+        }
+        asyncGetPublishedPlaylists();
+    }
+
+    store.getPlaylistsByUsername = function (username) {
+        async function asyncGetPlaylistsByUsername(username) {
+            let response = await storeRequestSender.getPlaylistsByUsername(username);
+            if (response.data.success) {
+                let pairsArray = response.data.data;
+                storeReducer({
+                    type: GlobalStoreActionType.LOAD_ID_NAME_PAIRS,
+                    payload: pairsArray
+                });
+            }
+        }
+        asyncGetPlaylistsByUsername(username);
     }
 
     store.getPlaylistSize = function() {
