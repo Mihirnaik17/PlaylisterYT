@@ -37,7 +37,17 @@ class MongoDBManager extends DatabaseManager{
     }
 
     async createPlaylist(playlistData){
-        const new_playlist = new Playlist(playlistData);
+        const playlistWithDefaults = {
+            ...playlistData,
+            published: playlistData.published !== undefined ?  playlistData.published : false,
+            likes: playlistData.likes !== undefined  ? playlistData.likes : 0,
+            dislikes: playlistData.dislikes !== undefined ? playlistData.dislikes : 0,
+            listens: playlistData.listens !== undefined ? playlistData.listens : 0,
+            comments: playlistData.comments || [],
+            songs: playlistData.songs || []
+        };
+        
+        const new_playlist = new Playlist(playlistWithDefaults);
         return await new_playlist.save();
     }
 
@@ -52,17 +62,37 @@ class MongoDBManager extends DatabaseManager{
     async getAllPlaylists() {
         return await Playlist.find({});
     }
+    
     async updatePlaylist(playlistId, updateData) {
         const playlist = await Playlist.findOne({ _id: playlistId });
         if (!playlist) {
             throw new Error('Playlist not found');
         }
         
+        // Update only the fields that are provided
         if (updateData.name !== undefined) {
             playlist.name = updateData.name;
         }
         if (updateData.songs !== undefined) {
             playlist.songs = updateData.songs;
+        }
+        if (updateData.published !== undefined) {
+            playlist.published = updateData.published;
+        }
+        if (updateData.likes !== undefined) {
+            playlist.likes = updateData.likes;
+        }
+        if (updateData.dislikes !== undefined) {
+            playlist.dislikes = updateData.dislikes;
+        }
+        if (updateData.listens !== undefined) {
+            playlist.listens = updateData.listens;
+        }
+        if (updateData.comments !== undefined) {
+            playlist.comments = updateData.comments;
+        }
+        if (updateData.publishedDate !== undefined) {
+            playlist.publishedDate = updateData.publishedDate;
         }
         
         return await playlist.save();
@@ -71,32 +101,6 @@ class MongoDBManager extends DatabaseManager{
     async deletePlaylist(playlistId) {
         return await Playlist.findOneAndDelete({ _id: playlistId });
     }   
-    
-    // async clearAllPlaylists(){
-    //     try{
-    //         const playlists = await DatabaseManager.getAllPlaylists();
-    //         for(let curPlayList of playlists){
-    //             await DatabaseManager.deletePlaylist(curPlayList._id);
-    //         }
-    //         console.log("Playlists cleared");
-    //     }
-    //     catch(err){
-    //         console.log(err);
-    //     }
-    // }
-
-    // async clearAllUsers(){
-    //     try{
-    //         const Users = await DatabaseManager.getAllUsers();
-    //         for(let curUser of Users){
-    //             await DatabaseManager.deletePlaylist(curUser._id);
-    //         }
-    //         console.log("users cleared");
-    //     }
-    //     catch(err){
-    //         console.log(err);
-    //     }
-    // }
 
     async clearAllPlaylists(){
         await Playlist.deleteMany({});
@@ -128,7 +132,19 @@ class MongoDBManager extends DatabaseManager{
             console.log("users filled");
 
             for (let playlistData of testData.playlists) {
-                const playlist = await this.createPlaylist(playlistData);
+                // Ensure playlists have all default fields when resetting
+                const playlistWithDefaults = {
+                    ...playlistData,
+                    published: playlistData.published !== undefined ? playlistData.published : false,
+                    likes: playlistData.likes !== undefined ? playlistData.likes : 0,
+                    dislikes: playlistData.dislikes !== undefined ? playlistData.dislikes : 0,
+                    listens: playlistData.listens !== undefined ? playlistData.listens : 0,
+                    comments: playlistData.comments || [],
+                    songs: playlistData.songs || []
+                };
+                
+                const playlist = await this.createPlaylist(playlistWithDefaults);
+                
                 const user = await this.getUserByEmail(playlistData.ownerEmail);
                 if (user) {
                     await this.addPlaylistToUser(user._id, playlist._id);
@@ -142,11 +158,7 @@ class MongoDBManager extends DatabaseManager{
             throw err;
         }
     }
-    
-    //reset mongo data methods
-
 
 }
 
 module.exports = MongoDBManager;
-

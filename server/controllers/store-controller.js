@@ -1,8 +1,3 @@
-// const DatabaseManager = require('../DatabaseManager');
-// const mongoose = require('mongoose');
-// const User = require('../../models/user-model');
-// const Playlist = require('../../models/playlist-model');
-
 const auth = require('../auth');
 const dbManager = require('../db');
 /*
@@ -15,7 +10,7 @@ const dbManager = require('../db');
 createPlaylist = async (req, res) => {
     try{
     if(auth.verifyUser(req) === null){
-        return res.status(400).json({
+        return res.status(401).json({
             errorMessage: 'UNAUTHORIZED'
         })
     }
@@ -28,42 +23,41 @@ createPlaylist = async (req, res) => {
         })
     }
     
-    const playlist = await dbManager.createPlaylist(body);
+    // Get user to add username to playlist
+    const user = await dbManager.getUserById(req.userId);
+    if (!user) {
+        return res.status(404).json({
+            errorMessage: 'User not found'
+        })
+    }
+    
+    // Ensure playlist has all required fields with defaults
+    const playlistData = {
+        ...body,
+        ownerEmail: user.email,
+        ownerUsername: user.username,
+        published: false,
+        likes: 0,
+        dislikes: 0,
+        listens: 0,
+        comments: [],
+        songs: body.songs || []
+    };
+    
+    const playlist = await dbManager.createPlaylist(playlistData);
     console.log("playlist created: " + JSON.stringify(playlist));
-    // if (!playlist) {
-    //     return res.status(400).json({ success: false, error: err })
-    // }
 
-    // User.findOne({ _id: req.userId }, (err, user) => {
-    //     console.log("user found: " + JSON.stringify(user));
-    //     user.playlists.push(playlist._id);
-    //     user
-    //         .save()
-    //         .then(() => {
-    //             playlist
-    //                 .save()
-    //                 .then(() => {
-    //                     return res.status(201).json({
-    //                         playlist: playlist
-    //                     })
-    //                 })
-    //                 .catch(error => {
-    //                     return res.status(400).json({
-    //                         errorMessage: 'Playlist Not Created!'
-    //                     })
-    //                 })
-    //         });
-    // })
     await dbManager.addPlaylistToUser(req.userId, playlist.id || playlist._id);
         
-        return res.status(201).json({
-            playlist: playlist
-        })
+    return res.status(201).json({
+        playlist: playlist
+    })
     }
     catch (error) {
         console.error(error);
         return res.status(400).json({
-            errorMessage: 'Playlist Not Created!'
+            errorMessage: 'Playlist Not Created!',
+            error: error.message
         })
 
     }
@@ -71,7 +65,7 @@ createPlaylist = async (req, res) => {
 }
 deletePlaylist = async (req, res) => {
     if(auth.verifyUser(req) === null){
-        return res.status(400).json({
+        return res.status(401).json({
             errorMessage: 'UNAUTHORIZED'
         })
     }
@@ -94,8 +88,8 @@ deletePlaylist = async (req, res) => {
         return res.status(200).json({});
     } else {
         console.log("incorrect user!");
-        return res.status(400).json({ 
-            errorMessage: "authentication error" 
+        return res.status(403).json({ 
+            errorMessage: "You don't have permission to delete this playlist" 
         });
 
     } 
@@ -105,7 +99,7 @@ deletePlaylist = async (req, res) => {
 }
 getPlaylistById = async (req, res) => {
     if(auth.verifyUser(req) === null){
-        return res.status(400).json({
+        return res.status(401).json({
             errorMessage: 'UNAUTHORIZED'
         })
     }
@@ -113,54 +107,40 @@ getPlaylistById = async (req, res) => {
     try{
         const list = await dbManager.getPlaylistById(req.params.id);
         if (!list) {
-        return res.status(400).json({ success: false, error: 'Playlist not found' });
-    }
-    console.log("Found list: " + JSON.stringify(list));
-    
-    const user = await dbManager.getUserByEmail(list.ownerEmail);
-    console.log("user.id: " + (user.id || user._id));
-    console.log("req.userId: " + req.userId);
-    
-    if ((user.id || user._id) == req.userId) {
-        console.log("correct user!");
-        return res.status(200).json({ success: true, playlist: list })
-    } else {
-        console.log("incorrect user!");
-        return res.status(400).json({ success: false, description: "authentication error" });
-    }
+            return res.status(404).json({ success: false, error: 'Playlist not found' });
+        }
+        console.log("Found list: " + JSON.stringify(list));
+        
+        // Allow viewing if playlist is published OR if user owns it
+        if (list.published) {
+            console.log("Published playlist - allowing view");
+            return res.status(200).json({ success: true, playlist: list })
+        }
+        
+        const user = await dbManager.getUserByEmail(list.ownerEmail);
+        console.log("user.id: " + (user.id || user._id));
+        console.log("req.userId: " + req.userId);
+        
+        if ((user.id || user._id) == req.userId) {
+            console.log("correct user!");
+            return res.status(200).json({ success: true, playlist: list })
+        } else {
+            console.log("incorrect user - unpublished playlist!");
+            return res.status(403).json({ 
+                success: false, 
+                errorMessage: "You don't have permission to view this unpublished playlist" 
+            });
+        }
 
     }
-    catch (err) { console.error(err); 
-        return res.status(400).json({ success: false, error: err }); }
-    // console.log("Find Playlist with id: " + JSON.stringify(req.params.id));
-
-    // await Playlist.findById({ _id: req.params.id }, (err, list) => {
-    //     if (err) {
-    //         return res.status(400).json({ success: false, error: err });
-    //     }
-    //     console.log("Found list: " + JSON.stringify(list));
-
-    //     // DOES THIS LIST BELONG TO THIS USER?
-    //     async function asyncFindUser(list) {
-    //         await User.findOne({ email: list.ownerEmail }, (err, user) => {
-    //             console.log("user._id: " + user._id);
-    //             console.log("req.userId: " + req.userId);
-    //             if (user._id == req.userId) {
-    //                 console.log("correct user!");
-    //                 return res.status(200).json({ success: true, playlist: list })
-    //             }
-    //             else {
-    //                 console.log("incorrect user!");
-    //                 return res.status(400).json({ success: false, description: "authentication error" });
-    //             }
-    //         });
-    //     }
-    //     asyncFindUser(list);
-    // }).catch(err => console.log(err))
+    catch (err) { 
+        console.error(err); 
+        return res.status(400).json({ success: false, error: err.message }); 
+    }
 }
 getPlaylistPairs = async (req, res) => {
     if(auth.verifyUser(req) === null){
-        return res.status(400).json({
+        return res.status(401).json({
             errorMessage: 'UNAUTHORIZED'
         })
     }
@@ -178,9 +158,10 @@ getPlaylistPairs = async (req, res) => {
         const playlists = await dbManager.getPlaylistsByOwnerEmail(user.email);
         console.log("found Playlists: " + JSON.stringify(playlists));
         
+        // Return empty array instead of 404 if no playlists
         if (!playlists || playlists.length === 0) {
-            console.log("!playlists.length");
-            return res.status(404).json({ success: false, error: 'Playlists not found' })
+            console.log("No playlists found - returning empty array");
+            return res.status(200).json({ success: true, idNamePairs: [] })
         }
         
         console.log("Send the Playlist pairs");
@@ -189,7 +170,13 @@ getPlaylistPairs = async (req, res) => {
             let list = playlists[key];
             let pair = {
                 _id: list.id || list._id,
-                name: list.name
+                name: list.name,
+                ownerEmail: list.ownerEmail,
+                ownerUsername: list.ownerUsername,
+                published: list.published,
+                likes: list.likes || 0,
+                dislikes: list.dislikes || 0,
+                listens: list.listens || 0
             };
             pairs.push(pair);
         }
@@ -197,42 +184,33 @@ getPlaylistPairs = async (req, res) => {
         
     } catch (err) {
         console.log(err);
-        return res.status(400).json({ success: false, error: err })
+        return res.status(400).json({ success: false, error: err.message })
     }
 }
 getPlaylists = async (req, res) => {
     if(auth.verifyUser(req) === null){
-        return res.status(400).json({
+        return res.status(401).json({
             errorMessage: 'UNAUTHORIZED'
         })
     }
     try{
         const playlists = await dbManager.getAllPlaylists();
     
-    if (!playlists || playlists.length === 0) {
-        return res.status(404).json({ success: false, error: `Playlists not found` })
+        // Return empty array instead of 404 if no playlists
+        if (!playlists || playlists.length === 0) {
+            return res.status(200).json({ success: true, data: [] })
+        }
+        
+        return res.status(200).json({ success: true, data: playlists })
+
+    }catch (err) { 
+        console.error(err);
+        return res.status(400).json({ success: false, error: err.message }) 
     }
-    
-    return res.status(200).json({ success: true, data: playlists })
-
-    }catch (err) { console.error(err);
-         return res.status(400).json({ success: false, error: err }) }
-
-    // await Playlist.find({}, (err, playlists) => {
-    //     if (err) {
-    //         return res.status(400).json({ success: false, error: err })
-    //     }
-    //     if (!playlists.length) {
-    //         return res
-    //             .status(404)
-    //             .json({ success: false, error: `Playlists not found` })
-    //     }
-    //     return res.status(200).json({ success: true, data: playlists })
-    // }).catch(err => console.log(err))
 }
 updatePlaylist = async (req, res) => {
     if(auth.verifyUser(req) === null){
-        return res.status(400).json({
+        return res.status(401).json({
             errorMessage: 'UNAUTHORIZED'
         })
     }
@@ -282,12 +260,15 @@ updatePlaylist = async (req, res) => {
         }
         else {
             console.log("incorrect user!");
-            return res.status(400).json({ success: false, description: "authentication error" });
+            return res.status(403).json({ 
+                success: false, 
+                errorMessage: "You don't have permission to update this playlist" 
+            });
         }
     } catch (error) {
         console.log("FAILURE: " + JSON.stringify(error));
         return res.status(404).json({
-            error,
+            error: error.message,
             message: 'Playlist not updated!',
         })
     }
@@ -295,7 +276,7 @@ updatePlaylist = async (req, res) => {
 
 publishPlaylist = async (req, res) => {
     if(auth.verifyUser(req) === null){
-        return res.status(400).json({
+        return res.status(401).json({
             errorMessage: 'UNAUTHORIZED'
         })
     }
@@ -335,13 +316,14 @@ publishPlaylist = async (req, res) => {
         console.error(error);
         return res.status(400).json({
             errorMessage: 'Error publishing playlist',
+            error: error.message
         })
     }
 }
 
 likePlaylist = async (req, res) => {
     if(auth.verifyUser(req) === null){
-        return res.status(400).json({
+        return res.status(401).json({
             errorMessage: 'UNAUTHORIZED'
         })
     }
@@ -369,13 +351,14 @@ likePlaylist = async (req, res) => {
         console.error(error);
         return res.status(400).json({
             errorMessage: 'Error liking playlist',
+            error: error.message
         })
     }
 }
 
 dislikePlaylist = async (req, res) => {
     if(auth.verifyUser(req) === null){
-        return res.status(400).json({
+        return res.status(401).json({
             errorMessage: 'UNAUTHORIZED'
         })
     }
@@ -403,18 +386,25 @@ dislikePlaylist = async (req, res) => {
         console.error(error);
         return res.status(400).json({
             errorMessage: 'Error disliking playlist',
+            error: error.message
         })
     }
 }
 
 addComment = async (req, res) => {
     if(auth.verifyUser(req) === null){
-        return res.status(400).json({
+        return res.status(401).json({
             errorMessage: 'UNAUTHORIZED'
         })
     }
 
     try {
+        if (!req.body.comment) {
+            return res.status(400).json({
+                errorMessage: 'Comment text required',
+            })
+        }
+
         const playlist = await dbManager.getPlaylistById(req.params.id);
         
         if (!playlist) {
@@ -444,13 +434,14 @@ addComment = async (req, res) => {
         console.error(error);
         return res.status(400).json({
             errorMessage: 'Error adding comment',
+            error: error.message
         })
     }
 }
 
 deleteComment = async (req, res) => {
     if(auth.verifyUser(req) === null){
-        return res.status(400).json({
+        return res.status(401).json({
             errorMessage: 'UNAUTHORIZED'
         })
     }
@@ -491,17 +482,17 @@ deleteComment = async (req, res) => {
         console.error(error);
         return res.status(400).json({
             errorMessage: 'Error deleting comment',
+            error: error.message
         })
     }
 }
 
 incrementListens = async (req, res) => {
     if(auth.verifyUser(req) === null){
-        return res.status(400).json({
+        return res.status(401).json({
             errorMessage: 'UNAUTHORIZED'
         })
     }
-
 
     try {
         const playlist = await dbManager.getPlaylistById(req.params.id);
@@ -524,13 +515,14 @@ incrementListens = async (req, res) => {
         console.error(error);
         return res.status(400).json({
             errorMessage: 'Error incrementing listens',
+            error: error.message
         })
     }
 }
 
 getPublishedPlaylists = async (req, res) => {
     if(auth.verifyUser(req) === null){
-        return res.status(400).json({
+        return res.status(401).json({
             errorMessage: 'UNAUTHORIZED'
         })
     }
@@ -546,13 +538,14 @@ getPublishedPlaylists = async (req, res) => {
         console.error(error);
         return res.status(400).json({
             errorMessage: 'Error fetching published playlists',
+            error: error.message
         })
     }
 }
 
 searchPlaylists = async (req, res) => {
     if(auth.verifyUser(req) === null){
-        return res.status(400).json({
+        return res.status(401).json({
             errorMessage: 'UNAUTHORIZED'
         })
     }
@@ -565,12 +558,27 @@ searchPlaylists = async (req, res) => {
             })
         }
         const allPlaylists = await dbManager.getAllPlaylists();
-        const results = allPlaylists.filter(p => 
-            p.published && (
-                p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                p.ownerUsername.toLowerCase().includes(searchQuery.toLowerCase())
-            )
-        );
+        const results = allPlaylists.filter(p => {
+            if (!p.published) return false;
+            
+            const query = searchQuery.toLowerCase();
+            
+            // Search in playlist name and owner username
+            if (p.name.toLowerCase().includes(query) || 
+                p.ownerUsername.toLowerCase().includes(query)) {
+                return true;
+            }
+            
+            // Search in song titles and artists
+            if (p.songs && p.songs.length > 0) {
+                return p.songs.some(song => 
+                    (song.title && song.title.toLowerCase().includes(query)) ||
+                    (song.artist && song.artist.toLowerCase().includes(query))
+                );
+            }
+            
+            return false;
+        });
         
         return res.status(200).json({ 
             success: true, 
@@ -580,13 +588,14 @@ searchPlaylists = async (req, res) => {
         console.error(error);
         return res.status(400).json({
             errorMessage: 'Error searching playlists',
+            error: error.message
         })
     }
 }
 
 getPlaylistsByUsername = async (req, res) => {
     if(auth.verifyUser(req) === null){
-        return res.status(400).json({
+        return res.status(401).json({
             errorMessage: 'UNAUTHORIZED'
         })
     }
@@ -607,6 +616,7 @@ getPlaylistsByUsername = async (req, res) => {
         console.error(error);
         return res.status(400).json({
             errorMessage: 'Error fetching user playlists',
+            error: error.message
         })
     }
 } 
