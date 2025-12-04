@@ -332,9 +332,14 @@ function GlobalStoreContextProvider(props) {
     // THIS FUNCTION LOADS ALL THE ID, NAME PAIRS SO WE CAN LIST ALL THE LISTS
     store.loadIdNamePairs = function () {
         async function asyncLoadIdNamePairs() {
-            const response = await storeRequestSender.getPlaylistPairs();
+            let response;
+            if (auth.isGuest) {
+                response = await storeRequestSender.getPublishedPlaylists();
+            } else {
+                response = await storeRequestSender.getPlaylistPairs();
+            }
             if (response.data.success) {
-                let pairsArray = response.data.idNamePairs;
+                let pairsArray = response.data.idNamePairs || response.data.data;
                 console.log(pairsArray);
                 storeReducer({
                     type: GlobalStoreActionType.LOAD_ID_NAME_PAIRS,
@@ -347,7 +352,6 @@ function GlobalStoreContextProvider(props) {
         }
         asyncLoadIdNamePairs();
     }
-
     // THE FOLLOWING 5 FUNCTIONS ARE FOR COORDINATING THE DELETION
     // OF A LIST, WHICH INCLUDES USING A VERIFICATION MODAL. THE
     // FUNCTIONS ARE markListForDeletion, deleteList, deleteMarkedList,

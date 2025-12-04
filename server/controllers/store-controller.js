@@ -98,12 +98,6 @@ deletePlaylist = async (req, res) => {
 }
 }
 getPlaylistById = async (req, res) => {
-    if(auth.verifyUser(req) === null){
-        return res.status(401).json({
-            errorMessage: 'UNAUTHORIZED'
-        })
-    }
-
     try{
         const list = await dbManager.getPlaylistById(req.params.id);
         if (!list) {
@@ -111,10 +105,16 @@ getPlaylistById = async (req, res) => {
         }
         console.log("Found list: " + JSON.stringify(list));
         
-        // Allow viewing if playlist is published OR if user owns it
         if (list.published) {
             console.log("Published playlist - allowing view");
             return res.status(200).json({ success: true, playlist: list })
+        }
+        
+        if(auth.verifyUser(req) === null){
+            return res.status(403).json({
+                success: false,
+                errorMessage: 'You must be logged in to view unpublished playlists'
+            })
         }
         
         const user = await dbManager.getUserByEmail(list.ownerEmail);
@@ -488,17 +488,17 @@ deleteComment = async (req, res) => {
 }
 
 incrementListens = async (req, res) => {
-    if(auth.verifyUser(req) === null){
-        return res.status(401).json({
-            errorMessage: 'UNAUTHORIZED'
-        })
-    }
-
     try {
         const playlist = await dbManager.getPlaylistById(req.params.id);
         if (!playlist) {
             return res.status(404).json({
                 errorMessage: 'Playlist not found',
+            })
+        }
+
+        if (!playlist.published) {
+            return res.status(403).json({
+                errorMessage: 'Cannot increment listens on unpublished playlist',
             })
         }
 
@@ -521,12 +521,6 @@ incrementListens = async (req, res) => {
 }
 
 getPublishedPlaylists = async (req, res) => {
-    if(auth.verifyUser(req) === null){
-        return res.status(401).json({
-            errorMessage: 'UNAUTHORIZED'
-        })
-    }
-
     try {
         const allPlaylists = await dbManager.getAllPlaylists();
         const publishedPlaylists = allPlaylists.filter(p => p.published === true);

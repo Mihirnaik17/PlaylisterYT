@@ -22,7 +22,7 @@ app.use(cookieParser())
 const authRouter = require('./routes/auth-router')
 app.use('/auth', authRouter)
 const storeRouter = require('./routes/store-router')
-app.use('/store', storeRouter)
+app.use('/api', storeRouter)
 
 // INITIALIZE OUR DATABASE OBJECT
 const db = require('./db')

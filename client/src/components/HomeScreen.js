@@ -4,6 +4,8 @@ import { GlobalStoreContext } from '../store'
 import AuthContext from '../auth'
 import PlaylistCard from './PlaylistCard.js'
 import MUIDeleteModal from './MUIDeleteModal'
+import MUIEditPlaylistModal from './MUIEditPlaylistModal'
+import MUIPlayPlaylistModal from './MUIPlayPlaylistModal'
 import NavigationBar from './NavigationBar'
 
 import AddIcon from '@mui/icons-material/Add';
@@ -35,10 +37,6 @@ const HomeScreen = () => {
         store.loadIdNamePairs();
     }, []);
 
-    useEffect(() => {
-        store.loadIdNamePairs();
-    }, []);
-
     useEffect(() => {   
         if (store.idNamePairs) {
         setFilteredPlaylists(store.idNamePairs);
@@ -54,12 +52,36 @@ const HomeScreen = () => {
 
         if(searchName){
             filtered = filtered.filter(pair => pair.name.toLowerCase().includes(searchName.toLowerCase()));
-
         }
 
         if(searchUser){
             filtered = filtered.filter(pair=> pair.ownerEmail && pair.ownerEmail.toLowerCase().includes(searchUser.toLowerCase()));
         }
+
+        if(searchSongTitle){
+            filtered = filtered.filter(pair => 
+                pair.songs && pair.songs.some(song => 
+                    song.title.toLowerCase().includes(searchSongTitle.toLowerCase())
+                )
+            );
+        }
+
+        if(searchArtist){
+            filtered = filtered.filter(pair => 
+                pair.songs && pair.songs.some(song => 
+                    song.artist.toLowerCase().includes(searchArtist.toLowerCase())
+                )
+            );
+        }
+
+        if(searchYear){
+            filtered = filtered.filter(pair => 
+                pair.songs && pair.songs.some(song => 
+                    song.year.toString().includes(searchYear)
+                )
+            );
+        }
+
         setFilteredPlaylists(filtered);
     }
 
@@ -99,16 +121,16 @@ const HomeScreen = () => {
             sorted.sort((a, b) => (b.ownerEmail || '').localeCompare(a.ownerEmail || ''));
             break;
         case 'Listeners (Hi-Lo)':
+            sorted.sort((a, b) => (b.listens || 0) - (a.listens || 0));
             break;
         case 'Listeners (Lo-Hi)':
+            sorted.sort((a, b) => (a.listens || 0) - (b.listens || 0));
             break;
         default:
             break;
         }
 
         setFilteredPlaylists(sorted);
-
-
     }
 
     let listCard = "";
@@ -147,7 +169,6 @@ const HomeScreen = () => {
                             )
                         }}
                     />
-
 
                     <TextField
                         fullWidth
@@ -199,7 +220,6 @@ const HomeScreen = () => {
                             )
                         }}
                     />
-
 
                     <TextField
                         fullWidth
@@ -304,6 +324,8 @@ const HomeScreen = () => {
                 </Box>
             </Box>
             <MUIDeleteModal />
+            <MUIEditPlaylistModal />
+            <MUIPlayPlaylistModal />
         </Box>
     );
 }

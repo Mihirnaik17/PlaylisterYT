@@ -120,17 +120,17 @@ function AuthContextProvider(props) {
 
     auth.loginUser = async function(email, password) {
         try{
-            const response = await authRequestSender.loginUser(email, password);
-            if (response.status === 200) {
-                authReducer({
-                    type: AuthActionType.LOGIN_USER,
-                    payload: {
-                        user: response.data.user,
-                        loggedIn: true,
+            const data = await authRequestSender.loginUser(email, password); 
+            if (data.data && data.data.success) {  
+               authReducer({
+                   type: AuthActionType.LOGIN_USER,
+                   payload: {
+                       user: data.data.user,  
+                       loggedIn: true,
                         errorMessage: null
                     }
                 })
-                history.push("/");
+                history.push("/home");
             }
         } catch(error){
             authReducer({
@@ -138,12 +138,12 @@ function AuthContextProvider(props) {
                 payload: {
                     user: auth.user,
                     loggedIn: false,
-                    errorMessage: error.response.data.errorMessage
+                    errorMessage: error.response?.data?.errorMessage || error.message 
                 }
             })
         }
     }
-
+    
     auth.logoutUser = async function() {
         const response = await authRequestSender.logoutUser();
         if (response.status === 200) {
@@ -170,7 +170,7 @@ function AuthContextProvider(props) {
             type: AuthActionType.GUEST_MODE,
             payload: null
         })
-        history.push("/");
+        history.push("/home");
     }
 
     return (
