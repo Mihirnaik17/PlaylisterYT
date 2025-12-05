@@ -34,8 +34,10 @@ export default function NavigationBar() {
     };
 
     const handleHomeClick = () => {
-        if (auth.loggedIn || auth.isGuest) {
+        if (auth.isGuest) {
             history.push('/');
+        } else if (auth.loggedIn) {
+            history.push('/home');
         } else {
             history.push('/');
         }
@@ -67,7 +69,7 @@ export default function NavigationBar() {
 
                 <Button
                     variant="contained"
-                    onClick={() => history.push('/playlists')}
+                    onClick={() => history.push('/home')}  
                     sx={{
                         bgcolor: '#333',
                         color: '#fff',
@@ -81,7 +83,7 @@ export default function NavigationBar() {
 
                 <Button
                     variant="contained"
-                    onClick={() => history.push('/songs')}
+                    onClick={() => history.push('/songs')} 
                     sx={{
                         bgcolor: '#1976d2',
                         color: '#fff',

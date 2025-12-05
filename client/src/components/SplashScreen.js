@@ -13,6 +13,8 @@ import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Typography from '@mui/material/Typography';
 
+
+
 export default function SplashScreen() {
     const { auth } = useContext(AuthContext);
     const history = useHistory();

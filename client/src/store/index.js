@@ -8,6 +8,8 @@ import RemoveSong_Transaction from '../transactions/RemoveSong_Transaction'
 import UpdateSong_Transaction from '../transactions/UpdateSong_Transaction'
 import AuthContext from '../auth'
 
+import songApi from './SongRequests'
+
 /*
     This is our global data store. Note that it uses the Flux design pattern,
     which makes use of things like actions and reducers. 
@@ -33,7 +35,11 @@ export const GlobalStoreActionType = {
     REMOVE_SONG: "REMOVE_SONG",
     HIDE_MODALS: "HIDE_MODALS",
     OPEN_EDIT_PLAYLIST_MODAL: "OPEN_EDIT_PLAYLIST_MODAL",
-    OPEN_PLAY_PLAYLIST_MODAL: "OPEN_PLAY_PLAYLIST_MODAL"
+    OPEN_PLAY_PLAYLIST_MODAL: "OPEN_PLAY_PLAYLIST_MODAL",
+
+    LOAD_SONGS: "LOAD_SONGS",
+    SET_CURRENT_SONG: "SET_CURRENT_SONG",
+    MARK_SONG_FOR_DELETION: "MARK_SONG_FOR_DELETION",
 }
 
 // WE'LL NEED THIS TO PROCESS TRANSACTIONS
@@ -61,7 +67,13 @@ function GlobalStoreContextProvider(props) {
         newListCounter: 0,
         listNameActive: false,
         listIdMarkedForDeletion: null,
-        listMarkedForDeletion: null
+        listMarkedForDeletion: null,
+
+
+        // for song catalog 
+        songs: [],              
+        currentSong: null,      
+        songIdMarkedForDeletion: null,  
     });
     const history = useHistory();
 
@@ -240,6 +252,54 @@ function GlobalStoreContextProvider(props) {
                     listMarkedForDeletion: null
                 });
             }
+            case GlobalStoreActionType.LOAD_SONGS: {
+                return setStore({
+                currentModal : CurrentModal.NONE,
+                idNamePairs: store.idNamePairs,
+                currentList: store.currentList,
+                currentSongIndex: -1,
+                currentSong: null,
+                newListCounter: store.newListCounter,
+                listNameActive: false,
+                listIdMarkedForDeletion: null,
+                listMarkedForDeletion: null,
+                songs: payload,  
+                songIdMarkedForDeletion: null,
+                });
+            }
+            case GlobalStoreActionType.SET_CURRENT_SONG: {
+                return setStore({
+                currentModal : CurrentModal.NONE,
+                idNamePairs: store.idNamePairs,
+                currentList: store.currentList,
+                currentSongIndex: store.currentSongIndex,
+                currentSong: payload, 
+                newListCounter: store.newListCounter,
+                listNameActive: false,
+                listIdMarkedForDeletion: null,
+                listMarkedForDeletion: null,
+                songs: store.songs,
+                songIdMarkedForDeletion: null,
+                });
+            }
+            case GlobalStoreActionType.MARK_SONG_FOR_DELETION: {
+                return setStore({
+                currentModal : CurrentModal.REMOVE_SONG, 
+                idNamePairs: store.idNamePairs,
+                currentList: store.currentList,
+                currentSongIndex: store.currentSongIndex,
+                currentSong: store.currentSong,
+                newListCounter: store.newListCounter,
+                listNameActive: false,
+                listIdMarkedForDeletion: null,
+                listMarkedForDeletion: null,
+                songs: store.songs,
+                songIdMarkedForDeletion: payload,  
+                });
+            }
+
+
+
             default:
                 return store;
         }
@@ -707,6 +767,75 @@ function GlobalStoreContextProvider(props) {
             type: GlobalStoreActionType.SET_LIST_NAME_EDIT_ACTIVE,
             payload: null
         });
+    }
+    store.loadSongs = async function(searchParams = {}) {
+    try {
+        const response = await songApi.getAllSongs(searchParams);
+        if (response.data.success) {
+            storeReducer({
+                type: GlobalStoreActionType.LOAD_SONGS,
+                payload: response.data.songs
+            });
+        }
+    } catch (error) {
+        console.error("Error loading songs:", error);
+    }
+    }
+
+    store.createSong = async function(songData) {
+    try {
+        const response = await songApi.createSong(songData);
+        if (response.data.success) {
+            // Reload songs after creating
+            await store.loadSongs();
+        }
+        return response;
+    } catch (error) {
+        console.error("Error creating song:", error);
+        throw error;
+    }
+    }
+
+    store.updateSong = async function(id, songData) {
+    try {
+        const response = await songApi.updateSong(id, songData);
+        if (response.data.success) {
+            // Reload songs after updating
+            await store.loadSongs();
+        }
+        return response;
+    } catch (error) {
+        console.error("Error updating song:", error);
+        throw error;
+    }
+    }
+    
+    store.markSongForDeletion = function(songId) {
+    storeReducer({
+        type: GlobalStoreActionType.MARK_SONG_FOR_DELETION,
+        payload: songId
+    });
+    }
+
+    store.deleteSong = async function(id) {
+    try {
+        const response = await songApi.deleteSong(id);
+        if (response.data.success) {
+            // Reload songs after deleting
+            await store.loadSongs();
+        }
+        return response;
+    } catch (error) {
+        console.error("Error deleting song:", error);
+        throw error;
+    }
+    }
+
+    store.setCurrentSong = function(song) {
+    storeReducer({
+        type: GlobalStoreActionType.SET_CURRENT_SONG,
+        payload: song
+    });
     }
 
     function KeyPress(event) {

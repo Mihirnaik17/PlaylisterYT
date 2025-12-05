@@ -26,7 +26,7 @@ function PlaylistCard(props) {
 
     function handleToggleEdit(event) {
         event.stopPropagation();
-        toggleEdit();
+        store.openEditPlaylistModal(idNamePair._id);
     }
 
     function toggleEdit() {
@@ -50,7 +50,7 @@ function PlaylistCard(props) {
 
     function handlePlayPlaylist(event) {
         event.stopPropagation();
-        console.log('Play playlist');
+        store.openPlayPlaylistModal(idNamePair._id);
     }
 
     function handleKeyPress(event) {
