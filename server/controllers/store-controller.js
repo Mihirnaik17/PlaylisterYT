@@ -1,5 +1,8 @@
 const auth = require('../auth');
 const dbManager = require('../db');
+const jwt = require('jsonwebtoken');
+require('dotenv').config();
+
 /*
     This is our back-end API. It provides all the data services
     our database needs. Note that this file contains the controller
@@ -23,7 +26,6 @@ createPlaylist = async (req, res) => {
         })
     }
     
-    // Get user to add username to playlist
     const user = await dbManager.getUserById(req.userId);
     if (!user) {
         return res.status(404).json({
@@ -31,12 +33,11 @@ createPlaylist = async (req, res) => {
         })
     }
     
-    // Ensure playlist has all required fields with defaults
     const playlistData = {
         ...body,
         ownerEmail: user.email,
         ownerUsername: user.username,
-        published: false,
+        //published: false,
         likes: 0,
         dislikes: 0,
         listens: 0,
@@ -85,7 +86,7 @@ deletePlaylist = async (req, res) => {
     if ((user.id || user._id) == req.userId) {
         console.log("correct user!");
         await dbManager.deletePlaylist(req.params.id);
-        return res.status(200).json({});
+        return res.status(200).json({ success: true });
     } else {
         console.log("incorrect user!");
         return res.status(403).json({ 
@@ -107,22 +108,32 @@ getPlaylistById = async (req, res) => {
         
         if (list.published) {
             console.log("Published playlist - allowing view");
+            await dbManager.updatePlaylist(req.params.id, { lastAccessed: new Date() });
             return res.status(200).json({ success: true, playlist: list })
         }
         
-        if(auth.verifyUser(req) === null){
+        if (!req.userId) {
             return res.status(403).json({
                 success: false,
                 errorMessage: 'You must be logged in to view unpublished playlists'
             })
         }
         
-        const user = await dbManager.getUserByEmail(list.ownerEmail);
-        console.log("user.id: " + (user.id || user._id));
-        console.log("req.userId: " + req.userId);
+        const user = await dbManager.getUserById(req.userId);
+        if (!user) {
+            return res.status(401).json({
+                success: false,
+                errorMessage: 'User not authenticated'
+            })
+        }
         
-        if ((user.id || user._id) == req.userId) {
+        console.log("user._id: " + (user.id || user._id));
+        console.log("list.ownerEmail: " + list.ownerEmail);
+        console.log("user.email: " + user.email);
+        
+        if (list.ownerEmail === user.email) {
             console.log("correct user!");
+            await dbManager.updatePlaylist(req.params.id, { lastAccessed: new Date() });
             return res.status(200).json({ success: true, playlist: list })
         } else {
             console.log("incorrect user - unpublished playlist!");
@@ -158,7 +169,6 @@ getPlaylistPairs = async (req, res) => {
         const playlists = await dbManager.getPlaylistsByOwnerEmail(user.email);
         console.log("found Playlists: " + JSON.stringify(playlists));
         
-        // Return empty array instead of 404 if no playlists
         if (!playlists || playlists.length === 0) {
             console.log("No playlists found - returning empty array");
             return res.status(200).json({ success: true, idNamePairs: [] })
@@ -176,7 +186,8 @@ getPlaylistPairs = async (req, res) => {
                 published: list.published,
                 likes: list.likes || 0,
                 dislikes: list.dislikes || 0,
-                listens: list.listens || 0
+                listens: list.listens || 0,
+                lastAccessed: list.lastAccessed
             };
             pairs.push(pair);
         }
@@ -196,7 +207,6 @@ getPlaylists = async (req, res) => {
     try{
         const playlists = await dbManager.getAllPlaylists();
     
-        // Return empty array instead of 404 if no playlists
         if (!playlists || playlists.length === 0) {
             return res.status(200).json({ success: true, data: [] })
         }
@@ -235,7 +245,6 @@ updatePlaylist = async (req, res) => {
             })
         }
 
-        // DOES THIS LIST BELONG TO THIS USER?
         const user = await dbManager.getUserByEmail(playlist.ownerEmail);
         console.log("user._id: " + (user.id || user._id));
         console.log("req.userId: " + req.userId);
@@ -245,16 +254,17 @@ updatePlaylist = async (req, res) => {
             console.log("req.body.name: " + req.body.name);
 
             const updateData = {
-                name: body.playlist.name,
-                songs: body.playlist.songs
+                name: body.name,
+                songs: body.songs,
+                lastAccessed: new Date()
             };
             
-            await dbManager.updatePlaylist(req.params.id, updateData);
+            const updatedPlaylist = await dbManager.updatePlaylist(req.params.id, updateData);
             
             console.log("SUCCESS!!!");
             return res.status(200).json({
                 success: true,
-                id: playlist.id || playlist._id,
+                playlist: updatedPlaylist,
                 message: 'Playlist updated!',
             })
         }
@@ -497,9 +507,17 @@ incrementListens = async (req, res) => {
         }
 
         if (!playlist.published) {
-            return res.status(403).json({
-                errorMessage: 'Cannot increment listens on unpublished playlist',
-            })
+            if (!req.userId) {
+                return res.status(403).json({
+                    errorMessage: 'Cannot increment listens on unpublished playlist',
+                })
+            }
+            const user = await dbManager.getUserById(req.userId);
+            if (playlist.ownerEmail !== user.email) {
+                return res.status(403).json({
+                    errorMessage: 'Cannot increment listens on unpublished playlist',
+                })
+            }
         }
 
         const updateData = {
@@ -557,13 +575,11 @@ searchPlaylists = async (req, res) => {
             
             const query = searchQuery.toLowerCase();
             
-            // Search in playlist name and owner username
             if (p.name.toLowerCase().includes(query) || 
                 p.ownerUsername.toLowerCase().includes(query)) {
                 return true;
             }
             
-            // Search in song titles and artists
             if (p.songs && p.songs.length > 0) {
                 return p.songs.some(song => 
                     (song.title && song.title.toLowerCase().includes(query)) ||
@@ -615,6 +631,90 @@ getPlaylistsByUsername = async (req, res) => {
     }
 } 
 
+addSongToPlaylist = async (req, res) => {
+    if(auth.verifyUser(req) === null){
+        return res.status(401).json({
+            errorMessage: 'UNAUTHORIZED'
+        })
+    }
+    
+    try {
+        const { id } = req.params;
+        const { songId } = req.body;
+        
+        const playlist = await dbManager.getPlaylistById(id);
+        if (!playlist) {
+            return res.status(404).json({
+                success: false,
+                error: 'Playlist not found'
+            });
+        }
+        
+        const user = await dbManager.getUserById(req.userId);
+        
+        if (playlist.ownerEmail !== user.email) {
+            return res.status(403).json({
+                success: false,
+                error: 'Not authorized to edit this playlist'
+            });
+        }
+        
+        const Song = require('../models/song-model');
+        const song = await Song.findById(songId);
+        
+        if (!song) {
+            return res.status(404).json({
+                success: false,
+                error: 'Song not found in catalog'
+            });
+        }
+        
+        const songExists = playlist.songs.some(s => 
+            s.title === song.title && 
+            s.artist === song.artist && 
+            s.year === song.year
+        );
+
+        if (songExists) {
+            return res.status(400).json({
+                success: false,
+                error: 'Song already in playlist'
+            });
+        }
+
+        playlist.songs.push({
+            title: song.title,
+            artist: song.artist,
+            year: song.year,
+            youTubeId: song.youTubeId
+        });
+
+        const updateData = {
+            songs: playlist.songs,
+            lastAccessed: new Date()
+        };
+        
+        await dbManager.updatePlaylist(id, updateData);
+
+        if (!song.playlists.includes(playlist._id)) {
+            song.playlists.push(playlist._id);
+            await song.save();
+        }
+
+        return res.status(200).json({
+            success: true,
+            playlist: playlist
+        });
+
+    } catch (error) {
+        console.error('Error adding song to playlist:', error);
+        return res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
+}
+
 
 module.exports = {
     createPlaylist,
@@ -631,5 +731,6 @@ module.exports = {
     incrementListens,
     getPublishedPlaylists,
     searchPlaylists,
-    getPlaylistsByUsername
+    getPlaylistsByUsername,
+    addSongToPlaylist
 }

@@ -28,6 +28,7 @@ export default function MUIEditPlaylistModal() {
 
     function handleClose() {
         store.closeCurrentList();
+        store.loadIdNamePairs();
     }
 
     function handleClearName() {
@@ -40,7 +41,8 @@ export default function MUIEditPlaylistModal() {
 
     function handleNameKeyPress(event) {
         if (event.code === "Enter" && playlistName.trim() !== '') {
-            store.changeListName(store.currentList._id, playlistName);
+            store.currentList.name = playlistName;
+            store.updateCurrentList();
         }
     }
 
@@ -62,6 +64,11 @@ export default function MUIEditPlaylistModal() {
     function handleRemoveSong(index) {
         let song = store.currentList.songs[index];
         store.addRemoveSongTransaction(song, index);
+    }
+
+    function handleEditSong(index) {
+        let song = store.currentList.songs[index];
+        store.showEditSongModal(index, song);
     }
 
     function handleUndo() {
@@ -92,7 +99,6 @@ export default function MUIEditPlaylistModal() {
                 borderRadius: 2,
                 outline: 'none'
             }}>
-                {/* Green Header */}
                 <Box sx={{
                     bgcolor: '#228B22',
                     color: 'white',
@@ -106,9 +112,7 @@ export default function MUIEditPlaylistModal() {
                     </Typography>
                 </Box>
 
-                {/* Modal Content */}
                 <Box sx={{ p: 2 }}>
-                    {/* Playlist Name Row */}
                     <Box sx={{ 
                         display: 'flex', 
                         alignItems: 'center', 
@@ -153,7 +157,6 @@ export default function MUIEditPlaylistModal() {
                         </Button>
                     </Box>
 
-                    {/* Songs List */}
                     <Box sx={{
                         bgcolor: '#FFF8DC',
                         borderRadius: 1,
@@ -166,6 +169,7 @@ export default function MUIEditPlaylistModal() {
                             {songs.map((song, index) => (
                                 <ListItem
                                     key={index}
+                                    onClick={() => handleEditSong(index)}
                                     sx={{
                                         bgcolor: 'white',
                                         border: '2px solid #333',
@@ -175,7 +179,11 @@ export default function MUIEditPlaylistModal() {
                                         px: 2,
                                         display: 'flex',
                                         justifyContent: 'space-between',
-                                        alignItems: 'center'
+                                        alignItems: 'center',
+                                        cursor: 'pointer',
+                                        '&:hover': {
+                                            bgcolor: '#f5f5f5'
+                                        }
                                     }}
                                 >
                                     <Typography sx={{ fontWeight: 500 }}>
@@ -183,14 +191,20 @@ export default function MUIEditPlaylistModal() {
                                     </Typography>
                                     <Box sx={{ display: 'flex', gap: 1 }}>
                                         <IconButton 
-                                            onClick={() => handleDuplicateSong(index)}
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                handleDuplicateSong(index);
+                                            }}
                                             size="small"
                                             sx={{ color: '#333' }}
                                         >
                                             <ContentCopyIcon />
                                         </IconButton>
                                         <IconButton 
-                                            onClick={() => handleRemoveSong(index)}
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                handleRemoveSong(index);
+                                            }}
                                             size="small"
                                             sx={{ color: '#333' }}
                                         >
@@ -202,7 +216,6 @@ export default function MUIEditPlaylistModal() {
                         </List>
                     </Box>
 
-                    {/* Bottom Buttons */}
                     <Box sx={{ 
                         display: 'flex', 
                         justifyContent: 'space-between',

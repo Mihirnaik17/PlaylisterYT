@@ -40,6 +40,7 @@ export const GlobalStoreActionType = {
     LOAD_SONGS: "LOAD_SONGS",
     SET_CURRENT_SONG: "SET_CURRENT_SONG",
     MARK_SONG_FOR_DELETION: "MARK_SONG_FOR_DELETION",
+    CREATE_SONG_MODAL: "CREATE_SONG_MODAL",
 }
 
 // WE'LL NEED THIS TO PROCESS TRANSACTIONS
@@ -51,7 +52,9 @@ const CurrentModal = {
     EDIT_SONG : "EDIT_SONG",
     EDIT_PLAYLIST : "EDIT_PLAYLIST",
     PLAY_PLAYLIST : "PLAY_PLAYLIST",
-    ERROR : "ERROR"
+    ERROR : "ERROR",
+    REMOVE_SONG : "REMOVE_SONG",
+    CREATE_SONG : "CREATE_SONG"
 }
 
 // WITH THIS WE'RE MAKING OUR GLOBAL DATA STORE
@@ -72,7 +75,6 @@ function GlobalStoreContextProvider(props) {
 
         // for song catalog 
         songs: [],              
-        currentSong: null,      
         songIdMarkedForDeletion: null,  
     });
     const history = useHistory();
@@ -99,7 +101,9 @@ function GlobalStoreContextProvider(props) {
                     newListCounter: store.newListCounter,
                     listNameActive: false,
                     listIdMarkedForDeletion: null,
-                    listMarkedForDeletion: null
+                    listMarkedForDeletion: null,
+                    songs: store.songs,
+                    songIdMarkedForDeletion: null,
                 });
             }
             // STOP EDITING THE CURRENT LIST
@@ -113,7 +117,9 @@ function GlobalStoreContextProvider(props) {
                     newListCounter: store.newListCounter,
                     listNameActive: false,
                     listIdMarkedForDeletion: null,
-                    listMarkedForDeletion: null
+                    listMarkedForDeletion: null,
+                    songs: store.songs,
+                    songIdMarkedForDeletion: null,
                 })
             }
             // CREATE A NEW LIST
@@ -127,7 +133,9 @@ function GlobalStoreContextProvider(props) {
                     newListCounter: store.newListCounter + 1,
                     listNameActive: false,
                     listIdMarkedForDeletion: null,
-                    listMarkedForDeletion: null
+                    listMarkedForDeletion: null,
+                    songs: store.songs,
+                    songIdMarkedForDeletion: null,
                 })
             }
             // GET ALL THE LISTS SO WE CAN PRESENT THEM
@@ -141,7 +149,9 @@ function GlobalStoreContextProvider(props) {
                     newListCounter: store.newListCounter,
                     listNameActive: false,
                     listIdMarkedForDeletion: null,
-                    listMarkedForDeletion: null
+                    listMarkedForDeletion: null,
+                    songs: store.songs,
+                    songIdMarkedForDeletion: null,
                 });
             }
             // PREPARE TO DELETE A LIST
@@ -155,13 +165,15 @@ function GlobalStoreContextProvider(props) {
                     newListCounter: store.newListCounter,
                     listNameActive: false,
                     listIdMarkedForDeletion: payload.id,
-                    listMarkedForDeletion: payload.playlist
+                    listMarkedForDeletion: payload.playlist,
+                    songs: store.songs,
+                    songIdMarkedForDeletion: null,
                 });
             }
             // UPDATE A LIST
             case GlobalStoreActionType.SET_CURRENT_LIST: {
                 return setStore({
-                    currentModal : CurrentModal.NONE,
+                    currentModal : CurrentModal.EDIT_PLAYLIST,
                     idNamePairs: store.idNamePairs,
                     currentList: payload,
                     currentSongIndex: -1,
@@ -169,7 +181,9 @@ function GlobalStoreContextProvider(props) {
                     newListCounter: store.newListCounter,
                     listNameActive: false,
                     listIdMarkedForDeletion: null,
-                    listMarkedForDeletion: null
+                    listMarkedForDeletion: null,
+                    songs: store.songs,
+                    songIdMarkedForDeletion: null,
                 });
             }
             // START EDITING A LIST NAME
@@ -183,7 +197,9 @@ function GlobalStoreContextProvider(props) {
                     newListCounter: store.newListCounter,
                     listNameActive: true,
                     listIdMarkedForDeletion: null,
-                    listMarkedForDeletion: null
+                    listMarkedForDeletion: null,
+                    songs: store.songs,
+                    songIdMarkedForDeletion: null,
                 });
             }
             // 
@@ -197,7 +213,9 @@ function GlobalStoreContextProvider(props) {
                     newListCounter: store.newListCounter,
                     listNameActive: false,
                     listIdMarkedForDeletion: null,
-                    listMarkedForDeletion: null
+                    listMarkedForDeletion: null,
+                    songs: store.songs,
+                    songIdMarkedForDeletion: null,
                 });
             }
             case GlobalStoreActionType.REMOVE_SONG: {
@@ -210,7 +228,9 @@ function GlobalStoreContextProvider(props) {
                     newListCounter: store.newListCounter,
                     listNameActive: false,
                     listIdMarkedForDeletion: null,
-                    listMarkedForDeletion: null
+                    listMarkedForDeletion: null,
+                    songs: store.songs,
+                    songIdMarkedForDeletion: null,
                 });
             }
             case GlobalStoreActionType.HIDE_MODALS: {
@@ -223,7 +243,9 @@ function GlobalStoreContextProvider(props) {
                     newListCounter: store.newListCounter,
                     listNameActive: false,
                     listIdMarkedForDeletion: null,
-                    listMarkedForDeletion: null
+                    listMarkedForDeletion: null,
+                    songs: store.songs,
+                    songIdMarkedForDeletion: null,
                 });
             }
             case GlobalStoreActionType.OPEN_EDIT_PLAYLIST_MODAL: {
@@ -236,7 +258,9 @@ function GlobalStoreContextProvider(props) {
                     newListCounter: store.newListCounter,
                     listNameActive: false,
                     listIdMarkedForDeletion: null,
-                    listMarkedForDeletion: null
+                    listMarkedForDeletion: null,
+                    songs: store.songs,
+                    songIdMarkedForDeletion: null,
                 });
             }
             case GlobalStoreActionType.OPEN_PLAY_PLAYLIST_MODAL: {
@@ -249,7 +273,9 @@ function GlobalStoreContextProvider(props) {
                     newListCounter: store.newListCounter,
                     listNameActive: false,
                     listIdMarkedForDeletion: null,
-                    listMarkedForDeletion: null
+                    listMarkedForDeletion: null,
+                    songs: store.songs,
+                    songIdMarkedForDeletion: null,
                 });
             }
             case GlobalStoreActionType.LOAD_SONGS: {
@@ -295,6 +321,21 @@ function GlobalStoreContextProvider(props) {
                 listMarkedForDeletion: null,
                 songs: store.songs,
                 songIdMarkedForDeletion: payload,  
+                });
+            }
+            case GlobalStoreActionType.CREATE_SONG_MODAL: {
+                return setStore({
+                currentModal : CurrentModal.CREATE_SONG,
+                idNamePairs: store.idNamePairs,
+                currentList: store.currentList,
+                currentSongIndex: store.currentSongIndex,
+                currentSong: null,
+                newListCounter: store.newListCounter,
+                listNameActive: false,
+                listIdMarkedForDeletion: null,
+                listMarkedForDeletion: null,
+                songs: store.songs,
+                songIdMarkedForDeletion: null,
                 });
             }
 
@@ -368,27 +409,23 @@ function GlobalStoreContextProvider(props) {
     }
 
     // THIS FUNCTION CREATES A NEW LIST
-    store.createNewList = async function () {
-        let newListName = "Untitled" + store.newListCounter;
-        const response = await storeRequestSender.createPlaylist(newListName, [], auth.user.email);
-        console.log("createNewList response: " + response);
-        if (response.status === 201) {
-            tps.clearAllTransactions();
-            let newList = response.data.playlist;
-            storeReducer({
-                type: GlobalStoreActionType.CREATE_NEW_LIST,
-                payload: newList
-            }
-            );
-
-            // IF IT'S A VALID LIST THEN LET'S START EDITING IT
-            history.push("/playlist/" + (newList.id || newList._id));
-        }
-        else {
-            console.log("FAILED TO CREATE A NEW LIST");
-        }
+store.createNewList = async function () {
+    let newListName = "Untitled" + store.newListCounter;
+    const response = await storeRequestSender.createPlaylist(newListName, [], auth.user.email);
+    console.log("createNewList response: " + response);
+    if (response.status === 201) {
+        tps.clearAllTransactions();
+        let newList = response.data.playlist;
+        
+        storeReducer({
+            type: GlobalStoreActionType.OPEN_EDIT_PLAYLIST_MODAL,
+            payload: newList
+        });
     }
-
+    else {
+        console.log("FAILED TO CREATE A NEW LIST");
+    }
+}
     // THIS FUNCTION LOADS ALL THE ID, NAME PAIRS SO WE CAN LIST ALL THE LISTS
     store.loadIdNamePairs = function () {
         async function asyncLoadIdNamePairs() {
@@ -412,6 +449,26 @@ function GlobalStoreContextProvider(props) {
         }
         asyncLoadIdNamePairs();
     }
+    store.copyPlaylist = async function(playlistId) {
+    try {
+        const response = await storeRequestSender.getPlaylistById(playlistId);
+        if (response.data.success) {
+            const originalPlaylist = response.data.playlist;
+            const newName = "Copy of " + originalPlaylist.name;
+            const songs = originalPlaylist.songs || [];
+            
+            const createResponse = await storeRequestSender.createPlaylist(newName, songs, auth.user.email);
+            if (createResponse.status === 201) {
+                store.loadIdNamePairs();
+                return { success: true };
+            }
+        }
+        return { success: false };
+    } catch (error) {
+        console.error('Error copying playlist:', error);
+        return { success: false };
+    }
+}
     // THE FOLLOWING 5 FUNCTIONS ARE FOR COORDINATING THE DELETION
     // OF A LIST, WHICH INCLUDES USING A VERIFICATION MODAL. THE
     // FUNCTIONS ARE markListForDeletion, deleteList, deleteMarkedList,
@@ -432,9 +489,10 @@ function GlobalStoreContextProvider(props) {
     store.deleteList = function (id) {
         async function processDelete(id) {
             let response = await storeRequestSender.deletePlaylistById(id);
-            store.loadIdNamePairs();
+            //store.loadIdNamePairs();
             if (response.data.success) {
-                history.push("/");
+                //history.push("/");
+                store.loadIdNamePairs();
             }
         }
         processDelete(id);
@@ -452,6 +510,12 @@ function GlobalStoreContextProvider(props) {
             type: GlobalStoreActionType.EDIT_SONG,
             payload: {currentSongIndex: songIndex, currentSong: songToEdit}
         });        
+    }
+    store.showCreateSongModal = function() {
+        storeReducer({
+            type: GlobalStoreActionType.CREATE_SONG_MODAL,
+            payload: null
+        });
     }
     store.hideModals = () => {
         auth.errorMessage = null;
@@ -501,14 +565,18 @@ function GlobalStoreContextProvider(props) {
 
     store.openEditPlaylistModal = function (id) {
         async function asyncOpenEditPlaylistModal(id) {
-            let response = await storeRequestSender.getPlaylistById(id);
-            if (response.data.success) {
-                let playlist = response.data.playlist;
-                tps.clearAllTransactions();
-                storeReducer({
-                    type: GlobalStoreActionType.OPEN_EDIT_PLAYLIST_MODAL,
-                    payload: playlist
-                });
+            try {
+                let response = await storeRequestSender.getPlaylistById(id);
+                if (response.data.success) {
+                    let playlist = response.data.playlist;
+                    tps.clearAllTransactions();
+                    storeReducer({
+                        type: GlobalStoreActionType.OPEN_EDIT_PLAYLIST_MODAL,
+                        payload: playlist
+                    });
+                }
+            } catch (error) {
+                console.error("Error opening edit modal:", error);
             }
         }
         asyncOpenEditPlaylistModal(id);
@@ -634,9 +702,11 @@ function GlobalStoreContextProvider(props) {
     store.getPlaylistSize = function() {
         return store.currentList.songs.length;
     }
-    store.addNewSong = function() {
-        let index = this.getPlaylistSize();
-        this.addCreateSongTransaction(index, "Untitled", "?", new Date().getFullYear(), "dQw4w9WgXcQ");
+    // THIS FUNCTION ADDS A NEW SONG TO THE CURRENT PLAYLIST
+    store.addNewSong = () => {
+        let playlistSize = store.getPlaylistSize();
+        store.addCreateSongTransaction(
+            playlistSize, "Untitled", "?", new Date().getFullYear(), "dQw4w9WgXcQ");
     }
     // THIS FUNCTION CREATES A NEW SONG IN THE CURRENT LIST
     // USING THE PROVIDED DATA AND PUTS THIS SONG AT INDEX
@@ -679,8 +749,8 @@ function GlobalStoreContextProvider(props) {
         // NOW MAKE IT OFFICIAL
         store.updateCurrentList();
     }
-    // THIS FUNCTION UPDATES THE TEXT IN THE ITEM AT index TO text
-    store.updateSong = function(index, songData) {
+    // THIS FUNCTION UPDATES A SONG IN THE CURRENT PLAYLIST AT index
+    store.updatePlaylistSong = function(index, songData) {
         let list = store.currentList;
         let song = list.songs[index];
         song.title = songData.title;
@@ -690,11 +760,6 @@ function GlobalStoreContextProvider(props) {
 
         // NOW MAKE IT OFFICIAL
         store.updateCurrentList();
-    }
-    store.addNewSong = () => {
-        let playlistSize = store.getPlaylistSize();
-        store.addCreateSongTransaction(
-            playlistSize, "Untitled", "?", new Date().getFullYear(), "dQw4w9WgXcQ");
     }
     // THIS FUNCDTION ADDS A CreateSong_Transaction TO THE TRANSACTION STACK
     store.addCreateSongTransaction = (index, title, artist, year, youTubeId) => {
@@ -735,7 +800,7 @@ function GlobalStoreContextProvider(props) {
             const response = await storeRequestSender.updatePlaylistById(store.currentList.id || store.currentList._id, store.currentList);
             if (response.data.success) {
                 storeReducer({
-                    type: GlobalStoreActionType.SET_CURRENT_LIST,
+                    type: GlobalStoreActionType.OPEN_EDIT_PLAYLIST_MODAL,
                     payload: store.currentList
                 });
             }
@@ -768,6 +833,8 @@ function GlobalStoreContextProvider(props) {
             payload: null
         });
     }
+    
+    // SONG CATALOG FUNCTIONS
     store.loadSongs = async function(searchParams = {}) {
     try {
         const response = await songApi.getAllSongs(searchParams);
@@ -782,11 +849,10 @@ function GlobalStoreContextProvider(props) {
     }
     }
 
-    store.createSong = async function(songData) {
+    store.createCatalogSong = async function(songData) {
     try {
         const response = await songApi.createSong(songData);
         if (response.data.success) {
-            // Reload songs after creating
             await store.loadSongs();
         }
         return response;
@@ -796,11 +862,10 @@ function GlobalStoreContextProvider(props) {
     }
     }
 
-    store.updateSong = async function(id, songData) {
+    store.updateCatalogSong = async function(id, songData) {
     try {
         const response = await songApi.updateSong(id, songData);
         if (response.data.success) {
-            // Reload songs after updating
             await store.loadSongs();
         }
         return response;
@@ -817,11 +882,10 @@ function GlobalStoreContextProvider(props) {
     });
     }
 
-    store.deleteSong = async function(id) {
+    store.deleteCatalogSong = async function(id) {
     try {
         const response = await songApi.deleteSong(id);
         if (response.data.success) {
-            // Reload songs after deleting
             await store.loadSongs();
         }
         return response;
@@ -837,6 +901,20 @@ function GlobalStoreContextProvider(props) {
         payload: song
     });
     }
+
+    store.addSongToPlaylist = async function(playlistId, songId) {
+    try {
+        const response = await storeRequestSender.addSongToPlaylist(playlistId, songId);
+        if (response.data.success) {
+            store.loadIdNamePairs();
+            return { success: true };
+        }
+        return { success: false, error: response.data.error };
+    } catch (error) {
+        console.error('Error adding song to playlist:', error);
+        return { success: false, error: error.message };
+    }
+    }   
 
     function KeyPress(event) {
         if (!store.modalOpen && event.ctrlKey){

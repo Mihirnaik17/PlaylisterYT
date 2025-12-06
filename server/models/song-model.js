@@ -42,6 +42,13 @@ const songSchema = new Schema(
     },
     { timestamps: true }
 )
+
 songSchema.index( { title:1, artist: 1, year: 1 }, { unique: true })
+
+songSchema.index({ title: 1 });
+songSchema.index({ artist: 1 });
+songSchema.index({ year: -1 });
+songSchema.index({ listens: -1 });
+songSchema.index({ ownerEmail: 1 });
 
 module.exports = mongoose.model('Song', songSchema)

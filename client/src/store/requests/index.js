@@ -120,10 +120,6 @@ export const deletePlaylistById = async (id) => {
 }
 
 export const updatePlaylistById = async (id, playlist) => {
-
-    const payload = {
-        playlist: playlist
-    };
     try{
             const response = await fetch(`${baseURL}/playlist/${id}`,{
             method: 'PUT',
@@ -131,7 +127,7 @@ export const updatePlaylistById = async (id, playlist) => {
             headers: { 
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify(payload)
+            body: JSON.stringify(playlist)
             });
 
             const data = await handleresponse(response);
@@ -280,7 +276,26 @@ export const getPlaylistsByUsername = async (username) => {
     }
 }
 
-
+export const addSongToPlaylist = async (playlistId, songId) => {
+    const payload = {
+        songId: songId
+    };
+    try{
+        const response = await fetch(`${baseURL}/playlist/${playlistId}/add-song`,{
+            method: 'POST',
+            credentials: "include",
+            headers: { 
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(payload)
+        });
+        const data = await handleresponse(response);
+        return data;
+    } catch (error){
+        console.error(error);
+        throw error;
+    }
+}
 
 // export const deletePlaylistById = (id) => api.delete(`/playlist/${id}`)
 // export const getPlaylistById = (id) => api.get(`/playlist/${id}`)
@@ -291,6 +306,8 @@ export const getPlaylistsByUsername = async (username) => {
 //         playlist : playlist
 //     })
 // }
+
+
 
 const apis = {
     createPlaylist,
@@ -306,7 +323,8 @@ const apis = {
     incrementListens,
     getPublishedPlaylists,
     searchPlaylists,
-    getPlaylistsByUsername
+    getPlaylistsByUsername,
+    addSongToPlaylist
 }
 
 export default apis

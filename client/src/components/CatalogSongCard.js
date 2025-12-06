@@ -48,12 +48,62 @@ function CatalogSongCard(props) {
         handleMenuClose();
     };
     
-    const handleAddToSpecificPlaylist = (playlistId) => {
-        console.log(`Add song ${song._id} to playlist ${playlistId}`);
+    const handleAddToSpecificPlaylist = async (playlistId) => {
+        const result = await store.addSongToPlaylist(playlistId, song._id);
+        if (result.success) {
+            alert('Song added to playlist!');
+        } else {
+            if (result.error && result.error.includes('already in playlist')) {
+                alert('This song is already in that playlist!');
+            } else {
+                alert('Failed to add song: ' + (result.error || 'Unknown error'));
+            }
+        }
         handlePlaylistClose();
     };
-    
+
     const cardBgColor = isOwner ? '#FFE082' : '#FFD180';
+    
+    // build menu items arry to avoid fragments
+    const menuItems = [
+        <MenuItem 
+            key="add-to-playlist"
+            onMouseEnter={handleAddToPlaylist}
+            sx={{ bgcolor: '#FFF9C4' }}
+        >
+            Add to Playlist
+        </MenuItem>
+    ];
+    
+    if (isOwner) {
+        menuItems.push(
+            <MenuItem 
+                key="edit-song"
+                onClick={handleEditSong}
+                sx={{ bgcolor: '#E1BEE7' }}
+            >
+                Edit Song
+            </MenuItem>
+        );
+        
+        menuItems.push(
+            <MenuItem 
+                key="remove-song"
+                onClick={handleRemoveSongFromCatalog}
+            >
+                Remove from Catalog
+            </MenuItem>
+        );
+    }
+    
+    // sort playlists by most recently accessed
+    const sortedPlaylists = store.idNamePairs && store.idNamePairs.length > 0
+        ? [...store.idNamePairs].sort((a, b) => {
+            const dateA = a.lastAccessed ? new Date(a.lastAccessed) : new Date(0);
+            const dateB = b.lastAccessed ? new Date(b.lastAccessed) : new Date(0);
+            return dateB - dateA;
+          })
+        : [];
     
     return (
         <Box
@@ -79,7 +129,7 @@ function CatalogSongCard(props) {
             </Box>
 
             {!auth.isGuest && (
-                <>
+                <Box>
                     <IconButton
                         onClick={handleMenuOpen}
                         sx={{ ml: 2 }}
@@ -92,27 +142,9 @@ function CatalogSongCard(props) {
                         open={open}
                         onClose={handleMenuClose}
                     >
-                        <MenuItem 
-                            onMouseEnter={handleAddToPlaylist}
-                            sx={{ bgcolor: '#FFF9C4' }}
-                        >
-                            Add to Playlist
-                        </MenuItem>
-                        {isOwner && (
-                            <MenuItem 
-                                onClick={handleEditSong}
-                                sx={{ bgcolor: '#E1BEE7' }}
-                            >
-                                Edit Song
-                            </MenuItem>
-                        )}
-                        
-                        {isOwner && (
-                            <MenuItem onClick={handleRemoveSongFromCatalog}>
-                                Remove from Catalog
-                            </MenuItem>
-                        )}
+                        {menuItems}
                     </Menu>
+                    
                     <Menu
                         anchorEl={playlistAnchor}
                         open={playlistOpen}
@@ -126,8 +158,8 @@ function CatalogSongCard(props) {
                             horizontal: 'left',
                         }}
                     >
-                        {store.idNamePairs && store.idNamePairs.length > 0 ? (
-                            store.idNamePairs.map((pair) => (
+                        {sortedPlaylists.length > 0 ? (
+                            sortedPlaylists.map((pair) => (
                                 <MenuItem 
                                     key={pair._id}
                                     onClick={() => handleAddToSpecificPlaylist(pair._id)}
@@ -143,7 +175,7 @@ function CatalogSongCard(props) {
                             <MenuItem disabled>No playlists available</MenuItem>
                         )}
                     </Menu>
-                </>
+                </Box>
             )}
         </Box>
     );

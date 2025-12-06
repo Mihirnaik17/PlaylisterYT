@@ -114,8 +114,21 @@ export default function NavigationBar() {
                     open={Boolean(anchorEl)}
                     onClose={handleMenuClose}
                 >
-                    <MenuItem onClick={handleEditAccount}>Edit Account</MenuItem>
-                    <MenuItem onClick={handleLogout}>Logout</MenuItem>
+                    {auth.isGuest ? (
+                        <>
+                            <MenuItem onClick={() => { handleMenuClose(); history.push('/login'); }}>
+                                Login
+                            </MenuItem>
+                            <MenuItem onClick={() => { handleMenuClose(); history.push('/register'); }}>
+                                Create Account
+                            </MenuItem>
+                        </>
+                    ) : (
+                        <>
+                            <MenuItem onClick={handleEditAccount}>Edit Account</MenuItem>
+                            <MenuItem onClick={handleLogout}>Logout</MenuItem>
+                        </>
+                    )}
                 </Menu>
             </Box>
         </Box>

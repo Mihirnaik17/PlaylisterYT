@@ -1,4 +1,4 @@
-import { useContext, useState, useEffect } from 'react'
+import { useContext, useState } from 'react'
 import GlobalStoreContext from '../store';
 import * as React from 'react';
 import Box from '@mui/material/Box';
@@ -21,46 +21,29 @@ const style1 = {
     boxShadow: 24,
 };
 
-export default function MUIEditSongModal() {
+export default function MUICreateSongModal() {
     const { store } = useContext(GlobalStoreContext);
     const [ title, setTitle ] = useState('');
     const [ artist, setArtist ] = useState('');
     const [ year, setYear ] = useState('');
     const [ youTubeId, setYouTubeId ] = useState('');
 
-    useEffect(() => {
-        if (store.currentSong) {
-            setTitle(store.currentSong.title || '');
-            setArtist(store.currentSong.artist || '');
-            setYear(store.currentSong.year || '');
-            setYouTubeId(store.currentSong.youTubeId || '');
-        }
-    }, [store.currentSong]);
-
-    async function handleConfirmEditSong() {
-        const isCatalogSong = store.currentSong && store.currentSong._id && store.currentSongIndex === -1;
-        
-        if (isCatalogSong) {
-            let newSongData = {
-                title: title,
-                artist: artist,
-                year: parseInt(year),
-                youTubeId: youTubeId
-            };
-            await store.updateCatalogSong(store.currentSong._id, newSongData);
-            store.hideModals();
-        } else {
-            let newSongData = {
-                title: title,
-                artist: artist,
-                year: year,
-                youTubeId: youTubeId
-            };
-            store.addUpdateSongTransaction(store.currentSongIndex, newSongData);
-        }
+    async function handleConfirmCreateSong() {
+        let newSongData = {
+            title: title,
+            artist: artist,
+            year: parseInt(year),
+            youTubeId: youTubeId
+        };
+        await store.createSong(newSongData);
+        handleCancelCreateSong();
     }
 
-    function handleCancelEditSong() {
+    function handleCancelCreateSong() {
+        setTitle('');
+        setArtist('');
+        setYear('');
+        setYouTubeId('');
         store.hideModals();
     }
 
@@ -82,42 +65,42 @@ export default function MUIEditSongModal() {
 
     return (
         <Modal
-            open={store.isEditSongModalOpen()}
+            open={store.currentModal === "CREATE_SONG"}
         >
         <Box sx={style1}>
-            <div id="edit-song-modal" data-animation="slideInOutLeft">
+            <div id="create-song-modal" data-animation="slideInOutLeft">
             <Typography 
                 sx={{fontWeight: 'bold'}} 
-                id="edit-song-modal-title" variant="h4" component="h2">
-                Edit Song
+                id="create-song-modal-title" variant="h4" component="h2">
+                Create Song
             </Typography>
             <Divider sx={{borderBottomWidth: 5, p: '5px', transform: 'translate(-5.5%, 0%)', width:377}}/>
             <Typography 
                 sx={{mt: "10px", color: "#702963", fontWeight:"bold", fontSize:"30px"}} 
                 id="modal-modal-title" variant="h6" component="h2">
-                Title: <input id="edit-song-modal-title-textfield" className='modal-textfield' type="text" value={title} onChange={handleUpdateTitle} />
+                Title: <input id="create-song-modal-title-textfield" className='modal-textfield' type="text" value={title} onChange={handleUpdateTitle} />
             </Typography>
             <Typography 
                 sx={{color: "#702963", fontWeight:"bold", fontSize:"30px"}} 
                 id="modal-modal-artist" variant="h6" component="h2">
-                Artist: <input id="edit-song-modal-artist-textfield" className='modal-textfield' type="text" value={artist} onChange={handleUpdateArtist} />
+                Artist: <input id="create-song-modal-artist-textfield" className='modal-textfield' type="text" value={artist} onChange={handleUpdateArtist} />
             </Typography>
             <Typography 
                 sx={{color: "#702963", fontWeight:"bold", fontSize:"30px"}} 
                 id="modal-modal-year" variant="h6" component="h2">
-                Year: <input id="edit-song-modal-year-textfield" className='modal-textfield' type="text" value={year} onChange={handleUpdateYear} />
+                Year: <input id="create-song-modal-year-textfield" className='modal-textfield' type="text" value={year} onChange={handleUpdateYear} />
             </Typography>
             <Typography 
                 sx={{color: "#702963", fontWeight:"bold", fontSize:"25px"}} 
                 id="modal-modal-youTubeId" variant="h6" component="h2">
-                YouTubeId: <input id="edit-song-modal-youTubeId-textfield" className='modal-textfield' type="text" value={youTubeId} onChange={handleUpdateYouTubeId} />
+                YouTubeId: <input id="create-song-modal-youTubeId-textfield" className='modal-textfield' type="text" value={youTubeId} onChange={handleUpdateYouTubeId} />
             </Typography>
             <Button 
                 sx={{color: "#8932CC", backgroundColor: "#CBC3E3", fontSize: 13, fontWeight: 'bold', border: 2, p:"5px", mt:"20px"}} variant="outlined" 
-                id="edit-song-confirm-button" onClick={handleConfirmEditSong}>Confirm</Button>
+                id="create-song-confirm-button" onClick={handleConfirmCreateSong}>Confirm</Button>
             <Button 
                 sx={{opacity: 0.80, color: "#8932CC", backgroundColor: "#CBC3E3", fontSize: 13, fontWeight: 'bold', border: 2, p:"5px", mt:"20px", ml:"197px"}} variant="outlined" 
-                id="edit-song-confirm-button" onClick={handleCancelEditSong}>Cancel</Button>
+                id="create-song-confirm-button" onClick={handleCancelCreateSong}>Cancel</Button>
             </div>
         </Box>
         </Modal>

@@ -8,9 +8,8 @@ const auth = require('../auth');
 
 getAllSongs = async (req, res) => {
     try {
-        const { title, artist, year, sortBy, sortOrder } = req.query;
+        const { title, artist, year, sortBy, sortOrder, limit = 100, skip = 0 } = req.query;
 
-        // Build serch query
         let query = {};
         if (title) {
             query.title = { $regex: title, $options: 'i' }; 
@@ -28,8 +27,7 @@ getAllSongs = async (req, res) => {
             if (sortBy === 'listens') {
                 sort.listens = order;
             } else if (sortBy === 'playlists') {
-                // Sort by number of playlists (arry length)
-                sort = { $expr: { $size: '$playlists' } };
+                // handled separately below
             } else if (sortBy === 'title') {
                 sort.title = order;
             } else if (sortBy === 'artist') {
@@ -42,19 +40,28 @@ getAllSongs = async (req, res) => {
         }
 
         let songs;
+        const limitNum = parseInt(limit);
+        const skipNum = parseInt(skip);
+        
         if (sortBy === 'playlists') {
             songs = await Song.aggregate([
                 { $match: query },
                 { $addFields: { playlistCount: { $size: '$playlists' } } },
-                { $sort: { playlistCount: sortOrder === 'asc' ? 1 : -1 } }
+                { $sort: { playlistCount: sortOrder === 'asc' ? 1 : -1 } },
+                { $skip: skipNum },
+                { $limit: limitNum }
             ]);
         } else {
-            songs = await Song.find(query).sort(sort);
+            songs = await Song.find(query).sort(sort).skip(skipNum).limit(limitNum);
         }
+
+        const total = await Song.countDocuments(query);
 
         return res.status(200).json({
             success: true,
-            songs: songs
+            songs: songs,
+            total: total,
+            hasMore: skipNum + songs.length < total
         });
     } catch (error) {
         console.error(error);

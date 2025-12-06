@@ -18,12 +18,6 @@ function PlaylistCard(props) {
     const [text, setText] = useState("");
     const { idNamePair } = props;
 
-    function handleLoadList(event) {
-        if (!event.target.disabled && !editActive) {
-            store.setCurrentList(idNamePair._id);
-        }
-    }
-
     function handleToggleEdit(event) {
         event.stopPropagation();
         store.openEditPlaylistModal(idNamePair._id);
@@ -43,9 +37,18 @@ function PlaylistCard(props) {
         store.markListForDeletion(idNamePair._id);
     }
 
-    function handleCopyPlaylist(event) {
+    async function handleCopyPlaylist(event) {
         event.stopPropagation();
-        console.log('Copy playlist');
+        if (auth.isGuest) {
+            alert('Please log in to copy playlists');
+            return;
+        }
+        const result = await store.copyPlaylist(idNamePair._id);
+        if (result && result.success) {
+            alert('Playlist copied successfully!');
+        } else {
+            alert('Failed to copy playlist');
+        }
     }
 
     function handlePlayPlaylist(event) {
@@ -69,6 +72,8 @@ function PlaylistCard(props) {
         setExpanded(!expanded);
     }
 
+    const isOwner = auth.user && auth.user.email === idNamePair.ownerEmail;
+
     let cardElement =
         <Box
             sx={{
@@ -82,20 +87,20 @@ function PlaylistCard(props) {
             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flex: 1 }}>
                     <Avatar sx={{ bgcolor: '#FFA500', width: 56, height: 56 }}>
-                        <Box component="img" src="/path-to-avatar.png" alt="avatar" sx={{ width: '100%', height: '100%' }} />
+                        👤
                     </Avatar>
                     <Box>
                         <Typography variant="h6" sx={{ fontWeight: 'bold', color: '#000' }}>
                             {idNamePair.name}
                         </Typography>
                         <Typography variant="body2" sx={{ color: '#666' }}>
-                            {idNamePair.ownerEmail || 'Unknown'}
+                            {idNamePair.ownerUsername || idNamePair.ownerEmail || 'Unknown'}
                         </Typography>
                     </Box>
                 </Box>
 
                 <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
-                    {!auth.isGuest && (
+                    {!auth.isGuest && isOwner && (
                         <>
                             <Button
                                 variant="contained"
@@ -108,7 +113,7 @@ function PlaylistCard(props) {
                                     '&:hover': { bgcolor: '#d32f2f' }
                                 }}
                             >
-                                Delete
+                                DELETE
                             </Button>
                             <Button
                                 variant="contained"
@@ -121,23 +126,25 @@ function PlaylistCard(props) {
                                     '&:hover': { bgcolor: '#1565c0' }
                                 }}
                             >
-                                Edit
+                                EDIT
                             </Button>
                         </>
                     )}
-                    <Button
-                        variant="contained"
-                        size="small"
-                        onClick={handleCopyPlaylist}
-                        sx={{
-                            bgcolor: '#4caf50',
-                            color: 'white',
-                            minWidth: '60px',
-                            '&:hover': { bgcolor: '#45a049' }
-                        }}
-                    >
-                        Copy
-                    </Button>
+                    {!auth.isGuest && (
+                        <Button
+                            variant="contained"
+                            size="small"
+                            onClick={handleCopyPlaylist}
+                            sx={{
+                                bgcolor: '#4caf50',
+                                color: 'white',
+                                minWidth: '60px',
+                                '&:hover': { bgcolor: '#45a049' }
+                            }}
+                        >
+                            COPY
+                        </Button>
+                    )}
                     <Button
                         variant="contained"
                         size="small"
@@ -149,7 +156,7 @@ function PlaylistCard(props) {
                             '&:hover': { bgcolor: '#c2185b' }
                         }}
                     >
-                        Play
+                        PLAY
                     </Button>
                     <IconButton size="small" onClick={handleExpandClick}>
                         {expanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
@@ -158,13 +165,16 @@ function PlaylistCard(props) {
             </Box>
 
             <Typography variant="body2" sx={{ color: '#1976d2', mt: 1 }}>
-                137 Listeners
+                {idNamePair.listens || 0} Listens
             </Typography>
 
             {expanded && (
                 <Box sx={{ mt: 2, pl: 8 }}>
                     <Typography variant="body2">
-                        Song list would go here...
+                        Published: {idNamePair.published ? 'Yes' : 'No'}
+                    </Typography>
+                    <Typography variant="body2">
+                        Likes: {idNamePair.likes || 0} | Dislikes: {idNamePair.dislikes || 0}
                     </Typography>
                 </Box>
             )}

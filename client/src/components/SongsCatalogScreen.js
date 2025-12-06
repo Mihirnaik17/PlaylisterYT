@@ -3,6 +3,8 @@ import { GlobalStoreContext } from '../store'
 import AuthContext from '../auth'
 import CatalogSongCard from './CatalogSongCard'
 import NavigationBar from './NavigationBar'  
+import MUIRemoveSongModal from './MUIRemoveSongModal'
+import MUICreateSongModal from './MUICreateSongModal'
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import TextField from '@mui/material/TextField';
@@ -19,11 +21,11 @@ export default function SongsCatalogScreen() {
     const [titleSearch, setTitleSearch] = useState('');
     const [artistSearch, setArtistSearch] = useState('');
     const [yearSearch, setYearSearch] = useState('');
-    const [sortBy, setSortBy] = useState('listens');
-    const [sortOrder, setSortOrder] = useState('desc');
+    const [currentSort, setCurrentSort] = useState('listens-hi'); // CHANGED: Store the full sort value
     
     useEffect(() => {
-        store.loadSongs();
+        // load with defualt sort on mount
+        store.loadSongs({ sortBy: 'listens', sortOrder: 'desc' });
     }, []);
     
     const handleSearch = () => {
@@ -32,10 +34,12 @@ export default function SongsCatalogScreen() {
         if (titleSearch) searchParams.title = titleSearch;
         if (artistSearch) searchParams.artist = artistSearch;
         if (yearSearch) searchParams.year = yearSearch;
-        if (sortBy) {
-            searchParams.sortBy = sortBy;
-            searchParams.sortOrder = sortOrder;
-        }
+        
+        // parse current sort value
+        const [field, direction] = currentSort.split('-');
+        const order = direction === 'hi' ? 'desc' : 'asc';
+        searchParams.sortBy = field;
+        searchParams.sortOrder = order;
         
         store.loadSongs(searchParams);
     }
@@ -44,11 +48,13 @@ export default function SongsCatalogScreen() {
         setTitleSearch('');
         setArtistSearch('');
         setYearSearch('');
-        store.loadSongs();
+        setCurrentSort('listens-hi');
+        store.loadSongs({ sortBy: 'listens', sortOrder: 'desc' });
     }
     
     const handleSortChange = (event) => {
         const value = event.target.value;
+        setCurrentSort(value);
         
         let field, order;
         
@@ -84,9 +90,6 @@ export default function SongsCatalogScreen() {
             order = 'asc';
         }
         
-        setSortBy(field);
-        setSortOrder(order);
-        
         const searchParams = {};
         if (titleSearch) searchParams.title = titleSearch;
         if (artistSearch) searchParams.artist = artistSearch;
@@ -113,9 +116,8 @@ export default function SongsCatalogScreen() {
     
     return (
         <>
-            <NavigationBar />  {/* ADD THIS LINE */}
-            <Box sx={{ display: 'flex', height: 'calc(100vh - 80px)' }}>  {/* CHANGE height */}
-                {/* Left side - Search */}
+            <NavigationBar />
+            <Box sx={{ display: 'flex', height: 'calc(100vh - 80px)' }}>
                 <Box sx={{ 
                     width: '40%', 
                     bgcolor: '#F5E6D3', 
@@ -200,7 +202,6 @@ export default function SongsCatalogScreen() {
                     )}
                 </Box>
                 
-                {/* Right side - Songs list */}
                 <Box sx={{ 
                     width: '60%', 
                     bgcolor: '#FFF9E6', 
@@ -216,7 +217,7 @@ export default function SongsCatalogScreen() {
                         <FormControl sx={{ minWidth: 200 }}>
                             <InputLabel>Sort</InputLabel>
                             <Select
-                                value={`${sortBy}-${sortOrder === 'desc' ? 'hi' : 'lo'}`}
+                                value={currentSort}
                                 label="Sort"
                                 onChange={handleSortChange}
                                 sx={{ bgcolor: 'white' }}
@@ -244,6 +245,8 @@ export default function SongsCatalogScreen() {
                     </Box>
                 </Box>
             </Box>
+            <MUIRemoveSongModal />
+            <MUICreateSongModal />
         </> 
     )
 }

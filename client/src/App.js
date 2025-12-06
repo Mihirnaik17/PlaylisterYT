@@ -31,7 +31,8 @@ const App = () => {
                         <Route path="/playlist/:id" exact component={WorkspaceScreen} />
                         <Route path="/songs" exact component={SongsCatalogScreen} />
                     </Switch>
-                    <Statusbar />
+                    <Route path="/home" exact component={Statusbar} />
+                    <Route path="/playlist/:id" exact component={Statusbar} />
                 </GlobalStoreContextProvider>
             </AuthContextProvider>
         </BrowserRouter>

@@ -19,13 +19,12 @@ router.put('/playlist/:id/dislike', auth.verify, StoreController.dislikePlaylist
 router.post('/playlist/:id/comment', auth.verify, StoreController.addComment)
 router.delete('/playlist/:id/comment/:commentIndex', auth.verify, StoreController.deleteComment)
 router.put('/playlist/:id/listen', StoreController.incrementListens)
+router.post('/playlist/:id/add-song', auth.verify, StoreController.addSongToPlaylist)
 
 router.get('/playlists/published', StoreController.getPublishedPlaylists)
 router.get('/playlists/search', auth.verify, StoreController.searchPlaylists)
 router.get('/playlists/user/:username', auth.verify, StoreController.getPlaylistsByUsername)
 router.get('/playlistpairs', auth.verify, StoreController.getPlaylistPairs)
 router.get('/playlists', auth.verify, StoreController.getPlaylists)
-
-
 
 module.exports = router
