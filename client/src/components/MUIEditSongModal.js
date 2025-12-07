@@ -14,12 +14,12 @@ const style1 = {
     transform: 'translate(-50%, -50%)',
     width: 345,
     height: 250,
-    backgroundSize: "contain",
-    backgroundImage: `url(https://i.insider.com/602ee9ced3ad27001837f2ac?})`,
+    backgroundColor: "#B4F4A8", 
     border: '3px solid #000',
     padding: '20px',
-    boxShadow: 24,
+    boxShadow: 24
 };
+
 
 export default function MUIEditSongModal() {
     const { store } = useContext(GlobalStoreContext);

@@ -201,14 +201,25 @@ updateSong = async (req, res) => {
         }
 
         // here it will update the songs
+
+        // save the old identity used in playlists
+        const oldTitle = song.title;
+        const oldArtist = song.artist;
+        const oldYear = song.year;
+
         song.title = title || song.title;
         song.artist = artist || song.artist;
         song.year = year || song.year;
         song.youTubeId = youTubeId || song.youTubeId;
 
         const updatedSong = await song.save();
+
         await Playlist.updateMany(
-            { 'songs._id': song._id },
+            {
+                'songs.title': oldTitle,
+                'songs.artist': oldArtist,
+                'songs.year': oldYear
+            },
             { 
                 $set: { 
                     'songs.$[elem].title': updatedSong.title,
@@ -218,7 +229,11 @@ updateSong = async (req, res) => {
                 }
             },
             { 
-                arrayFilters: [{ 'elem._id': song._id }]
+                arrayFilters: [{
+                    'elem.title': oldTitle,
+                    'elem.artist': oldArtist,
+                    'elem.year': oldYear
+                }]
             }
         );
 
@@ -261,10 +276,24 @@ deleteSong = async (req, res) => {
                 errorMessage: 'You can only delete songs you created'
             });
         }
+
         await Playlist.updateMany(
-            { 'songs._id': song._id },
-            { $pull: { songs: { _id: song._id } } }
+            {
+                'songs.title': song.title,
+                'songs.artist': song.artist,
+                'songs.year': song.year
+            },
+            { 
+                $pull: { 
+                    songs: { 
+                        title: song.title,
+                        artist: song.artist,
+                        year: song.year
+                    } 
+                } 
+            }
         );
+
         await Song.findByIdAndDelete(req.params.id);
 
         return res.status(200).json({

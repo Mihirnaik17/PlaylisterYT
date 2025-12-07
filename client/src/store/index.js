@@ -893,18 +893,28 @@ store.createNewList = async function () {
     });
     }
 
-    store.deleteCatalogSong = async function(id) {
-    try {
-        const response = await songApi.deleteSong(id);
-        if (response.data.success) {
-            await store.loadSongs();
-        }
-        return response;
-    } catch (error) {
-        console.error("Error deleting song:", error);
-        throw error;
-    }
-    }
+
+    store.deleteCatalogSong = async function (id) {
+        try {
+            const response = await songApi.deleteSong(id);  
+            if (response.data.success) {
+                const updatedSongs = store.songs
+                    ? store.songs.filter((song) => song._id !== id)
+                    : [];
+
+                storeReducer({
+                    type: GlobalStoreActionType.LOAD_SONGS,
+                    payload: updatedSongs
+                });
+            }
+           return response;
+        } catch (error) {
+            console.error("Error deleting song:", error);
+            throw error;
+       }
+    };
+
+
 
     store.setCurrentSong = function(song) {
     storeReducer({

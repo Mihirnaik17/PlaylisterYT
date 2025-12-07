@@ -36,7 +36,7 @@ export default function MUIRemoveSongModal() {
         if (store.songIdMarkedForDeletion) {
             await store.deleteCatalogSong(store.songIdMarkedForDeletion);
         }
-        store.hideModals();
+        //store.hideModals();
     }
     
     function handleCloseModal(event) {
