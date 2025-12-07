@@ -54,9 +54,7 @@ const importData = async () => {
         let playlistCount = 0;
 
         for (const playlistData of data.playlists) {
-
             const ownerEmail = playlistData.ownerEmail;
-
             const owner = userMap.get(ownerEmail);
 
             if (!owner) {
@@ -64,33 +62,41 @@ const importData = async () => {
                 continue;
             }
 
+            // Filter out songs with missing required fields
+            const validSongs = (playlistData.songs || []).filter(song => {
+                if (!song.title || !song.artist || !song.year || !song.youTubeId) {
+                    console.log(`  ⚠️  Skipping invalid song in "${playlistData.name}": ${song.title || 'No title'}`);
+                    return false;
+                }
+                return true;
+            });
+
             const playlist = await Playlist.create({
                 name: playlistData.name,
                 ownerEmail: owner.email,
                 ownerUsername: owner.username,
-                songs: playlistData.songs || [],
+                songs: validSongs,
                 published: true,
                 likes: Math.floor(Math.random() * 500),
-                Dislikes: Math.floor(Math.random() * 100),
+                dislikes: Math.floor(Math.random() * 100),
                 listens: Math.floor(Math.random() * 2000),
                 comments: []
             });
 
             owner.playlists.push(playlist._id);
-
-             await owner.save();
+            await owner.save();
 
             playlistCount++;
-            console.log(`Creatd playlist ${playlistCount}: ${playlistData.name} for ${owner.username}`);
+            console.log(`Created playlist ${playlistCount}: ${playlistData.name} for ${owner.username} (${validSongs.length} songs)`);
         }
 
-        console.log('\n Data import completed successfully!');
-        console.log(` Imported ${userMap.size} users and ${playlistCount} playlists`);
-        console.log(' Default password for all users: password123');
+        console.log('\n✅ Data import completed successfully!');
+        console.log(`📊 Imported ${userMap.size} users and ${playlistCount} playlists`);
+        console.log('🔑 Default password for all users: password123');
 
         process.exit(0);
     } catch (error) {
-        console.error('X Import error:', error);
+        console.error('❌ Import error:', error);
         process.exit(1);
     }
 };

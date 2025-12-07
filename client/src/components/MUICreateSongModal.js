@@ -1,5 +1,6 @@
 import { useContext, useState } from 'react'
 import GlobalStoreContext from '../store';
+import AuthContext from '../auth';
 import * as React from 'react';
 import Box from '@mui/material/Box';
 import Modal from '@mui/material/Modal';
@@ -23,6 +24,7 @@ const style1 = {
 
 export default function MUICreateSongModal() {
     const { store } = useContext(GlobalStoreContext);
+    const { auth } = useContext(AuthContext);
     const [ title, setTitle ] = useState('');
     const [ artist, setArtist ] = useState('');
     const [ year, setYear ] = useState('');
@@ -33,10 +35,18 @@ export default function MUICreateSongModal() {
             title: title,
             artist: artist,
             year: parseInt(year),
-            youTubeId: youTubeId
+            youTubeId: youTubeId,
+            ownerEmail: auth.user.email
         };
-        await store.createSong(newSongData);
-        handleCancelCreateSong();
+        
+        try {
+            await store.createCatalogSong(newSongData);
+            handleCancelCreateSong();
+            alert('Song added to catalog!');
+        } catch (error) {
+            console.error('Error creating song:', error);
+            alert('Failed to create song. Please try again.');
+        }
     }
 
     function handleCancelCreateSong() {
@@ -62,6 +72,11 @@ export default function MUICreateSongModal() {
     function handleUpdateYouTubeId(event) {
         setYouTubeId(event.target.value);
     }
+
+    const isComplete = title.trim() !== '' && 
+                       artist.trim() !== '' && 
+                       year.trim() !== '' && 
+                       youTubeId.trim() !== '';
 
     return (
         <Modal
@@ -96,11 +111,20 @@ export default function MUICreateSongModal() {
                 YouTubeId: <input id="create-song-modal-youTubeId-textfield" className='modal-textfield' type="text" value={youTubeId} onChange={handleUpdateYouTubeId} />
             </Typography>
             <Button 
-                sx={{color: "#8932CC", backgroundColor: "#CBC3E3", fontSize: 13, fontWeight: 'bold', border: 2, p:"5px", mt:"20px"}} variant="outlined" 
-                id="create-song-confirm-button" onClick={handleConfirmCreateSong}>Confirm</Button>
+                sx={{color: "#8932CC", backgroundColor: "#CBC3E3", fontSize: 13, fontWeight: 'bold', border: 2, p:"5px", mt:"20px"}} 
+                variant="outlined" 
+                id="create-song-confirm-button" 
+                onClick={handleConfirmCreateSong}
+                disabled={!isComplete}>
+                Confirm
+            </Button>
             <Button 
-                sx={{opacity: 0.80, color: "#8932CC", backgroundColor: "#CBC3E3", fontSize: 13, fontWeight: 'bold', border: 2, p:"5px", mt:"20px", ml:"197px"}} variant="outlined" 
-                id="create-song-confirm-button" onClick={handleCancelCreateSong}>Cancel</Button>
+                sx={{opacity: 0.80, color: "#8932CC", backgroundColor: "#CBC3E3", fontSize: 13, fontWeight: 'bold', border: 2, p:"5px", mt:"20px", ml:"197px"}} 
+                variant="outlined" 
+                id="create-song-cancel-button" 
+                onClick={handleCancelCreateSong}>
+                Cancel
+            </Button>
             </div>
         </Box>
         </Modal>

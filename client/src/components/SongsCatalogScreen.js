@@ -5,6 +5,7 @@ import CatalogSongCard from './CatalogSongCard'
 import NavigationBar from './NavigationBar'  
 import MUIRemoveSongModal from './MUIRemoveSongModal'
 import MUICreateSongModal from './MUICreateSongModal'
+import MUIEditSongModal from './MUIEditSongModal'
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import TextField from '@mui/material/TextField';
@@ -21,10 +22,9 @@ export default function SongsCatalogScreen() {
     const [titleSearch, setTitleSearch] = useState('');
     const [artistSearch, setArtistSearch] = useState('');
     const [yearSearch, setYearSearch] = useState('');
-    const [currentSort, setCurrentSort] = useState('listens-hi'); // CHANGED: Store the full sort value
+    const [currentSort, setCurrentSort] = useState('listens-hi'); 
     
     useEffect(() => {
-        // load with defualt sort on mount
         store.loadSongs({ sortBy: 'listens', sortOrder: 'desc' });
     }, []);
     
@@ -34,8 +34,6 @@ export default function SongsCatalogScreen() {
         if (titleSearch) searchParams.title = titleSearch;
         if (artistSearch) searchParams.artist = artistSearch;
         if (yearSearch) searchParams.year = yearSearch;
-        
-        // parse current sort value
         const [field, direction] = currentSort.split('-');
         const order = direction === 'hi' ? 'desc' : 'asc';
         searchParams.sortBy = field;
@@ -247,6 +245,7 @@ export default function SongsCatalogScreen() {
             </Box>
             <MUIRemoveSongModal />
             <MUICreateSongModal />
+            <MUIEditSongModal />
         </> 
     )
 }

@@ -37,7 +37,7 @@ createPlaylist = async (req, res) => {
         ...body,
         ownerEmail: user.email,
         ownerUsername: user.username,
-        //published: false,
+        published: true,
         likes: 0,
         dislikes: 0,
         listens: 0,

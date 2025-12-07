@@ -34,7 +34,7 @@ export default function MUIRemoveSongModal() {
     
     async function handleRemoveSong(event) {
         if (store.songIdMarkedForDeletion) {
-            await store.deleteSong(store.songIdMarkedForDeletion);
+            await store.deleteCatalogSong(store.songIdMarkedForDeletion);
         }
         store.hideModals();
     }
@@ -55,8 +55,8 @@ export default function MUIRemoveSongModal() {
                 </Typography>
                 <Divider sx={{borderBottomWidth: 5, p: '5px', transform: 'translate(-5.5%, 0%)', width:377}}/>
                 <Box sx={{background: "rgb(172,79,198,0.05)"}}>
-                    <Typography id="modal-modal-description" variant="h6" sx={{color: "#301974" ,fontWeight: 'bold', mt: 1}}>
-                        Are you sure you want to remove <Typography display="inline" id="modal-modal-description" variant="h6" sx={{color: "#820747CF" ,fontWeight: 'bold', mt: 2, textDecoration: 'underline'}}>{songTitle}</Typography> from the catalog?
+                    <Typography id="modal-modal-description" sx={{color: "#301974" ,fontWeight: 'bold', mt: 1}}>
+                        Are you sure you want to remove <Box component="span" sx={{color: "#820747CF" ,fontWeight: 'bold', textDecoration: 'underline'}}>{songTitle}</Box> from the catalog?
                     </Typography>
                     <Typography variant="body2" sx={{color: "#301974", mt: 1, fontSize: '12px'}}>
                         Doing so will remove it from all of your playlists.

@@ -539,6 +539,12 @@ store.createNewList = async function () {
     store.isErrorModalOpen = () => {
         return store.currentModal === CurrentModal.ERROR;
     }
+    store.isCreateSongModalOpen = () => {
+        return store.currentModal === CurrentModal.CREATE_SONG;
+    }
+    store.isRemoveSongModalOpen = () => {
+        return store.currentModal === CurrentModal.REMOVE_SONG;
+    }
 
     // THE FOLLOWING 8 FUNCTIONS ARE FOR COORDINATING THE UPDATING
     // OF A LIST, WHICH INCLUDES DEALING WITH THE TRANSACTION STACK. THE
@@ -711,6 +717,11 @@ store.createNewList = async function () {
     // THIS FUNCTION CREATES A NEW SONG IN THE CURRENT LIST
     // USING THE PROVIDED DATA AND PUTS THIS SONG AT INDEX
     store.createSong = function(index, song) {
+        if (!store.currentList) {
+            console.error("ERROR: Cannot create song in playlist - no playlist is currently open!");
+            console.error("Use store.createCatalogSong() to add songs to the catalog instead.");
+            return;
+        }
         let list = store.currentList;      
         list.songs.splice(index, 0, song);
         // NOW MAKE IT OFFICIAL

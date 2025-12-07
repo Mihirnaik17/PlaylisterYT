@@ -29,13 +29,17 @@ export default function MUIEditSongModal() {
     const [ youTubeId, setYouTubeId ] = useState('');
 
     useEffect(() => {
+        console.log('Edit Song Modal - currentSong:', store.currentSong);
+        console.log('Edit Song Modal - currentModal:', store.currentModal);
+        console.log('Edit Song Modal - isOpen:', store.isEditSongModalOpen());
+        
         if (store.currentSong) {
             setTitle(store.currentSong.title || '');
             setArtist(store.currentSong.artist || '');
             setYear(store.currentSong.year || '');
             setYouTubeId(store.currentSong.youTubeId || '');
         }
-    }, [store.currentSong]);
+    }, [store.currentSong, store.currentModal]);
 
     async function handleConfirmEditSong() {
         const isCatalogSong = store.currentSong && store.currentSong._id && store.currentSongIndex === -1;

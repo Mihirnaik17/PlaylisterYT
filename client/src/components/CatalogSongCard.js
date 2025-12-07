@@ -1,4 +1,4 @@
-import { useContext, useState } from 'react'
+import { useContext, useState, useEffect } from 'react'
 import { GlobalStoreContext } from '../store'
 import AuthContext from '../auth'
 import IconButton from '@mui/material/IconButton';
@@ -13,97 +13,98 @@ function CatalogSongCard(props) {
     const { song } = props;
     
     const [anchorEl, setAnchorEl] = useState(null);
-    const [playlistAnchor, setPlaylistAnchor] = useState(null);
+    const [playlistMenuAnchor, setPlaylistMenuAnchor] = useState(null);
+    const [userPlaylists, setUserPlaylists] = useState([]);
     const open = Boolean(anchorEl);
-    const playlistOpen = Boolean(playlistAnchor);
+    const playlistMenuOpen = Boolean(playlistMenuAnchor);
 
     const isOwner = auth.user && auth.user.email === song.ownerEmail;
+    
+    // Load user's playlists when main menu opens
+    useEffect(() => {
+        if (!auth.isGuest && open) {
+            loadUserPlaylists();
+        }
+    }, [open]);
+    
+    const loadUserPlaylists = () => {
+        // Trigger loading if not already loaded
+        if (!store.idNamePairs || store.idNamePairs.length === 0) {
+            store.loadIdNamePairs();
+        }
+        
+        // Sort by most recently accessed
+        const sorted = store.idNamePairs && store.idNamePairs.length > 0
+            ? [...store.idNamePairs].sort((a, b) => {
+                const dateA = a.lastAccessed ? new Date(a.lastAccessed) : new Date(0);
+                const dateB = b.lastAccessed ? new Date(b.lastAccessed) : new Date(0);
+                return dateB - dateA;
+              })
+            : [];
+        
+        setUserPlaylists(sorted);
+    };
     
     const handleMenuOpen = (event) => {
         event.stopPropagation();
         setAnchorEl(event.currentTarget);
+        setPlaylistMenuAnchor(null); // Close playlist menu if open
     };
     
     const handleMenuClose = () => {
         setAnchorEl(null);
+        setPlaylistMenuAnchor(null);
     };
     
-    const handleAddToPlaylist = (event) => {
-        setPlaylistAnchor(event.currentTarget);
+    const handleShowPlaylistMenu = (event) => {
+        event.stopPropagation();
+        // Keep the playlist menu open by setting anchor
+        if (anchorEl) {
+            setPlaylistMenuAnchor(anchorEl);
+        }
     };
     
-    const handlePlaylistClose = () => {
-        setPlaylistAnchor(null);
-        setAnchorEl(null);
+    const handleHidePlaylistMenu = () => {
+        setPlaylistMenuAnchor(null);
     };
     
-    const handleEditSong = () => {
-        store.setCurrentSong(song);
-        store.showEditSongModal();
+    const handleEditSong = (event) => {
+        event.stopPropagation();
+        console.log('Edit Song clicked:', song);
+        store.showEditSongModal(-1, song);
         handleMenuClose();
     };
     
-    const handleRemoveSongFromCatalog = () => {
+    const handleRemoveSongFromCatalog = (event) => {
+        event.stopPropagation();
         store.markSongForDeletion(song._id);
         handleMenuClose();
     };
     
-    const handleAddToSpecificPlaylist = async (playlistId) => {
-        const result = await store.addSongToPlaylist(playlistId, song._id);
-        if (result.success) {
-            alert('Song added to playlist!');
-        } else {
-            if (result.error && result.error.includes('already in playlist')) {
-                alert('This song is already in that playlist!');
+    const handleAddToSpecificPlaylist = async (event, playlistId) => {
+        event.stopPropagation();
+        
+        // Close menus first
+        handleMenuClose();
+        
+        try {
+            const result = await store.addSongToPlaylist(playlistId, song._id);
+            if (result.success) {
+                alert('Song added to playlist!');
             } else {
-                alert('Failed to add song: ' + (result.error || 'Unknown error'));
+                if (result.error && result.error.includes('already in playlist')) {
+                    alert('This song is already in that playlist!');
+                } else {
+                    alert('Failed to add song: ' + (result.error || 'Unknown error'));
+                }
             }
+        } catch (error) {
+            console.error('Error adding song:', error);
+            alert('Failed to add song to playlist');
         }
-        handlePlaylistClose();
     };
 
     const cardBgColor = isOwner ? '#FFE082' : '#FFD180';
-    
-    // build menu items arry to avoid fragments
-    const menuItems = [
-        <MenuItem 
-            key="add-to-playlist"
-            onMouseEnter={handleAddToPlaylist}
-            sx={{ bgcolor: '#FFF9C4' }}
-        >
-            Add to Playlist
-        </MenuItem>
-    ];
-    
-    if (isOwner) {
-        menuItems.push(
-            <MenuItem 
-                key="edit-song"
-                onClick={handleEditSong}
-                sx={{ bgcolor: '#E1BEE7' }}
-            >
-                Edit Song
-            </MenuItem>
-        );
-        
-        menuItems.push(
-            <MenuItem 
-                key="remove-song"
-                onClick={handleRemoveSongFromCatalog}
-            >
-                Remove from Catalog
-            </MenuItem>
-        );
-    }
-    
-    // sort playlists by most recently accessed
-    const sortedPlaylists = store.idNamePairs && store.idNamePairs.length > 0
-        ? [...store.idNamePairs].sort((a, b) => {
-            const dateA = a.lastAccessed ? new Date(a.lastAccessed) : new Date(0);
-            const dateB = b.lastAccessed ? new Date(b.lastAccessed) : new Date(0);
-            return dateB - dateA;
-          })
-        : [];
     
     return (
         <Box
@@ -137,18 +138,61 @@ function CatalogSongCard(props) {
                         <MoreVertIcon />
                     </IconButton>
                     
+                    {/* Main Menu */}
                     <Menu
                         anchorEl={anchorEl}
                         open={open}
                         onClose={handleMenuClose}
+                        MenuListProps={{
+                            onMouseLeave: handleMenuClose
+                        }}
                     >
-                        {menuItems}
+                        <MenuItem 
+                            onMouseEnter={handleShowPlaylistMenu}
+                            sx={{ 
+                                bgcolor: '#FFF9C4',
+                                '&:hover': {
+                                    bgcolor: '#FFF59D'
+                                }
+                            }}
+                        >
+                            Add to Playlist →
+                        </MenuItem>
+                        
+                        {isOwner && (
+                            <MenuItem 
+                                onClick={handleEditSong}
+                                sx={{ 
+                                    bgcolor: '#E1BEE7',
+                                    '&:hover': {
+                                        bgcolor: '#CE93D8'
+                                    }
+                                }}
+                            >
+                                Edit Song
+                            </MenuItem>
+                        )}
+                        
+                        {isOwner && (
+                            <MenuItem 
+                                onClick={handleRemoveSongFromCatalog}
+                                sx={{ 
+                                    bgcolor: '#FFCDD2',
+                                    '&:hover': {
+                                        bgcolor: '#EF9A9A'
+                                    }
+                                }}
+                            >
+                                Remove from Catalog
+                            </MenuItem>
+                        )}
                     </Menu>
                     
+                    {/* Playlist Submenu */}
                     <Menu
-                        anchorEl={playlistAnchor}
-                        open={playlistOpen}
-                        onClose={handlePlaylistClose}
+                        anchorEl={playlistMenuAnchor}
+                        open={playlistMenuOpen}
+                        onClose={handleHidePlaylistMenu}
                         anchorOrigin={{
                             vertical: 'top',
                             horizontal: 'right',
@@ -157,22 +201,30 @@ function CatalogSongCard(props) {
                             vertical: 'top',
                             horizontal: 'left',
                         }}
+                        MenuListProps={{
+                            onMouseLeave: handleHidePlaylistMenu
+                        }}
                     >
-                        {sortedPlaylists.length > 0 ? (
-                            sortedPlaylists.map((pair) => (
+                        {userPlaylists.length > 0 ? (
+                            userPlaylists.map((pair) => (
                                 <MenuItem 
                                     key={pair._id}
-                                    onClick={() => handleAddToSpecificPlaylist(pair._id)}
+                                    onClick={(e) => handleAddToSpecificPlaylist(e, pair._id)}
                                     sx={{ 
                                         bgcolor: '#FFCDD2',
-                                        minWidth: '200px'
+                                        minWidth: '200px',
+                                        '&:hover': {
+                                            bgcolor: '#EF9A9A'
+                                        }
                                     }}
                                 >
                                     {pair.name}
                                 </MenuItem>
                             ))
                         ) : (
-                            <MenuItem disabled>No playlists available</MenuItem>
+                            <MenuItem disabled>
+                                {store.idNamePairs === null ? 'Loading...' : 'No playlists available'}
+                            </MenuItem>
                         )}
                     </Menu>
                 </Box>
