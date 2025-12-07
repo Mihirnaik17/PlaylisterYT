@@ -918,6 +918,7 @@ store.createNewList = async function () {
         const response = await storeRequestSender.addSongToPlaylist(playlistId, songId);
         if (response.data.success) {
             store.loadIdNamePairs();
+            store.loadSongs();
             return { success: true };
         }
         return { success: false, error: response.data.error };

@@ -9,6 +9,9 @@ import Avatar from '@mui/material/Avatar';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import IconButton from '@mui/material/IconButton';
+import ThumbUpIcon from '@mui/icons-material/ThumbUp';
+import ThumbDownIcon from '@mui/icons-material/ThumbDown';
+import DeleteIcon from '@mui/icons-material/Delete';
 
 function PlaylistCard(props) {
     const { store } = useContext(GlobalStoreContext);
@@ -16,6 +19,7 @@ function PlaylistCard(props) {
     const [editActive, setEditActive] = useState(false);
     const [expanded, setExpanded] = useState(false);
     const [text, setText] = useState("");
+    const [commentText, setCommentText] = useState("");
     const { idNamePair } = props;
 
     function handleToggleEdit(event) {
@@ -70,6 +74,39 @@ function PlaylistCard(props) {
     function handleExpandClick(event) {
         event.stopPropagation();
         setExpanded(!expanded);
+    }
+
+    async function handleLike(event) {
+        event.stopPropagation();
+        if (auth.isGuest) {
+            alert('Please log in to like playlists');
+            return;
+        }
+        await store.likePlaylist(idNamePair._id);
+    }
+
+    async function handleDislike(event) {
+        event.stopPropagation();
+        if (auth.isGuest) {
+            alert('Please log in to dislike playlists');
+            return;
+        }
+        await store.dislikePlaylist(idNamePair._id);
+    }
+
+    async function handleAddComment(event) {
+        event.stopPropagation();
+        if (!commentText.trim()) {
+            alert('Comment cannot be empty');
+            return;
+        }
+        await store.addComment(idNamePair._id, commentText);
+        setCommentText('');
+    }
+
+    async function handleDeleteComment(event, commentIndex) {
+        event.stopPropagation();
+        await store.deleteComment(idNamePair._id, commentIndex);
     }
 
     const isOwner = auth.user && auth.user.email === idNamePair.ownerEmail;
@@ -169,13 +206,149 @@ function PlaylistCard(props) {
             </Typography>
 
             {expanded && (
-                <Box sx={{ mt: 2, pl: 8 }}>
-                    <Typography variant="body2">
+                <Box sx={{ mt: 2, pl: 2 }}>
+                    <Typography variant="body2" sx={{ mb: 1 }}>
                         Published: {idNamePair.published ? 'Yes' : 'No'}
                     </Typography>
-                    <Typography variant="body2">
-                        Likes: {idNamePair.likes || 0} | Dislikes: {idNamePair.dislikes || 0}
-                    </Typography>
+
+                    {/* Like/Dislike Buttons */}
+                    <Box sx={{ display: 'flex', gap: 2, mb: 2, alignItems: 'center' }}>
+                        <Button
+                            variant="outlined"
+                            startIcon={<ThumbUpIcon />}
+                            onClick={handleLike}
+                            disabled={auth.isGuest}
+                            sx={{
+                                borderColor: '#4caf50',
+                                color: '#4caf50',
+                                '&:hover': {
+                                    borderColor: '#45a049',
+                                    bgcolor: '#f1f8f4'
+                                },
+                                '&:disabled': {
+                                    borderColor: '#ccc',
+                                    color: '#999'
+                                }
+                            }}
+                        >
+                            Like ({idNamePair.likes || 0})
+                        </Button>
+                        <Button
+                            variant="outlined"
+                            startIcon={<ThumbDownIcon />}
+                            onClick={handleDislike}
+                            disabled={auth.isGuest}
+                            sx={{
+                                borderColor: '#f44336',
+                                color: '#f44336',
+                                '&:hover': {
+                                    borderColor: '#d32f2f',
+                                    bgcolor: '#fef1f0'
+                                },
+                                '&:disabled': {
+                                    borderColor: '#ccc',
+                                    color: '#999'
+                                }
+                            }}
+                        >
+                            Dislike ({idNamePair.dislikes || 0})
+                        </Button>
+                    </Box>
+
+                    {/* Comments Section */}
+                    <Box sx={{ mt: 3 }}>
+                        <Typography variant="h6" sx={{ mb: 2, fontWeight: 'bold' }}>
+                            Comments ({idNamePair.comments ? idNamePair.comments.length : 0})
+                        </Typography>
+
+                        {/* Display Comments */}
+                        <Box sx={{ mb: 2, maxHeight: '200px', overflowY: 'auto' }}>
+                            {idNamePair.comments && idNamePair.comments.length > 0 ? (
+                                idNamePair.comments.map((comment, idx) => (
+                                    <Box
+                                        key={idx}
+                                        sx={{
+                                            bgcolor: '#f5f5f5',
+                                            p: 1.5,
+                                            mb: 1,
+                                            borderRadius: '4px',
+                                            border: '1px solid #ddd'
+                                        }}
+                                    >
+                                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                                            <Box sx={{ flex: 1 }}>
+                                                <Typography variant="caption" sx={{ color: '#1976d2', fontWeight: 'bold' }}>
+                                                    {comment.user || 'Anonymous'}
+                                                </Typography>
+                                                <Typography variant="body2" sx={{ mt: 0.5 }}>
+                                                    {comment.text}
+                                                </Typography>
+                                            </Box>
+                                            {!auth.isGuest && auth.user && comment.user === auth.user.email && (
+                                                <IconButton
+                                                    size="small"
+                                                    onClick={(e) => handleDeleteComment(e, idx)}
+                                                    sx={{
+                                                        color: '#f44336',
+                                                        '&:hover': { bgcolor: '#ffebee' }
+                                                    }}
+                                                >
+                                                    <DeleteIcon fontSize="small" />
+                                                </IconButton>
+                                            )}
+                                        </Box>
+                                    </Box>
+                                ))
+                            ) : (
+                                <Typography variant="body2" sx={{ color: '#999', fontStyle: 'italic' }}>
+                                    No comments yet. Be the first to comment!
+                                </Typography>
+                            )}
+                        </Box>
+
+                        {/* Add Comment Input */}
+                        {!auth.isGuest && (
+                            <Box sx={{ display: 'flex', gap: 1, mt: 2 }}>
+                                <TextField
+                                    fullWidth
+                                    size="small"
+                                    placeholder="Add a comment..."
+                                    value={commentText}
+                                    onChange={(e) => setCommentText(e.target.value)}
+                                    onKeyPress={(e) => {
+                                        if (e.key === 'Enter') {
+                                            handleAddComment(e);
+                                        }
+                                    }}
+                                    sx={{
+                                        bgcolor: 'white',
+                                        '& .MuiOutlinedInput-root': {
+                                            '&:hover fieldset': {
+                                                borderColor: '#1976d2',
+                                            },
+                                        }
+                                    }}
+                                />
+                                <Button
+                                    variant="contained"
+                                    onClick={handleAddComment}
+                                    disabled={!commentText.trim()}
+                                    sx={{
+                                        bgcolor: '#1976d2',
+                                        '&:hover': { bgcolor: '#1565c0' },
+                                        minWidth: '80px'
+                                    }}
+                                >
+                                    Post
+                                </Button>
+                            </Box>
+                        )}
+                        {auth.isGuest && (
+                            <Typography variant="caption" sx={{ color: '#999', fontStyle: 'italic', display: 'block', mt: 2 }}>
+                                Log in to add comments
+                            </Typography>
+                        )}
+                    </Box>
                 </Box>
             )}
         </Box>

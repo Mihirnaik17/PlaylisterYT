@@ -14,14 +14,10 @@ const playlistSchema = new Schema(
         songs: { 
             type: [{
                 title: { type: String, required: true },
-
                 artist: { type: String, required: true },
-
                 year: { type: Number, required: true },
-
                 youTubeId: { type: String, required: true }
             }], 
-
             required: true,
             default: []
         },
@@ -29,12 +25,16 @@ const playlistSchema = new Schema(
         published: { type: Boolean, required: true, default: true },
         likes: { type: Number, required: true, default: 0 },
         dislikes: { type: Number, required: true, default: 0 },
+        likedBy: { type: [String], default: [] },    //added for likes    
+        dislikedBy: { type: [String], default: [] },     // and this for dislikes
         listens: { type: Number, required: true, default: 0 },
         comments: {
             type: [{
-                username: { type: String, required: true },
-                comment:{ type: String, required: true },
-                createdAt:  { type: Date, default: Date.now }
+                User: { type: String, required: false },      
+                text: { type: String, required: false },      
+                username: { type: String, required: false },  
+                comment: { type: String, required: false },   
+                createdAt: { type: Date, default: Date.now }
             }],
             default: []
         }

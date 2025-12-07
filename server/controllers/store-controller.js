@@ -40,6 +40,8 @@ createPlaylist = async (req, res) => {
         published: true,
         likes: 0,
         dislikes: 0,
+        likedBy: [],          
+        dislikedBy: [],       
         listens: 0,
         comments: [],
         songs: body.songs || []
@@ -186,7 +188,11 @@ getPlaylistPairs = async (req, res) => {
                 published: list.published,
                 likes: list.likes || 0,
                 dislikes: list.dislikes || 0,
+                likedBy: list.likedBy || [],      
+                dislikedBy: list.dislikedBy || [], 
                 listens: list.listens || 0,
+                comments: list.comments || [],
+                songs: list.songs || [],
                 lastAccessed: list.lastAccessed
             };
             pairs.push(pair);
@@ -332,39 +338,70 @@ publishPlaylist = async (req, res) => {
 }
 
 likePlaylist = async (req, res) => {
-    if(auth.verifyUser(req) === null){
+    if (auth.verifyUser(req) === null) {
         return res.status(401).json({
             errorMessage: 'UNAUTHORIZED'
-        })
+        });
     }
 
     try {
         const playlist = await dbManager.getPlaylistById(req.params.id);
-        
+
         if (!playlist) {
             return res.status(404).json({
-                errorMessage: 'Playlist not found',
-            })
+                errorMessage: 'Playlist not found'
+            });
         }
 
-        const updateData = {
-            likes: (playlist.likes || 0) + 1
-        };
+        const user = await dbManager.getUserById(req.userId);
+        const userEmail = user.email;
 
-        await dbManager.updatePlaylist(req.params.id, updateData);
-        
+        const likedBy = Array.isArray(playlist.likedBy) ? playlist.likedBy : [];
+        const dislikedBy = Array.isArray(playlist.dislikedBy) ? playlist.dislikedBy : [];
+
+        console.log('==== LIKE DEBUG ====');
+        console.log('User email:', userEmail);
+        console.log('Current likedBy:', likedBy);
+        console.log('Current dislikedBy:', dislikedBy);
+        console.log('Already liked?', likedBy.includes(userEmail));
+        console.log('====================');
+
+        let updateData = {};
+
+        if (likedBy.includes(userEmail)) {
+            console.log('UNLIKE - Removing like');
+            updateData.likes = Math.max(0, (playlist.likes || 0) - 1);
+            updateData.likedBy = likedBy.filter(email => email !== userEmail);
+
+        } else {
+            console.log('LIKE - Adding like');
+            updateData.likes = (playlist.likes || 0) + 1;
+            updateData.likedBy = [...likedBy, userEmail];
+
+            if (dislikedBy.includes(userEmail)) {
+                updateData.dislikes = Math.max(0, (playlist.dislikes || 0) - 1);
+                updateData.dislikedBy = dislikedBy.filter(email => email !== userEmail);
+            }
+        }
+
+        const updated = await dbManager.updatePlaylist(req.params.id, updateData);
+
         return res.status(200).json({
             success: true,
-            likes: updateData.likes,
-        })
+            likes: updated.likes,
+            dislikes: updated.dislikes,
+            likedBy: updated.likedBy,
+            dislikedBy: updated.dislikedBy,
+            message: likedBy.includes(userEmail) ? 'Unliked' : 'Liked'
+        });
     } catch (error) {
         console.error(error);
         return res.status(400).json({
             errorMessage: 'Error liking playlist',
             error: error.message
-        })
+        });
     }
-}
+};
 
 dislikePlaylist = async (req, res) => {
     if(auth.verifyUser(req) === null){
@@ -382,15 +419,46 @@ dislikePlaylist = async (req, res) => {
             })
         }
 
-        const updateData = {
-            dislikes: (playlist.dislikes || 0) + 1
+        const user = await dbManager.getUserById(req.userId);
+        const userEmail = user.email;
+
+        // Initialize arrays if they don't exist
+        const likedBy = playlist.likedBy || [];
+        const dislikedBy = playlist.dislikedBy || [];
+
+        // Check if user already disliked
+        if (dislikedBy.includes(userEmail)) {
+            // Un-dislike - remove from dislikedBy array
+            const updateData = {
+                dislikes: Math.max(0, (playlist.dislikes || 0) - 1),
+                dislikedBy: dislikedBy.filter(email => email !== userEmail)
+            };
+            await dbManager.updatePlaylist(req.params.id, updateData);
+            return res.status(200).json({
+                success: true,
+                dislikes: updateData.dislikes,
+                message: 'Removed dislike'
+            })
+        }
+
+        // If user previously liked, remove like first
+        let updateData = {
+            dislikes: (playlist.dislikes || 0) + 1,
+            dislikedBy: [...dislikedBy, userEmail]
         };
+
+        if (likedBy.includes(userEmail)) {
+            updateData.likes = Math.max(0, (playlist.likes || 0) - 1);
+            updateData.likedBy = likedBy.filter(email => email !== userEmail);
+        }
 
         await dbManager.updatePlaylist(req.params.id, updateData);
         
         return res.status(200).json({
             success: true,
+            likes: updateData.likes,
             dislikes: updateData.dislikes,
+            message: 'Disliked'
         })
     } catch (error) {
         console.error(error);
@@ -424,10 +492,9 @@ addComment = async (req, res) => {
         }
 
         const user = await dbManager.getUserById(req.userId);
-        
         const newComment = {
-            username: user.username,
-            comment: req.body.comment,
+            user: user.email,
+            text: req.body.comment,
             createdAt: new Date()
         };
 
@@ -474,7 +541,8 @@ deleteComment = async (req, res) => {
             })
         }
 
-        if (playlist.comments[commentIndex].username !== user.username) {
+        // FIXED: Check against "user" field (email)
+        if (playlist.comments[commentIndex].user !== user.email) {
             return res.status(403).json({
                 errorMessage: 'You can only delete your own comments',
             })
@@ -696,8 +764,13 @@ addSongToPlaylist = async (req, res) => {
         
         await dbManager.updatePlaylist(id, updateData);
 
-        if (!song.playlists.includes(playlist._id)) {
-            song.playlists.push(playlist._id);
+        const playlistsArray = Array.isArray(song.playlists) ? song.playlists : [];
+        const playlistIdString = (playlist._id || playlist.id).toString();
+        const alreadyInList = playlistsArray.some(pId => pId.toString() === playlistIdString);
+
+        if (!alreadyInList) {
+            playlistsArray.push(playlist._id || playlist.id);
+            song.playlists = playlistsArray;
             await song.save();
         }
 
@@ -714,6 +787,7 @@ addSongToPlaylist = async (req, res) => {
         });
     }
 }
+
 
 
 module.exports = {

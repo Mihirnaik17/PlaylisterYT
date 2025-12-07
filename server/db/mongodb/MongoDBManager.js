@@ -52,7 +52,7 @@ class MongoDBManager extends DatabaseManager{
     }
 
     async getPlaylistById(playlistId){
-        return await Playlist.findById({_id: playlistId})
+        return await Playlist.findOne({_id: playlistId})
     }
 
     async getPlaylistsByOwnerEmail(email) {
@@ -64,39 +64,45 @@ class MongoDBManager extends DatabaseManager{
     }
     
     async updatePlaylist(playlistId, updateData) {
-        const playlist = await Playlist.findOne({ _id: playlistId });
-        if (!playlist) {
-            throw new Error('Playlist not found');
-        }
-        
-        // Update only the fields that are provided
-        if (updateData.name !== undefined) {
-            playlist.name = updateData.name;
-        }
-        if (updateData.songs !== undefined) {
-            playlist.songs = updateData.songs;
-        }
-        if (updateData.published !== undefined) {
-            playlist.published = updateData.published;
-        }
-        if (updateData.likes !== undefined) {
-            playlist.likes = updateData.likes;
-        }
-        if (updateData.dislikes !== undefined) {
-            playlist.dislikes = updateData.dislikes;
-        }
-        if (updateData.listens !== undefined) {
-            playlist.listens = updateData.listens;
-        }
-        if (updateData.comments !== undefined) {
-            playlist.comments = updateData.comments;
-        }
-        if (updateData.publishedDate !== undefined) {
-            playlist.publishedDate = updateData.publishedDate;
-        }
-        
-        return await playlist.save();
+    const playlist = await Playlist.findOne({ _id: playlistId });
+    if (!playlist) {
+        throw new Error('Playlist not found');
     }
+    
+    if (updateData.name !== undefined) {
+        playlist.name = updateData.name;
+    }
+    if (updateData.songs !== undefined) {
+        playlist.songs = updateData.songs;
+    }
+    if (updateData.published !== undefined) {
+        playlist.published = updateData.published;
+    }
+    if (updateData.likes !== undefined) {
+        playlist.likes = updateData.likes;
+    }
+    if (updateData.dislikes !== undefined) {
+        playlist.dislikes = updateData.dislikes;
+    }
+    if (updateData.likedBy !== undefined) {
+        playlist.likedBy = updateData.likedBy;
+    }
+    if (updateData.dislikedBy !== undefined) {
+        playlist.dislikedBy = updateData.dislikedBy;
+    }
+    if (updateData.listens !== undefined) {
+        playlist.listens = updateData.listens;
+    }
+    if (updateData.comments !== undefined) {
+        playlist.comments = updateData.comments;
+    }
+    if (updateData.publishedDate !== undefined) {
+        playlist.publishedDate = updateData.publishedDate;
+    }
+    
+    return await playlist.save();
+}
+
 
     async deletePlaylist(playlistId) {
         return await Playlist.findOneAndDelete({ _id: playlistId });
@@ -132,7 +138,7 @@ class MongoDBManager extends DatabaseManager{
             console.log("users filled");
 
             for (let playlistData of testData.playlists) {
-                // Ensure playlists have all default fields when resetting
+                
                 const playlistWithDefaults = {
                     ...playlistData,
                     published: playlistData.published !== undefined ? playlistData.published : false,

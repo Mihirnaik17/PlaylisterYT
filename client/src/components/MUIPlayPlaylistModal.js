@@ -1,4 +1,4 @@
-import { useContext, useState } from 'react';
+import { useContext, useState, useRef, useEffect } from 'react';
 import { GlobalStoreContext } from '../store';
 import Box from '@mui/material/Box';
 import Modal from '@mui/material/Modal';
@@ -6,6 +6,8 @@ import Button from '@mui/material/Button';
 import Typography from '@mui/material/Typography';
 import Avatar from '@mui/material/Avatar';
 import IconButton from '@mui/material/IconButton';
+import Checkbox from '@mui/material/Checkbox';
+import FormControlLabel from '@mui/material/FormControlLabel';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import PauseIcon from '@mui/icons-material/Pause';
 import SkipPreviousIcon from '@mui/icons-material/SkipPrevious';
@@ -15,34 +17,142 @@ export default function MUIPlayPlaylistModal() {
     const { store } = useContext(GlobalStoreContext);
     const [currentSongIndex, setCurrentSongIndex] = useState(0);
     const [isPlaying, setIsPlaying] = useState(false);
+    const [repeat, setRepeat] = useState(false);
+    const playerRef = useRef(null);
+    const playerReadyRef = useRef(false);
 
     const playlist = store.currentList;
 
+    // Load YouTube IFrame API
+    useEffect(() => {
+        if (!window.YT) {
+            const tag = document.createElement('script');
+            tag.src = 'https://www.youtube.com/iframe_api';
+            const firstScriptTag = document.getElementsByTagName('script')[0];
+            firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+        }
+
+        window.onYouTubeIframeAPIReady = () => {
+            console.log('YouTube IFrame API Ready');
+        };
+
+        return () => {
+            if (playerRef.current && playerRef.current.destroy) {
+                playerRef.current.destroy();
+            }
+        };
+    }, []);
+
+    // Initialize player when song changes
+    useEffect(() => {
+        if (playlist && playlist.songs && playlist.songs[currentSongIndex] && window.YT) {
+            // Destroy previous player if exists
+            if (playerRef.current && playerRef.current.destroy) {
+                playerRef.current.destroy();
+            }
+
+            // Create new player
+            playerRef.current = new window.YT.Player('youtube-player', {
+                height: '100%',
+                width: '100%',
+                videoId: playlist.songs[currentSongIndex].youTubeId,
+                playerVars: {
+                    autoplay: isPlaying ? 1 : 0,
+                    controls: 1,
+                    modestbranding: 1,
+                    rel: 0
+                },
+                events: {
+                    onReady: onPlayerReady,
+                    onStateChange: onPlayerStateChange
+                }
+            });
+        }
+    }, [currentSongIndex, playlist]);
+
+    function onPlayerReady(event) {
+        playerReadyRef.current = true;
+        if (isPlaying) {
+            event.target.playVideo();
+        }
+    }
+
+    function onPlayerStateChange(event) {
+        // YT.PlayerState.ENDED = 0
+        if (event.data === 0) {
+            handleVideoEnd();
+        }
+        // YT.PlayerState.PLAYING = 1
+        else if (event.data === 1) {
+            setIsPlaying(true);
+        }
+        // YT.PlayerState.PAUSED = 2
+        else if (event.data === 2) {
+            setIsPlaying(false);
+        }
+    }
+
+    function handleVideoEnd() {
+        console.log('Video ended. Current index:', currentSongIndex, 'Repeat:', repeat);
+        
+        if (!playlist || !playlist.songs) return;
+
+        if (currentSongIndex === playlist.songs.length - 1) {
+            if (repeat) {
+                console.log('Looping back to first song');
+                setCurrentSongIndex(0);
+                setIsPlaying(true);
+            } else {
+                // Stop playing
+                console.log('Playlist finished');
+                setIsPlaying(false);
+            }
+        } else {
+            // Go to next song
+            console.log('Auto-advancing to next song');
+            setCurrentSongIndex(currentSongIndex + 1);
+            setIsPlaying(true);
+        }
+    }
+
     function handleClose() {
+        if (playerRef.current && playerRef.current.destroy) {
+            playerRef.current.destroy();
+        }
         store.hideModals();
         setCurrentSongIndex(0);
         setIsPlaying(false);
+        setRepeat(false);
     }
 
     function handlePlayPause() {
-        setIsPlaying(!isPlaying);
+        if (playerRef.current && playerReadyRef.current) {
+            if (isPlaying) {
+                playerRef.current.pauseVideo();
+            } else {
+                playerRef.current.playVideo();
+            }
+            setIsPlaying(!isPlaying);
+        }
     }
 
     function handlePrevious() {
         if (playlist && playlist.songs.length > 0) {
-            setCurrentSongIndex((prev) => {
-                if (prev === 0) return playlist.songs.length - 1;
-                return prev - 1;
-            });
+            const newIndex = currentSongIndex === 0 
+                ? playlist.songs.length - 1 
+                : currentSongIndex - 1;
+            setCurrentSongIndex(newIndex);
+            setIsPlaying(true);
         }
     }
 
     function handleNext() {
         if (playlist && playlist.songs.length > 0) {
-            setCurrentSongIndex((prev) => {
-                if (prev === playlist.songs.length - 1) return 0;
-                return prev + 1;
-            });
+            const newIndex = currentSongIndex === playlist.songs.length - 1 
+                ? 0 
+                : currentSongIndex + 1;
+            setCurrentSongIndex(newIndex);
+            setIsPlaying(true);
         }
     }
 
@@ -51,12 +161,16 @@ export default function MUIPlayPlaylistModal() {
         setIsPlaying(true);
     }
 
+    function handleRepeatChange(event) {
+        setRepeat(event.target.checked);
+        console.log('Repeat toggled:', event.target.checked);
+    }
+
     if (!store.isPlayPlaylistModalOpen() || !playlist) {
         return null;
     }
 
-    const currentSong = playlist.songs[currentSongIndex];
-    const youtubeUrl = currentSong ? `https://www.youtube.com/embed/${currentSong.youTubeId}` : '';
+    const currentSong = playlist.songs && playlist.songs[currentSongIndex];
 
     const modalStyle = {
         position: 'absolute',
@@ -146,7 +260,8 @@ export default function MUIPlayPlaylistModal() {
                             flexDirection: 'column',
                             alignItems: 'center',
                             justifyContent: 'center',
-                            p: 3
+                            p: 3,
+                            position: 'relative'
                         }}
                     >
                         <Box
@@ -159,19 +274,11 @@ export default function MUIPlayPlaylistModal() {
                             }}
                         >
                             {currentSong && (
-                                <iframe
-                                    width="100%"
-                                    height="100%"
-                                    src={youtubeUrl}
-                                    title="YouTube video player"
-                                    frameBorder="0"
-                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                                    allowFullScreen
-                                ></iframe>
+                                <div id="youtube-player"></div>
                             )}
                         </Box>
 
-                        <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
+                        <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', mb: 2 }}>
                             <IconButton
                                 onClick={handlePrevious}
                                 sx={{
@@ -212,6 +319,27 @@ export default function MUIPlayPlaylistModal() {
                                 <SkipNextIcon sx={{ fontSize: 32 }} />
                             </IconButton>
                         </Box>
+
+                        {/* REPEAT CHECKBOX - NEW! */}
+                        <FormControlLabel
+                            control={
+                                <Checkbox 
+                                    checked={repeat}
+                                    onChange={handleRepeatChange}
+                                    sx={{
+                                        color: '#006400',
+                                        '&.Mui-checked': {
+                                            color: '#006400',
+                                        },
+                                    }}
+                                />
+                            }
+                            label={
+                                <Typography sx={{ fontWeight: 'bold', color: '#006400' }}>
+                                    Repeat
+                                </Typography>
+                            }
+                        />
 
                         <Button
                             onClick={handleClose}
