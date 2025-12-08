@@ -87,24 +87,21 @@ function AuthContextProvider(props) {
         }
     }
 
-    auth.registerUser = async function(firstName, lastName, username, email, password, passwordVerify) {
+    auth.registerUser = async function(firstName, lastName, username, email, password, passwordVerify, avatar) {
         console.log("REGISTERING USER");
         try{   
-            const response = await authRequestSender.registerUser(firstName, lastName, username, email, password, passwordVerify);   
+            const response = await authRequestSender.registerUser(firstName, lastName, username, email, password, passwordVerify, avatar);   
             if (response.status === 200) {
                 console.log("Registered Sucessfully");
                 authReducer({
                     type: AuthActionType.REGISTER_USER,
                     payload: {
-                        user: response.data.user,
-                        loggedIn: true,
+                        user: null,
+                        loggedIn: false,
                         errorMessage: null
                     }
                 })
                 history.push("/login");
-                console.log("NOW WE LOGIN");
-                auth.loginUser(email, password);
-                console.log("LOGGED IN");
             }
         } catch(error){
             authReducer({
@@ -155,15 +152,23 @@ function AuthContextProvider(props) {
         }
     }
 
-    auth.getUserInitials = function() {
+        auth.getUserInitials = function() {
         let initials = "";
         if (auth.user) {
-            initials += auth.user.firstName.charAt(0);
-            initials += auth.user.lastName.charAt(0);
+            if (auth.user.username && auth.user.username.length > 0) {
+                initials += auth.user.username.charAt(0).toUpperCase();
+                if (auth.user.username.length > 1) {
+                    initials += auth.user.username.charAt(1).toUpperCase();
+                }
+            } else {
+                initials += auth.user.firstName.charAt(0);
+                initials += auth.user.lastName.charAt(0);
+            }
         }
         console.log("user initials: " + initials);
         return initials;
     }
+
 
     auth.continueAsGuest = function() {
         authReducer({
@@ -172,6 +177,33 @@ function AuthContextProvider(props) {
         })
         history.push("/home");
     }
+
+        auth.editUser = async function(username, password, passwordVerify, avatar) {
+        try{
+            const response = await authRequestSender.editUser(username, password, passwordVerify, avatar);
+            if (response.status === 200) {
+                authReducer({
+                    type: AuthActionType.LOGIN_USER,
+                    payload: {
+                        user: response.data.user,
+                        loggedIn: true,
+                        errorMessage: null
+                    }
+                })
+                history.push("/home");
+            }
+        } catch(error){
+            authReducer({
+                type: AuthActionType.LOGIN_USER,
+                payload: {
+                    user: auth.user,
+                    loggedIn: true,
+                    errorMessage: error.response?.data?.errorMessage || error.message
+                }
+            })
+        }
+    }
+
 
     return (
         <AuthContext.Provider value={{

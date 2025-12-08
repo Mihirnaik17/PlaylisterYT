@@ -45,7 +45,6 @@ const handleresponse =  async (response) => {
             message: errormsg
         };
     }   
-    //const contype = response.headers.get("content-type");
     try{
         const jsonData = await response.json();
         return {data: jsonData, status: response.status};
@@ -69,7 +68,6 @@ export const getLoggedIn = async () => {
 }
 
 export const loginUser = async (email, password) => {   
-        // SPECIFY THE PAYLOAD
         const payload = {
         email : email,
         password : password
@@ -106,15 +104,15 @@ export const logoutUser = async () => {
     }
 }
 
-export const registerUser = async (firstName, lastName, username, email, password, passwordVerify) => {   
-        // SPECIFY THE PAYLOAD
+export const registerUser = async (firstName, lastName, username, email, password, passwordVerify, avatar) => {   
         const payload = {
         firstName : firstName,
         lastName : lastName,
         username : username,
         email : email,
         password : password,
-        passwordVerify : passwordVerify
+        passwordVerify : passwordVerify,
+        avatar : avatar
         };
         try{
             const response = await fetch(`${baseURL}/register/`,{
@@ -133,6 +131,31 @@ export const registerUser = async (firstName, lastName, username, email, passwor
             throw error;
         }
     
+}
+
+export const editUser = async (username, password, passwordVerify, avatar) => {
+        const payload = {
+        username : username,
+        password : password,
+        passwordVerify : passwordVerify,
+        avatar : avatar
+        };
+        try{
+            const response = await fetch(`${baseURL}/edit/`,{
+            method: 'PUT',
+            credentials: "include",
+            headers: { 
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(payload)
+            });
+
+            const data = await handleresponse(response);
+            return data;
+        } catch (error){
+            console.error(error);
+            throw error;
+        }
 }
 
 // export const getLoggedIn = () => api.get(`/loggedIn/`);
@@ -156,7 +179,8 @@ const apis = {
     getLoggedIn,
     registerUser,
     loginUser,
-    logoutUser
+    logoutUser,
+    editUser
 }
 
 export default apis

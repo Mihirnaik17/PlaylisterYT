@@ -22,7 +22,7 @@ router.put('/playlist/:id/listen', StoreController.incrementListens)
 router.post('/playlist/:id/add-song', auth.verify, StoreController.addSongToPlaylist)
 
 router.get('/playlists/published', StoreController.getPublishedPlaylists)
-router.get('/playlists/search', auth.verify, StoreController.searchPlaylists)
+router.get('/playlists/search',  StoreController.searchPlaylists)
 router.get('/playlists/user/:username', auth.verify, StoreController.getPlaylistsByUsername)
 router.get('/playlistpairs', auth.verify, StoreController.getPlaylistPairs)
 router.get('/playlists', auth.verify, StoreController.getPlaylists)

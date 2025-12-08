@@ -20,6 +20,8 @@ import CatalogSongCard from './CatalogSongCard'
 import MUIRemoveSongModal from './MUIRemoveSongModal'
 
 import MUICreateSongModal from './MUICreateSongModal'
+export { default as EditAccountScreen } from './EditAccountScreen';
+
 /*
     This serves as a module so that we can import
     all the other components as we wish.
