@@ -84,6 +84,22 @@ export default function MUIEditPlaylistModal() {
         store.redo();
     }
 
+    function handleDragStart(event, index) {
+        event.dataTransfer.setData("songIndex", index);
+    }
+
+    function handleDragOver(event) {
+        event.preventDefault();
+    }
+
+    function handleDrop(event, targetIndex) {
+        event.preventDefault();
+        let sourceIndex = Number(event.dataTransfer.getData("songIndex"));
+        if (!isNaN(sourceIndex) && sourceIndex !== targetIndex) {
+            store.addMoveSongTransaction(sourceIndex, targetIndex);
+        }
+    }
+
     let songs = [];
     if (store.currentList) {
         songs = store.currentList.songs;
@@ -178,6 +194,10 @@ export default function MUIEditPlaylistModal() {
                             {songs.map((song, index) => (
                                 <ListItem
                                     key={index}
+                                    draggable
+                                    onDragStart={(e) => handleDragStart(e, index)}
+                                    onDragOver={handleDragOver}
+                                    onDrop={(e) => handleDrop(e, index)}
                                     sx={{
                                         bgcolor: 'white',
                                         border: '2px solid #333',

@@ -23,7 +23,6 @@ export default function SongsCatalogScreen() {
     const [artistSearch, setArtistSearch] = useState('');
     const [yearSearch, setYearSearch] = useState('');
     const [currentSort, setCurrentSort] = useState('listens-hi'); 
-    const [selectedSong, setSelectedSong] = useState(null);
     
     useEffect(() => {
         store.loadSongs({ sortBy: 'listens', sortOrder: 'desc' });
@@ -48,7 +47,6 @@ export default function SongsCatalogScreen() {
         setArtistSearch('');
         setYearSearch('');
         setCurrentSort('listens-hi');
-        setSelectedSong(null);
         store.loadSongs({ sortBy: 'listens', sortOrder: 'desc' });
     }
     
@@ -110,7 +108,6 @@ export default function SongsCatalogScreen() {
             <CatalogSongCard
                 key={song._id}
                 song={song}
-                onSelect={() => setSelectedSong(song)}
             />
         ));
     }
@@ -182,12 +179,12 @@ export default function SongsCatalogScreen() {
                         justifyContent: 'center',
                         color: 'white'
                     }}>
-                        {selectedSong && selectedSong.youTubeId ? (
+                        {store.currentSong && store.currentSong.youTubeId ? (
                             <iframe
                                 width="100%"
                                 height="100%"
-                                src={`https://www.youtube.com/embed/${selectedSong.youTubeId}`}
-                                title={selectedSong.title}
+                                src={`https://www.youtube.com/embed/${store.currentSong.youTubeId}`}
+                                title={store.currentSong.title}
                                 frameBorder="0"
                                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                                 allowFullScreen

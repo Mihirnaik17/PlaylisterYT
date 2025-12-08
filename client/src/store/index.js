@@ -629,21 +629,39 @@ store.createNewList = async function () {
         asyncUnpublishPlaylist(id);
     }
 
-    store.likePlaylist = function (id) {
+   store.likePlaylist = function (id) {
         async function asyncLikePlaylist(id) {
             let response = await storeRequestSender.likePlaylist(id);
             if (response.data.success) {
-                store.loadIdNamePairs();
+                const { likes, dislikes } = response.data;
+
+                const updatedPairs = store.idNamePairs.map((pair) =>
+                    pair._id === id ? { ...pair, likes, dislikes } : pair
+                );
+
+                storeReducer({
+                    type: GlobalStoreActionType.LOAD_ID_NAME_PAIRS,
+                    payload: updatedPairs
+                });
             }
         }
         asyncLikePlaylist(id);
     }
 
-    store.dislikePlaylist = function (id) {
+   store.dislikePlaylist = function (id) {
         async function asyncDislikePlaylist(id) {
             let response = await storeRequestSender.dislikePlaylist(id);
             if (response.data.success) {
-                store.loadIdNamePairs();
+                const { likes, dislikes } = response.data;
+
+                const updatedPairs = store.idNamePairs.map((pair) =>
+                    pair._id === id ? { ...pair, likes, dislikes } : pair
+                );
+
+                storeReducer({
+                    type: GlobalStoreActionType.LOAD_ID_NAME_PAIRS,
+                    payload: updatedPairs
+                });
             }
         }
         asyncDislikePlaylist(id);
