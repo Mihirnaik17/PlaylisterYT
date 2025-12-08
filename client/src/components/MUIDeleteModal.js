@@ -15,8 +15,9 @@ const style1 = {
     width: 345,
     height: 250,
     backgroundSize: "contain",
-    backgroundImage: `url(https://i.insider.com/602ee9ced3ad27001837f2ac?})`,
+    //backgroundImage: `url(https://i.insider.com/602ee9ced3ad27001837f2ac?})`,
     border: '3px solid #000',
+     backgroundColor: "#B4F4A8", 
     padding: '20px',
     boxShadow: 24,
 };

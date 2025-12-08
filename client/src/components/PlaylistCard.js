@@ -207,9 +207,35 @@ function PlaylistCard(props) {
 
             {expanded && (
                 <Box sx={{ mt: 2, pl: 2 }}>
-                    <Typography variant="body2" sx={{ mb: 1 }}>
-                        Published: {idNamePair.published ? 'Yes' : 'No'}
-                    </Typography>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+                        <Typography variant="body2">
+                            Published: {idNamePair.published ? 'Yes' : 'No'}
+                        </Typography>
+                        {!auth.isGuest && isOwner && (
+                            <Button
+                                variant="contained"
+                                size="small"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    if (idNamePair.published) {
+                                        store.unpublishPlaylist(idNamePair._id);
+                                    } else {
+                                        store.publishPlaylist(idNamePair._id);
+                                    }
+                                }}
+                                sx={{
+                                    bgcolor: idNamePair.published ? '#ff9800' : '#4caf50',
+                                    color: 'white',
+                                    minWidth: '100px',
+                                    '&:hover': { 
+                                        bgcolor: idNamePair.published ? '#f57c00' : '#45a049' 
+                                    }
+                                }}
+                            >
+                                {idNamePair.published ? 'UNPUBLISH' : 'PUBLISH'}
+                            </Button>
+                        )}
+                    </Box>
 
                     {/* Like/Dislike Buttons */}
                     <Box sx={{ display: 'flex', gap: 2, mb: 2, alignItems: 'center' }}>

@@ -10,45 +10,61 @@ import Box from '@mui/material/Box';
 function CatalogSongCard(props) {
     const { store } = useContext(GlobalStoreContext);
     const { auth } = useContext(AuthContext);
-    const { song } = props;
+    const { song, onSelect } = props;
     
     const [anchorEl, setAnchorEl] = useState(null);
     const [playlistMenuAnchor, setPlaylistMenuAnchor] = useState(null);
     const [userPlaylists, setUserPlaylists] = useState([]);
+    const [loadingPlaylists, setLoadingPlaylists] = useState(false);
     const open = Boolean(anchorEl);
     const playlistMenuOpen = Boolean(playlistMenuAnchor);
 
     const isOwner = auth.user && auth.user.email === song.ownerEmail;
     
-    // Load user's playlists when main menu opens
+    // Load user playlists when menu opens
     useEffect(() => {
-        if (!auth.isGuest && open) {
+        if (open && !auth.isGuest) {
             loadUserPlaylists();
         }
     }, [open]);
     
-    const loadUserPlaylists = () => {
-        // Trigger loading if not already loaded
-        if (!store.idNamePairs || store.idNamePairs.length === 0) {
-            store.loadIdNamePairs();
-        }
-        
-        // Sort by most recently accessed
-        const sorted = store.idNamePairs && store.idNamePairs.length > 0
-            ? [...store.idNamePairs].sort((a, b) => {
+    const loadUserPlaylists = async () => {
+        setLoadingPlaylists(true);
+        try {
+            // Call the store function to load user's playlists
+            await new Promise((resolve) => {
+                store.loadIdNamePairs();
+                // Wait a bit for the store to update
+                setTimeout(resolve, 100);
+            });
+            
+            // Filter to only user's playlists
+            const myPlaylists = store.idNamePairs
+                ? store.idNamePairs.filter(p => p.ownerEmail === auth.user.email)
+                : [];
+            
+            console.log('User playlists loaded:', myPlaylists);
+            
+            // Sort by most recently accessed
+            const sorted = [...myPlaylists].sort((a, b) => {
                 const dateA = a.lastAccessed ? new Date(a.lastAccessed) : new Date(0);
                 const dateB = b.lastAccessed ? new Date(b.lastAccessed) : new Date(0);
                 return dateB - dateA;
-              })
-            : [];
-        
-        setUserPlaylists(sorted);
+            });
+            
+            setUserPlaylists(sorted);
+        } catch (error) {
+            console.error('Error loading playlists:', error);
+            setUserPlaylists([]);
+        } finally {
+            setLoadingPlaylists(false);
+        }
     };
     
     const handleMenuOpen = (event) => {
         event.stopPropagation();
         setAnchorEl(event.currentTarget);
-        setPlaylistMenuAnchor(null); // Close playlist menu if open
+        setPlaylistMenuAnchor(null);
     };
     
     const handleMenuClose = () => {
@@ -58,7 +74,6 @@ function CatalogSongCard(props) {
     
     const handleShowPlaylistMenu = (event) => {
         event.stopPropagation();
-        // Keep the playlist menu open by setting anchor
         if (anchorEl) {
             setPlaylistMenuAnchor(anchorEl);
         }
@@ -70,7 +85,6 @@ function CatalogSongCard(props) {
     
     const handleEditSong = (event) => {
         event.stopPropagation();
-        console.log('Edit Song clicked:', song);
         store.showEditSongModal(-1, song);
         handleMenuClose();
     };
@@ -84,23 +98,17 @@ function CatalogSongCard(props) {
     const handleAddToSpecificPlaylist = async (event, playlistId) => {
         event.stopPropagation();
         
-        // Close menus first
         handleMenuClose();
         
         try {
             const result = await store.addSongToPlaylist(playlistId, song._id);
             if (result.success) {
-                alert('Song added to playlist!');
+                console.log('✅ Song added to playlist successfully');
             } else {
-                if (result.error && result.error.includes('already in playlist')) {
-                    alert('This song is already in that playlist!');
-                } else {
-                    alert('Failed to add song: ' + (result.error || 'Unknown error'));
-                }
+                console.log('❌ Failed to add song:', result.error);
             }
         } catch (error) {
             console.error('Error adding song:', error);
-            alert('Failed to add song to playlist');
         }
     };
 
@@ -116,8 +124,10 @@ function CatalogSongCard(props) {
                 display: 'flex',
                 justifyContent: 'space-between',
                 alignItems: 'center',
-                border: isOwner ? '2px solid #FF6F00' : 'none'
+                border: isOwner ? '2px solid #FF6F00' : 'none',
+                cursor: 'pointer'
             }}
+            onClick={() => { if (onSelect) onSelect(); }}
         >
             <Box sx={{ flex: 1 }}>
                 <Box sx={{ fontWeight: 'bold', fontSize: '1.1rem' }}>
@@ -126,6 +136,7 @@ function CatalogSongCard(props) {
                 <Box sx={{ fontSize: '0.9rem', color: '#666', mt: 0.5 }}>
                     <span style={{ marginRight: '20px' }}>Listens: {song.listens || 0}</span>
                     <span>Playlists: {song.playlists ? song.playlists.length : 0}</span>
+                    {isOwner && <span style={{ marginLeft: '20px', color: '#FF6F00', fontWeight: 'bold' }}>★ YOUR SONG</span>}
                 </Box>
             </Box>
 
@@ -138,13 +149,12 @@ function CatalogSongCard(props) {
                         <MoreVertIcon />
                     </IconButton>
                     
-                    {/* Main Menu */}
                     <Menu
                         anchorEl={anchorEl}
                         open={open}
                         onClose={handleMenuClose}
                         MenuListProps={{
-                            onMouseLeave: handleMenuClose
+                            'aria-labelledby': 'basic-button',
                         }}
                     >
                         <MenuItem 
@@ -188,7 +198,6 @@ function CatalogSongCard(props) {
                         )}
                     </Menu>
                     
-                    {/* Playlist Submenu */}
                     <Menu
                         anchorEl={playlistMenuAnchor}
                         open={playlistMenuOpen}
@@ -202,10 +211,21 @@ function CatalogSongCard(props) {
                             horizontal: 'left',
                         }}
                         MenuListProps={{
+                            'aria-labelledby': 'playlist-button',
                             onMouseLeave: handleHidePlaylistMenu
                         }}
+                        sx={{
+                            pointerEvents: 'none',
+                            '& .MuiPaper-root': {
+                                pointerEvents: 'auto',
+                            }
+                        }}
                     >
-                        {userPlaylists.length > 0 ? (
+                        {loadingPlaylists ? (
+                            <MenuItem disabled>
+                                Loading playlists...
+                            </MenuItem>
+                        ) : userPlaylists.length > 0 ? (
                             userPlaylists.map((pair) => (
                                 <MenuItem 
                                     key={pair._id}
@@ -223,7 +243,7 @@ function CatalogSongCard(props) {
                             ))
                         ) : (
                             <MenuItem disabled>
-                                {store.idNamePairs === null ? 'Loading...' : 'No playlists available'}
+                                No playlists found - create one first!
                             </MenuItem>
                         )}
                     </Menu>

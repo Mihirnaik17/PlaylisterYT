@@ -1,6 +1,7 @@
 import { useContext } from 'react'
 import { useHistory } from 'react-router-dom'
 import { GlobalStoreContext } from '../store/index.js'
+import AuthContext from '../auth'
 import NavigationBar from './NavigationBar'
 import SongCard from './SongCard.js'
 import MUIEditSongModal from './MUIEditSongModal.js'
@@ -22,15 +23,18 @@ import SkipNextIcon from '@mui/icons-material/SkipNext';
 */
 function WorkspaceScreen() {
     const { store } = useContext(GlobalStoreContext);
+    const { auth } = useContext(AuthContext);
     store.history = useHistory();
     
-    let modalJSX = "";
-    if (store.isEditSongModalOpen()) {
-        modalJSX = <MUIEditSongModal />;
-    }
-
     if (!store.currentList) {
         return null;
+    }
+
+    const isOwner = auth.user && auth.user.email === store.currentList.ownerEmail;
+
+    let modalJSX = "";
+    if (isOwner && store.isEditSongModalOpen()) {
+        modalJSX = <MUIEditSongModal />;
     }
 
     return (
@@ -84,6 +88,7 @@ function WorkspaceScreen() {
                                     key={'playlist-song-' + (index)}
                                     index={index}
                                     song={song}
+                                    readOnly={!isOwner}
                                 />
                             ))}
                         </List>

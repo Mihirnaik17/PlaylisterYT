@@ -250,9 +250,19 @@ export const getPublishedPlaylists = async () => {
     }
 }
 
-export const searchPlaylists = async (query) => {
+export const searchPlaylists = async (searchParams = {}) => {
     try{
-        const response = await fetch(`${baseURL}/playlists/search?query=${encodeURIComponent(query)}`,{
+        const queryParams = new URLSearchParams();
+        
+        if (searchParams.name) queryParams.append('name', searchParams.name);
+        if (searchParams.username) queryParams.append('username', searchParams.username);
+        if (searchParams.title) queryParams.append('title', searchParams.title);
+        if (searchParams.artist) queryParams.append('artist', searchParams.artist);
+        if (searchParams.year) queryParams.append('year', searchParams.year);
+        
+        const url = `${baseURL}/playlists/search${queryParams.toString() ? '?' + queryParams.toString() : ''}`;
+        
+        const response = await fetch(url, {
             credentials: "include"
         });
         const data = await handleresponse(response);
@@ -297,18 +307,6 @@ export const addSongToPlaylist = async (playlistId, songId) => {
     }
 }
 
-// export const deletePlaylistById = (id) => api.delete(`/playlist/${id}`)
-// export const getPlaylistById = (id) => api.get(`/playlist/${id}`)
-// export const getPlaylistPairs = () => api.get(`/playlistpairs/`)
-// export const updatePlaylistById = (id, playlist) => {
-//     return api.put(`/playlist/${id}`, {
-//         // SPECIFY THE PAYLOAD
-//         playlist : playlist
-//     })
-// }
-
-
-
 const apis = {
     createPlaylist,
     deletePlaylistById,
@@ -328,6 +326,3 @@ const apis = {
 }
 
 export default apis
-
-
-//we are gonna create create playlist with fetch

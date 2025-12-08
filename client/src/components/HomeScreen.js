@@ -48,41 +48,19 @@ const HomeScreen = () => {
     }
 
     function handleSearch() {
-        let filtered = store.idNamePairs;
-
-        if(searchName){
-            filtered = filtered.filter(pair => pair.name.toLowerCase().includes(searchName.toLowerCase()));
+        const searchParams = {};
+        
+        if (searchName) searchParams.name = searchName;
+        if (searchUser) searchParams.username = searchUser;
+        if (searchSongTitle) searchParams.title = searchSongTitle;
+        if (searchArtist) searchParams.artist = searchArtist;
+        if (searchYear) searchParams.year = searchYear;
+        
+        if (Object.keys(searchParams).length === 0) {
+            store.loadIdNamePairs();
+        } else {
+            store.searchPlaylists(searchParams);
         }
-
-        if(searchUser){
-            filtered = filtered.filter(pair=> pair.ownerEmail && pair.ownerEmail.toLowerCase().includes(searchUser.toLowerCase()));
-        }
-
-        if(searchSongTitle){
-            filtered = filtered.filter(pair => 
-                pair.songs && pair.songs.some(song => 
-                    song.title.toLowerCase().includes(searchSongTitle.toLowerCase())
-                )
-            );
-        }
-
-        if(searchArtist){
-            filtered = filtered.filter(pair => 
-                pair.songs && pair.songs.some(song => 
-                    song.artist.toLowerCase().includes(searchArtist.toLowerCase())
-                )
-            );
-        }
-
-        if(searchYear){
-            filtered = filtered.filter(pair => 
-                pair.songs && pair.songs.some(song => 
-                    song.year.toString().includes(searchYear)
-                )
-            );
-        }
-
-        setFilteredPlaylists(filtered);
     }
 
     function handleClear() {
@@ -92,6 +70,7 @@ const HomeScreen = () => {
         setSearchArtist('');
         setSearchYear('');
         setFilteredPlaylists(store.idNamePairs);
+        store.loadIdNamePairs();
     }
 
     function handleSortClick(event) {

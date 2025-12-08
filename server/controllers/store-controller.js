@@ -3,6 +3,7 @@ const dbManager = require('../db');
 const jwt = require('jsonwebtoken');
 require('dotenv').config();
 const Song = require('../models/song-model');
+const Playlist = require('../models/playlist-model');
 
 
 /*
@@ -423,14 +424,10 @@ dislikePlaylist = async (req, res) => {
 
         const user = await dbManager.getUserById(req.userId);
         const userEmail = user.email;
-
-        // Initialize arrays if they don't exist
         const likedBy = playlist.likedBy || [];
         const dislikedBy = playlist.dislikedBy || [];
 
-        // Check if user already disliked
         if (dislikedBy.includes(userEmail)) {
-            // Un-dislike - remove from dislikedBy array
             const updateData = {
                 dislikes: Math.max(0, (playlist.dislikes || 0) - 1),
                 dislikedBy: dislikedBy.filter(email => email !== userEmail)
@@ -442,8 +439,6 @@ dislikePlaylist = async (req, res) => {
                 message: 'Removed dislike'
             })
         }
-
-        // If user previously liked, remove like first
         let updateData = {
             dislikes: (playlist.dislikes || 0) + 1,
             dislikedBy: [...dislikedBy, userEmail]
@@ -543,7 +538,6 @@ deleteComment = async (req, res) => {
             })
         }
 
-        // FIXED: Check against "user" field (email)
         if (playlist.comments[commentIndex].user !== user.email) {
             return res.status(403).json({
                 errorMessage: 'You can only delete your own comments',
@@ -625,74 +619,84 @@ getPublishedPlaylists = async (req, res) => {
 
 searchPlaylists = async (req, res) => {
     try {
-        const rawQuery = req.query.query || '';
-        const searchQuery = rawQuery.trim();
-
-        if (!searchQuery) {
-            return res.status(400).json({
-                success: false,
-                errorMessage: 'Search query required',
-            });
-        }
-
-        // Try to identify the user, but DO NOT block guests
-        // auth.verifyUser(req) should return userId or null
         const userId = auth.verifyUser(req);
+        
+        const { name, username, title, artist, year } = req.query;
+        
+        const allPlaylists = await dbManager.getAllPlaylists();
+        
         let userEmail = null;
-
         if (userId) {
-            try {
-                const user = await dbManager.getUserById(userId);
-                if (user) {
-                    userEmail = user.email;
-                }
-            } catch (e) {
-                console.log('searchPlaylists: could not load user from userId', e.message);
+            const user = await dbManager.getUserById(userId);
+            if (user) {
+                userEmail = user.email;
             }
         }
-
-        const allPlaylists = await dbManager.getAllPlaylists();
-        const query = searchQuery.toLowerCase();
-
-        const results = allPlaylists.filter(p => {
-            // Visibility rules:
-            // - Guests: only see published playlists
-            // - Logged-in user: sees all published playlists + their OWN unpublished playlists
-            const isOwner = userEmail && p.ownerEmail === userEmail;
-            const visible = p.published || isOwner;
-            if (!visible) return false;
-
-            // Matching rules: name, ownerUsername, or any song title/artist
-            const nameMatch =
-                p.name && p.name.toLowerCase().includes(query);
-
-            const ownerMatch =
-                p.ownerUsername && p.ownerUsername.toLowerCase().includes(query);
-
-            let songMatch = false;
-            if (p.songs && p.songs.length > 0) {
-                songMatch = p.songs.some(song =>
-                    (song.title && song.title.toLowerCase().includes(query)) ||
-                    (song.artist && song.artist.toLowerCase().includes(query))
-                );
+        
+        let results = allPlaylists.filter(p => {
+            if (p.published) {
+                return true;
             }
-
-            return nameMatch || ownerMatch || songMatch;
+            if (userEmail && p.ownerEmail === userEmail) {
+                return true;
+            }
+            return false;
         });
-
-        return res.status(200).json({
-            success: true,
-            data: results
-        });
+        
+        if (name) {
+            const nameLower = name.toLowerCase();
+            results = results.filter(p => 
+                p.name.toLowerCase().includes(nameLower)
+            );
+        }
+        
+        if (username) {
+            const usernameLower = username.toLowerCase();
+            results = results.filter(p => 
+                p.ownerUsername && p.ownerUsername.toLowerCase().includes(usernameLower)
+            );
+        }
+        
+        if (title) {
+            const titleLower = title.toLowerCase();
+            results = results.filter(p => 
+                p.songs && p.songs.some(song => 
+                    song.title && song.title.toLowerCase().includes(titleLower)
+                )
+            );
+        }
+        
+        if (artist) {
+            const artistLower = artist.toLowerCase();
+            results = results.filter(p => 
+                p.songs && p.songs.some(song => 
+                    song.artist && song.artist.toLowerCase().includes(artistLower)
+                )
+            );
+        }
+        
+        if (year) {
+            const yearNum = parseInt(year);
+            results = results.filter(p => 
+                p.songs && p.songs.some(song => 
+                    song.year === yearNum
+                )
+            );
+        }
+        
+        return res.status(200).json({ 
+            success: true, 
+            data: results 
+        })
     } catch (error) {
         console.error(error);
         return res.status(400).json({
-            success: false,
             errorMessage: 'Error searching playlists',
             error: error.message
-        });
+        })
     }
 };
+
 
 
 getPlaylistsByUsername = async (req, res) => {

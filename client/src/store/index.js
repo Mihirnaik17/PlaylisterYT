@@ -588,12 +588,17 @@ store.createNewList = async function () {
         asyncOpenEditPlaylistModal(id);
     }
 
-    store.openPlayPlaylistModal = function (id) {
+        store.openPlayPlaylistModal = function (id) {
         async function asyncOpenPlayPlaylistModal(id) {
             let response = await storeRequestSender.getPlaylistById(id);
             if (response.data.success) {
                 let playlist = response.data.playlist;
-                await storeRequestSender.incrementListens(id);
+
+                if (!auth.user || auth.user.email !== playlist.ownerEmail) {
+                    await storeRequestSender.incrementListens(id);
+                    playlist.listens = (playlist.listens || 0) + 1;
+                }
+
                 storeReducer({
                     type: GlobalStoreActionType.OPEN_PLAY_PLAYLIST_MODAL,
                     payload: playlist
@@ -602,6 +607,7 @@ store.createNewList = async function () {
         }
         asyncOpenPlayPlaylistModal(id);
     }
+
 
     store.publishPlaylist = function (id) {
         async function asyncPublishPlaylist(id) {
@@ -663,19 +669,22 @@ store.createNewList = async function () {
         asyncDeleteComment(id, commentIndex);
     }
 
-    store.searchPlaylists = function (query) {
-        async function asyncSearchPlaylists(query) {
-            let response = await storeRequestSender.searchPlaylists(query);
-            if (response.data.success) {
-                let pairsArray = response.data.data;
-                storeReducer({
-                    type: GlobalStoreActionType.LOAD_ID_NAME_PAIRS,
-                    payload: pairsArray
-                });
-            }
+   store.searchPlaylists = function (searchParams) {
+    async function asyncSearchPlaylists(searchParams) {
+        console.log('SEARCH: Calling API with params:', searchParams);
+        let response = await storeRequestSender.searchPlaylists(searchParams);
+        console.log('SEARCH: API response:', response.data);
+        if (response.data.success) {
+            let pairsArray = response.data.data;
+            console.log('SEARCH: Setting pairs:', pairsArray);
+            storeReducer({
+                type: GlobalStoreActionType.LOAD_ID_NAME_PAIRS,
+                payload: pairsArray
+            });
         }
-        asyncSearchPlaylists(query);
     }
+    asyncSearchPlaylists(searchParams);
+}
 
     store.getPublishedPlaylists = function () {
         async function asyncGetPublishedPlaylists() {
