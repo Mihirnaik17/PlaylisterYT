@@ -44,6 +44,8 @@ export const GlobalStoreActionType = {
 }
 
 // WE'LL NEED THIS TO PROCESS TRANSACTIONS
+
+// added a new comment to make the final commit 
 const tps = new jsTPS();
 
 const CurrentModal = {
