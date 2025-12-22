@@ -25,7 +25,9 @@
 
 //Making the first initial commit 
 
-const baseURL = 'http://localhost:4000/auth';
+//const baseURL = 'http://localhost:4000/auth';
+
+const baseURL = process.env.REACT_APP_API_URL || 'http://localhost:4000/api';
 
 const handleresponse =  async (response) => {
     if(!response.ok){
