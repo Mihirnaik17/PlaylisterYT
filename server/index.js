@@ -12,7 +12,7 @@ const app = express()
 // SETUP THE MIDDLEWARE
 app.use(express.urlencoded({ extended: true }))
 app.use(cors({
-    origin: ["http://localhost:3000", "https://6948ff41964a49a82a11ebd5--yourplaylister.netlify.app"],
+    origin: ["http://localhost:3000", "https://6948ff41964a49a82a11ebd5--yourplaylister.netlify.app", "https://yourplaylister.netlify.app"],
     credentials: true
 }))
 app.use(express.json())
