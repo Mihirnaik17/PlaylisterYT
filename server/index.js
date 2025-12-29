@@ -13,7 +13,10 @@ const app = express()
 app.use(express.urlencoded({ extended: true }))
 app.use(cors({
     origin: ["http://localhost:3000", "https://6948ff41964a49a82a11ebd5--yourplaylister.netlify.app", "https://yourplaylister.netlify.app"],
-    credentials: true
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+    exposedHeaders: ['set-cookie']
 }))
 app.use(express.json())
 app.use(cookieParser())
