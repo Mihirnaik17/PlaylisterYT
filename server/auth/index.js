@@ -2,6 +2,11 @@ const jwt = require("jsonwebtoken")
 
 function authManager() {
     verify = (req, res, next) => {
+        // Skip auth for OPTIONS preflight requests
+        if (req.method === 'OPTIONS') {
+            return next();
+        }
+
         console.log("req: " + req);
         console.log("next: " + next);
         console.log("Who called verify?");

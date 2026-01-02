@@ -10,14 +10,17 @@ const PORT = process.env.PORT || 4000;
 const app = express()
 
 // SETUP THE MIDDLEWARE
-app.use(express.urlencoded({ extended: true }))
+// CORS must be FIRST to handle preflight OPTIONS requests
 app.use(cors({
     origin: ["http://localhost:3000", "https://6948ff41964a49a82a11ebd5--yourplaylister.netlify.app", "https://yourplaylister.netlify.app"],
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
-    exposedHeaders: ['set-cookie']
+    exposedHeaders: ['set-cookie'],
+    preflightContinue: false,
+    optionsSuccessStatus: 204
 }))
+app.use(express.urlencoded({ extended: true }))
 app.use(express.json())
 app.use(cookieParser())
 
