@@ -1,10 +1,13 @@
 const mongoose = require('mongoose');
 const Playlist = require('./models/playlist-model');
 const Song = require('./models/song-model');
+require('dotenv').config(); // Load .env file
+
 
 const connectDB = async () => {
     try {
-        await mongoose.connect('mongodb://127.0.0.1:27017/playlister', {
+        const dbUri = process.env.DB_CONNECT || 'mongodb://127.0.0.1:27017/playlister';
+        await mongoose.connect(dbUri, {
             useNewUrlParser: true,
             useUnifiedTopology: true
         });
