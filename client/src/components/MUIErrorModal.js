@@ -23,8 +23,8 @@ export default function MUIErrorModal() {
     const { auth } = useContext(AuthContext)
 
     function handleCloseButton() {
+        auth.clearError();
         store.hideModals();
-        console.log("CLOSE BUTTON CLICKED");
     }
 
     return (

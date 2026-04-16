@@ -9,6 +9,9 @@ class DatabaseManager {
     async getUserByEmail(email) {
         throw new Error('getUserByEmail() must be implemented by subclass');
     }
+    async getUserByUsername(username) {
+        throw new Error('getUserByUsername() must be implemented by subclass');
+    }
     async createUser(userData) {
         throw new Error('createUser() must be implemented by subclass');
     }

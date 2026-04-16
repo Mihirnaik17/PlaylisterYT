@@ -13,6 +13,8 @@ import MenuItem from '@mui/material/MenuItem';
 import Select from '@mui/material/Select';
 import FormControl from '@mui/material/FormControl';
 import InputLabel from '@mui/material/InputLabel';
+import CircularProgress from '@mui/material/CircularProgress';
+import Typography from '@mui/material/Typography';
 
 export default function SongsCatalogScreen() {
     const { store } = useContext(GlobalStoreContext);
@@ -22,10 +24,12 @@ export default function SongsCatalogScreen() {
     const [titleSearch, setTitleSearch] = useState('');
     const [artistSearch, setArtistSearch] = useState('');
     const [yearSearch, setYearSearch] = useState('');
-    const [currentSort, setCurrentSort] = useState('listens-hi'); 
-    
+    const [currentSort, setCurrentSort] = useState('listens-hi');
+    const [loading, setLoading] = useState(true);
+
     useEffect(() => {
-        store.loadSongs({ sortBy: 'listens', sortOrder: 'desc' });
+        setLoading(true);
+        store.loadSongs({ sortBy: 'listens', sortOrder: 'desc' }).finally(() => setLoading(false));
     }, []);
     
     const handleSearch = () => {
@@ -251,7 +255,18 @@ export default function SongsCatalogScreen() {
                     </Box>
                     
                     <Box>
-                        {songCards}
+                        {loading ? (
+                            <Box sx={{ display: 'flex', justifyContent: 'center', mt: 6 }}>
+                                <CircularProgress sx={{ color: '#5E35B1' }} />
+                            </Box>
+                        ) : store.songs && store.songs.length > 0 ? songCards : (
+                            <Box sx={{ textAlign: 'center', mt: 6 }}>
+                                <Typography variant="h6" sx={{ color: '#aaa', mb: 1 }}>No songs found</Typography>
+                                <Typography variant="body2" sx={{ color: '#bbb' }}>
+                                    {auth.isGuest ? 'No songs in the catalog yet.' : 'Add the first song using the button below!'}
+                                </Typography>
+                            </Box>
+                        )}
                     </Box>
                 </Box>
             </Box>

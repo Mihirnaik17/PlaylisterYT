@@ -10,7 +10,8 @@ export const AuthActionType = {
     LOGIN_USER: "LOGIN_USER",
     LOGOUT_USER: "LOGOUT_USER",
     REGISTER_USER: "REGISTER_USER",
-    GUEST_MODE: "GUEST_MODE"
+    GUEST_MODE: "GUEST_MODE",
+    CLEAR_ERROR: "CLEAR_ERROR"
 }
 
 function AuthContextProvider(props) {
@@ -69,6 +70,12 @@ function AuthContextProvider(props) {
                     errorMessage: null
                 })
             }
+            case AuthActionType.CLEAR_ERROR: {
+                return setAuth({
+                    ...auth,
+                    errorMessage: null
+                })
+            }
             default:
                 return auth;
         }
@@ -109,7 +116,7 @@ function AuthContextProvider(props) {
                 payload: {
                     user: auth.user,
                     loggedIn: false,
-                    errorMessage: error.response.data.errorMessage
+                    errorMessage: error.response?.data?.errorMessage || error.message || "Registration failed. Please check your connection."
                 }
             })
         }
@@ -169,6 +176,13 @@ function AuthContextProvider(props) {
         return initials;
     }
 
+
+    auth.clearError = function() {
+        authReducer({
+            type: AuthActionType.CLEAR_ERROR,
+            payload: null
+        })
+    }
 
     auth.continueAsGuest = function() {
         authReducer({

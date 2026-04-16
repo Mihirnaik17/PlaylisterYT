@@ -19,6 +19,7 @@ import MenuItem from '@mui/material/MenuItem';
 import Menu from '@mui/material/Menu';
 import IconButton from '@mui/material/IconButton';
 import InputAdornment from '@mui/material/InputAdornment';
+import CircularProgress from '@mui/material/CircularProgress';
 
 const HomeScreen = () => {
     const { store } = useContext(GlobalStoreContext);
@@ -32,14 +33,17 @@ const HomeScreen = () => {
     const [anchorEl, setAnchorEl] = useState(null);
 
     const [filteredPlaylists, setFilteredPlaylists] = useState([]);
+    const [loading, setLoading] = useState(true);
 
     useEffect(() => {
+        setLoading(true);
         store.loadIdNamePairs();
-    }, []);
+    }, [auth.isGuest, auth.loggedIn]);
 
-    useEffect(() => {   
+    useEffect(() => {
         if (store.idNamePairs) {
-        setFilteredPlaylists(store.idNamePairs);
+            setFilteredPlaylists(store.idNamePairs);
+            setLoading(false);
         }
     }, [store.idNamePairs]);
 
@@ -280,7 +284,18 @@ const HomeScreen = () => {
                     </Box>
 
                     <Box sx={{ height: 'calc(100% - 100px)', overflowY: 'auto' }}>
-                        {listCard}
+                        {loading ? (
+                            <Box sx={{ display: 'flex', justifyContent: 'center', mt: 6 }}>
+                                <CircularProgress sx={{ color: '#7B68EE' }} />
+                            </Box>
+                        ) : filteredPlaylists && filteredPlaylists.length > 0 ? listCard : (
+                            <Box sx={{ textAlign: 'center', mt: 6 }}>
+                                <Typography variant="h6" sx={{ color: '#aaa', mb: 1 }}>No playlists found</Typography>
+                                <Typography variant="body2" sx={{ color: '#bbb' }}>
+                                    {auth.isGuest ? 'No published playlists yet.' : 'Create your first playlist below!'}
+                                </Typography>
+                            </Box>
+                        )}
                     </Box>
 
                     {!auth.isGuest && (

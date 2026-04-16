@@ -520,11 +520,10 @@ store.createNewList = async function () {
         });
     }
     store.hideModals = () => {
-        auth.errorMessage = null;
         storeReducer({
             type: GlobalStoreActionType.HIDE_MODALS,
             payload: {}
-        });    
+        });
     }
     store.isDeleteListModalOpen = () => {
         return store.currentModal === CurrentModal.DELETE_LIST;
@@ -654,10 +653,12 @@ store.createNewList = async function () {
         async function asyncDislikePlaylist(id) {
             let response = await storeRequestSender.dislikePlaylist(id);
             if (response.data.success) {
-                const { likes, dislikes } = response.data;
+                const { likes, dislikes, likedBy, dislikedBy } = response.data;
 
                 const updatedPairs = store.idNamePairs.map((pair) =>
-                    pair._id === id ? { ...pair, likes, dislikes } : pair
+                    pair._id === id
+                        ? { ...pair, likes: likes ?? pair.likes, dislikes: dislikes ?? pair.dislikes, likedBy: likedBy ?? pair.likedBy, dislikedBy: dislikedBy ?? pair.dislikedBy }
+                        : pair
                 );
 
                 storeReducer({
@@ -876,17 +877,17 @@ store.createNewList = async function () {
     
     // SONG CATALOG FUNCTIONS
     store.loadSongs = async function(searchParams = {}) {
-    try {
-        const response = await songApi.getAllSongs(searchParams);
-        if (response.data.success) {
-            storeReducer({
-                type: GlobalStoreActionType.LOAD_SONGS,
-                payload: response.data.songs
-            });
+        try {
+            const response = await songApi.getAllSongs(searchParams);
+            if (response.data.success) {
+                storeReducer({
+                    type: GlobalStoreActionType.LOAD_SONGS,
+                    payload: response.data.songs
+                });
+            }
+        } catch (error) {
+            console.error("Error loading songs:", error);
         }
-    } catch (error) {
-        console.error("Error loading songs:", error);
-    }
     }
 
     store.createCatalogSong = async function(songData) {

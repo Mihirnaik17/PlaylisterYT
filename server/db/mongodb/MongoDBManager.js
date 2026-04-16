@@ -20,6 +20,10 @@ class MongoDBManager extends DatabaseManager{
     async getUserByEmail(email) {
         return await User.findOne({ email: email });
     }
+
+    async getUserByUsername(username) {
+        return await User.findOne({ username: username });
+    }
     
     async createUser(userData) {
         const newUser = new User(userData);

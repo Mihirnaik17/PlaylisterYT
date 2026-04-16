@@ -40,7 +40,7 @@ createPlaylist = async (req, res) => {
         ...body,
         ownerEmail: user.email,
         ownerUsername: user.username,
-        published: true,
+        published: false,
         likes: 0,
         dislikes: 0,
         likedBy: [],          
@@ -432,10 +432,13 @@ dislikePlaylist = async (req, res) => {
                 dislikes: Math.max(0, (playlist.dislikes || 0) - 1),
                 dislikedBy: dislikedBy.filter(email => email !== userEmail)
             };
-            await dbManager.updatePlaylist(req.params.id, updateData);
+            const updated = await dbManager.updatePlaylist(req.params.id, updateData);
             return res.status(200).json({
                 success: true,
-                dislikes: updateData.dislikes,
+                likes: updated.likes,
+                dislikes: updated.dislikes,
+                likedBy: updated.likedBy,
+                dislikedBy: updated.dislikedBy,
                 message: 'Removed dislike'
             })
         }
@@ -449,12 +452,14 @@ dislikePlaylist = async (req, res) => {
             updateData.likedBy = likedBy.filter(email => email !== userEmail);
         }
 
-        await dbManager.updatePlaylist(req.params.id, updateData);
-        
+        const updated = await dbManager.updatePlaylist(req.params.id, updateData);
+
         return res.status(200).json({
             success: true,
-            likes: updateData.likes,
-            dislikes: updateData.dislikes,
+            likes: updated.likes,
+            dislikes: updated.dislikes,
+            likedBy: updated.likedBy,
+            dislikedBy: updated.dislikedBy,
             message: 'Disliked'
         })
     } catch (error) {

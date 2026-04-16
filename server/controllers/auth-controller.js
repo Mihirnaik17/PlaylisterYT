@@ -108,6 +108,14 @@ registerUser = async (req, res) => {
                 .json({ errorMessage: "Please enter all required fields." });
         }
         console.log("all fields provided");
+
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+            return res
+                .status(400)
+                .json({ errorMessage: "Please enter a valid email address." });
+        }
+
         if (password.length < 8) {
             return res
                 .status(400)
@@ -132,6 +140,16 @@ registerUser = async (req, res) => {
                 .json({
                     success: false,
                     errorMessage: "An account with this email address already exists."
+                })
+        }
+
+        const existingUsername = await dbManager.getUserByUsername(username);
+        if (existingUsername) {
+            return res
+                .status(400)
+                .json({
+                    success: false,
+                    errorMessage: "This username is already taken. Please choose another."
                 })
         }
 
