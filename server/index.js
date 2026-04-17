@@ -12,7 +12,8 @@ const app = express()
 // SETUP THE MIDDLEWARE
 // CORS must be FIRST to handle preflight OPTIONS requests
 app.use(cors({
-    origin: ["http://localhost:3000", "https://6948ff41964a49a82a11ebd5--yourplaylister.netlify.app", "https://yourplaylister.netlify.app"],
+    // Reflect the request Origin (required when credentials: true)
+    origin: true,
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],

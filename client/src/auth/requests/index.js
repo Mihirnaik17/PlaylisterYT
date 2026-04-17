@@ -29,9 +29,9 @@
 
 ///const baseURL = process.env.REACT_APP_API_URL || 'http://localhost:4000/auth';
 
-const baseURL = process.env.REACT_APP_API_URL 
-    ? `${process.env.REACT_APP_API_URL}/auth`
-    : 'http://localhost:4000/auth';
+import { getAuthBaseUrl } from '../../config/apiBase';
+
+const baseURL = getAuthBaseUrl();
 
 const handleresponse =  async (response) => {
     if(!response.ok){

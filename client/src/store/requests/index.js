@@ -23,8 +23,9 @@
 // // WE NEED TO PUT THINGS INTO THE DATABASE OR IF WE HAVE SOME
 // // CUSTOM FILTERS FOR QUERIES
 
+import { getApiBaseUrl } from '../../config/apiBase';
 
-const baseURL =  process.env.REACT_APP_API_URL ||  'http://localhost:4000/api';
+const baseURL = getApiBaseUrl();
 
 const handleresponse =  async (response) => {
     if(!response.ok){
