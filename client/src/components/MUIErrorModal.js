@@ -1,37 +1,43 @@
-import { useContext } from 'react'
+import { useContext } from 'react';
 import GlobalStoreContext from '../store';
-import Modal from '@mui/material/Modal';
+import AuthContext from '../auth';
+import CloseIcon from '@mui/icons-material/Close';
 import Alert from '@mui/material/Alert';
-import Button from '@mui/material/Button';
-import AuthContext from '../auth'
-
-const style = {
-    position: 'absolute',
-    top: '50%',
-    left: '50%',
-    transform: 'translate(-50%, -50%)',
-    height: 200,
-    width: 400,
-    border: '5px solid yellow',
-    fontSize: "20px",
-    p: 4
-};
-
+import Dialog from '@mui/material/Dialog';
+import DialogContent from '@mui/material/DialogContent';
+import DialogTitle from '@mui/material/DialogTitle';
+import IconButton from '@mui/material/IconButton';
+import Typography from '@mui/material/Typography';
 
 export default function MUIErrorModal() {
     const { store } = useContext(GlobalStoreContext);
-    const { auth } = useContext(AuthContext)
+    const { auth } = useContext(AuthContext);
 
-    function handleCloseButton() {
+    const handleClose = () => {
         auth.clearError();
         store.hideModals();
-    }
+    };
+
+    const open = auth.errorMessage !== null;
 
     return (
-        <Modal open = {auth.errorMessage !== null}>
-         <Alert sx={style} severity="warning">{auth.errorMessage}
-         <Button sx={{color:"black", mt:"20px", ml:"85px", fontSize: 13, fontWeight: 'bold', border: 2}}variant="outlined" onClick={handleCloseButton}>Close</Button>
-         </Alert>
-        </Modal>
+        <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth aria-labelledby="error-dialog-title">
+            <DialogTitle
+                id="error-dialog-title"
+                sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', pr: 1 }}
+            >
+                <Typography component="span" variant="h6" sx={{ fontWeight: 600 }}>
+                    Notice
+                </Typography>
+                <IconButton aria-label="Close" onClick={handleClose} edge="end" size="small">
+                    <CloseIcon />
+                </IconButton>
+            </DialogTitle>
+            <DialogContent sx={{ pt: 0 }}>
+                <Alert severity="warning" sx={{ alignItems: 'flex-start' }}>
+                    {auth.errorMessage}
+                </Alert>
+            </DialogContent>
+        </Dialog>
     );
 }

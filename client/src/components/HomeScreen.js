@@ -132,12 +132,32 @@ const HomeScreen = () => {
     }
 
     return (
-        <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
+        <Box
+            sx={{
+                height: '100vh',
+                display: 'flex',
+                flexDirection: 'column',
+                overflow: 'hidden',
+                bgcolor: 'background.default',
+            }}
+        >
             <NavigationBar />
-            <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, minHeight: 'calc(100vh - 72px)' }}>
+            <Box
+                sx={{
+                    flex: 1,
+                    minHeight: 0,
+                    display: 'flex',
+                    flexDirection: { xs: 'column', md: 'row' },
+                    overflow: 'hidden',
+                }}
+            >
                 <Box
                     sx={{
                         width: { xs: '100%', md: '36%' },
+                        flexShrink: { md: 0 },
+                        minHeight: 0,
+                        maxHeight: { xs: '44vh', md: '100%' },
+                        overflowY: 'auto',
                         bgcolor: 'background.paper',
                         p: 3,
                         borderRight: { md: 1 },
@@ -246,8 +266,29 @@ const HomeScreen = () => {
                     </Box>
                 </Box>
 
-                <Box sx={{ flex: 1, bgcolor: 'background.default', p: 3, position: 'relative' }}>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2, flexWrap: 'wrap', gap: 1 }}>
+                <Box
+                    sx={{
+                        flex: 1,
+                        minHeight: 0,
+                        display: 'flex',
+                        flexDirection: 'column',
+                        overflow: 'hidden',
+                        bgcolor: 'background.default',
+                        p: 3,
+                        position: 'relative',
+                    }}
+                >
+                    <Box
+                        sx={{
+                            flexShrink: 0,
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            mb: 2,
+                            flexWrap: 'wrap',
+                            gap: 1,
+                        }}
+                    >
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                             <Typography variant="body2" color="text.secondary">
                                 Sort:
@@ -282,7 +323,7 @@ const HomeScreen = () => {
                         </Typography>
                     </Box>
 
-                    <Box sx={{ maxHeight: { xs: 'none', md: 'calc(100vh - 220px)' }, overflowY: 'auto', pb: 10 }}>
+                    <Box sx={{ flex: 1, minHeight: 0, overflowY: 'auto', pb: 2 }}>
                         {loading ? (
                             <Box sx={{ display: 'flex', justifyContent: 'center', mt: 6 }}>
                                 <CircularProgress color="primary" />

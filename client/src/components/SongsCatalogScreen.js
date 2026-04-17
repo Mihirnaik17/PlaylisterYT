@@ -131,12 +131,32 @@ export default function SongsCatalogScreen() {
     }
     
     return (
-        <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
+        <Box
+            sx={{
+                height: '100vh',
+                display: 'flex',
+                flexDirection: 'column',
+                overflow: 'hidden',
+                bgcolor: 'background.default',
+            }}
+        >
             <NavigationBar />
-            <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, minHeight: 'calc(100vh - 72px)' }}>
+            <Box
+                sx={{
+                    flex: 1,
+                    minHeight: 0,
+                    display: 'flex',
+                    flexDirection: { xs: 'column', md: 'row' },
+                    overflow: 'hidden',
+                }}
+            >
                 <Box
                     sx={{
                         width: { xs: '100%', md: '40%' },
+                        flexShrink: { md: 0 },
+                        minHeight: 0,
+                        maxHeight: { xs: '48vh', md: '100%' },
+                        overflowY: 'auto',
                         bgcolor: 'background.paper',
                         p: 3,
                         display: 'flex',
@@ -224,18 +244,26 @@ export default function SongsCatalogScreen() {
                     )}
                 </Box>
                 
-                <Box sx={{ 
-                    flex: 1,
-                    bgcolor: 'background.default', 
-                    p: 3,
-                    overflowY: 'auto'
-                }}>
-                    <Box sx={{ 
-                        display: 'flex', 
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
-                        mb: 2
-                    }}>
+                <Box
+                    sx={{
+                        flex: 1,
+                        minHeight: 0,
+                        display: 'flex',
+                        flexDirection: 'column',
+                        overflow: 'hidden',
+                        bgcolor: 'background.default',
+                        p: 3,
+                    }}
+                >
+                    <Box
+                        sx={{
+                            flexShrink: 0,
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            mb: 2,
+                        }}
+                    >
                         <FormControl sx={{ minWidth: 200 }}>
                             <InputLabel id="catalog-sort-label">Sort</InputLabel>
                             <Select
@@ -262,7 +290,7 @@ export default function SongsCatalogScreen() {
                         </Typography>
                     </Box>
                     
-                    <Box sx={{ pb: 10 }}>
+                    <Box sx={{ flex: 1, minHeight: 0, overflowY: 'auto', pb: 2 }}>
                         {loading ? (
                             <Box sx={{ display: 'flex', justifyContent: 'center', mt: 6 }}>
                                 <CircularProgress color="primary" />

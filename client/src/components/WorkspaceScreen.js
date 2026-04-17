@@ -51,14 +51,24 @@ function WorkspaceScreen() {
     }
 
     return (
-        <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
+        <Box
+            sx={{
+                height: '100vh',
+                display: 'flex',
+                flexDirection: 'column',
+                overflow: 'hidden',
+                bgcolor: 'background.default',
+            }}
+        >
             <NavigationBar />
             <Box
                 sx={{
-                    minHeight: 'calc(100vh - 72px)',
+                    flex: 1,
+                    minHeight: 0,
                     display: 'flex',
                     flexDirection: 'column',
                     position: 'relative',
+                    overflow: 'hidden',
                 }}
             >
                 <Box
@@ -77,19 +87,31 @@ function WorkspaceScreen() {
                     </Typography>
                 </Box>
 
-                <Box sx={{ display: 'flex', flex: 1, overflow: 'hidden', flexDirection: { xs: 'column', md: 'row' } }}>
+                <Box
+                    sx={{
+                        display: 'flex',
+                        flex: 1,
+                        minHeight: 0,
+                        overflow: 'hidden',
+                        flexDirection: { xs: 'column', md: 'row' },
+                    }}
+                >
                     <Box
                         sx={{
                             width: { xs: '100%', md: '40%' },
+                            flexShrink: { md: 0 },
+                            minHeight: 0,
+                            maxHeight: { xs: '42vh', md: '100%' },
                             bgcolor: 'background.paper',
                             p: 2,
                             display: 'flex',
                             flexDirection: 'column',
+                            overflow: 'hidden',
                             borderRight: { md: 1 },
                             borderColor: 'divider',
                         }}
                     >
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+                        <Box sx={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
                             <Avatar sx={{ bgcolor: 'primary.main', color: 'primary.contrastText', width: 48, height: 48 }}>
                                 👤
                             </Avatar>
@@ -103,7 +125,7 @@ function WorkspaceScreen() {
                             </Box>
                         </Box>
 
-                        <List sx={{ flex: 1, overflow: 'auto', bgcolor: 'transparent' }}>
+                        <List sx={{ flex: 1, minHeight: 0, overflowY: 'auto', bgcolor: 'transparent' }}>
                             {store.currentList.songs.map((song, index) => (
                                 <SongCard
                                     id={'playlist-song-' + (index)}
@@ -119,6 +141,8 @@ function WorkspaceScreen() {
                     <Box
                         sx={{
                             flex: 1,
+                            minHeight: 0,
+                            overflowY: 'auto',
                             bgcolor: 'background.default',
                             display: 'flex',
                             flexDirection: 'column',
