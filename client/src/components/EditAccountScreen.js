@@ -53,32 +53,29 @@ export default function EditAccountScreen() {
     }
 
     return (
-        <Box sx={{ height: '100vh', bgcolor: '#f0e6f6' }}>
+        <Box sx={{ minHeight: '100vh', bgcolor: 'background.default', py: 4, px: 2 }}>
             <Box
                 sx={{
-                    height: '60px',
-                    bgcolor: '#FF00FF',
+                    maxWidth: 960,
+                    mx: 'auto',
+                    mb: 2,
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'space-between',
-                    px: 2
                 }}
             >
                 <IconButton
                     onClick={handleHomeClick}
                     sx={{
-                        bgcolor: 'white',
-                        '&:hover': { bgcolor: '#f0f0f0' },
+                        bgcolor: 'action.hover',
+                        '&:hover': { bgcolor: 'action.selected' },
                         width: 40,
-                        height: 40
+                        height: 40,
                     }}
                 >
                     <HomeIcon />
                 </IconButton>
-                <Avatar
-                    sx={{ bgcolor: '#1976d2', width: 48, height: 48 }}
-                    src={avatarImage || auth.user?.avatar}
-                >
+                <Avatar sx={{ bgcolor: 'secondary.main', width: 48, height: 48 }} src={avatarImage || auth.user?.avatar}>
                     {auth.getUserInitials()}
                 </Avatar>
             </Box>
@@ -87,18 +84,21 @@ export default function EditAccountScreen() {
                 <CssBaseline />
                 <Box
                     sx={{
-                        marginTop: 8,
                         display: 'flex',
                         flexDirection: 'column',
                         alignItems: 'center',
-                        bgcolor: '#FFFACD',
+                        bgcolor: 'background.paper',
                         padding: 4,
                         borderRadius: 2,
-                        border: '2px solid #000'
+                        border: 1,
+                        borderColor: 'divider',
                     }}
                 >
-                    <Typography component="h1" variant="h5" sx={{ mb: 3 }}>
-                        Edit Account
+                    <Typography component="h1" variant="h5" sx={{ mb: 1, fontWeight: 700 }}>
+                        Edit account
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+                        Update your profile, password, or avatar.
                     </Typography>
 
                     <Box
@@ -118,23 +118,10 @@ export default function EditAccountScreen() {
                                 gap: 1
                             }}
                         >
-                            <Avatar
-                                sx={{ bgcolor: '#1976d2', width: 72, height: 72 }}
-                                src={avatarImage || auth.user?.avatar}
-                            >
+                            <Avatar sx={{ bgcolor: 'secondary.main', width: 72, height: 72 }} src={avatarImage || auth.user?.avatar}>
                                 {auth.getUserInitials()}
                             </Avatar>
-                            <Button
-                                variant="contained"
-                                component="label"
-                                sx={{
-                                    mt: 1,
-                                    bgcolor: '#333',
-                                    color: '#fff',
-                                    '&:hover': { bgcolor: '#555' },
-                                    textTransform: 'none'
-                                }}
-                            >
+                            <Button variant="outlined" color="inherit" component="label" sx={{ mt: 1 }}>
                                 Select
                                 <input
                                     type="file"
@@ -160,7 +147,6 @@ export default function EditAccountScreen() {
                                 name="username"
                                 value={username}
                                 onChange={(e) => setUsername(e.target.value)}
-                                sx={{ bgcolor: '#E8E8E8' }}
                             />
                             <TextField
                                 margin="normal"
@@ -170,7 +156,6 @@ export default function EditAccountScreen() {
                                 name="email"
                                 value={email}
                                 disabled
-                                sx={{ bgcolor: '#E8E8E8' }}
                             />
                             <TextField
                                 margin="normal"
@@ -181,7 +166,6 @@ export default function EditAccountScreen() {
                                 id="password"
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
-                                sx={{ bgcolor: '#E8E8E8' }}
                             />
                             <TextField
                                 margin="normal"
@@ -192,7 +176,6 @@ export default function EditAccountScreen() {
                                 id="passwordVerify"
                                 value={passwordVerify}
                                 onChange={(e) => setPasswordVerify(e.target.value)}
-                                sx={{ bgcolor: '#E8E8E8' }}
                             />
 
                             <Box
@@ -203,30 +186,10 @@ export default function EditAccountScreen() {
                                     mt: 3
                                 }}
                             >
-                                <Button
-                                    type="submit"
-                                    variant="contained"
-                                    sx={{
-                                        bgcolor: '#333',
-                                        color: '#fff',
-                                        '&:hover': { bgcolor: '#555' },
-                                        textTransform: 'none',
-                                        px: 4
-                                    }}
-                                >
-                                    Complete
+                                <Button type="submit" variant="contained" color="primary" sx={{ px: 4 }}>
+                                    Save changes
                                 </Button>
-                                <Button
-                                    variant="contained"
-                                    onClick={handleCancel}
-                                    sx={{
-                                        bgcolor: '#333',
-                                        color: '#fff',
-                                        '&:hover': { bgcolor: '#555' },
-                                        textTransform: 'none',
-                                        px: 4
-                                    }}
-                                >
+                                <Button variant="outlined" color="inherit" onClick={handleCancel} sx={{ px: 4 }}>
                                     Cancel
                                 </Button>
                             </Box>
@@ -237,7 +200,7 @@ export default function EditAccountScreen() {
                                 align="center"
                                 sx={{ mt: 3 }}
                             >
-                                Copyright © Playlister 2025
+                                Copyright © Playlister 2026
                             </Typography>
                         </Box>
                     </Box>

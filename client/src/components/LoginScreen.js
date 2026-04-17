@@ -33,45 +33,29 @@ export default function LoginScreen() {
     console.log(modalJSX);
 
     return (
-        <Box sx={{ height: '100vh', bgcolor: '#f0e6f6' }}>
-            <Box
-                sx={{
-                    height: '60px',
-                    bgcolor: '#FF00FF',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    px: 2
-                }}
-            >
-                <Box 
-                    onClick={() => window.location.href = '/'} 
-                    sx={{ color: 'white', fontSize: '24px', cursor: 'pointer' }}
-                    >
-                    🏠
-                </Box>
-                <Box sx={{ color: 'white', fontSize: '24px', cursor: 'pointer' }}>👤</Box>
-            </Box>
-
+        <Box sx={{ minHeight: '100vh', bgcolor: 'background.default', py: 6, px: 2 }}>
             <Container component="main" maxWidth="xs">
                 <CssBaseline />
                 <Box
                     sx={{
-                        marginTop: 8,
                         display: 'flex',
                         flexDirection: 'column',
                         alignItems: 'center',
-                        bgcolor: '#FFFACD',
+                        bgcolor: 'background.paper',
                         padding: 4,
                         borderRadius: 2,
-                        border: '2px solid #000'
+                        border: 1,
+                        borderColor: 'divider',
                     }}
                 >
-                    <Avatar sx={{ m: 1, bgcolor: '#9C27B0' }}>
+                    <Avatar sx={{ m: 1, bgcolor: 'primary.main' }}>
                         <LockOutlinedIcon/>
                     </Avatar>
-                    <Typography component="h1" variant="h5" sx={{ mb: 3 }}>
-                        Sign In
+                    <Typography component="h1" variant="h5" sx={{ mb: 1, fontWeight: 700 }}>
+                        Sign in
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 2, textAlign: 'center' }}>
+                        Welcome back. Your playlists and AI picks sync from this account.
                     </Typography>
                     <Box component="form" noValidate onSubmit={handleSubmit} sx={{ width: '100%' }}>
                         <TextField
@@ -83,7 +67,6 @@ export default function LoginScreen() {
                             name="email"
                             autoComplete="email"
                             autoFocus
-                            sx={{ bgcolor: '#E8E8E8' }}
                         />
                         <TextField
                             margin="normal"
@@ -94,29 +77,23 @@ export default function LoginScreen() {
                             type="password"
                             id="password"
                             autoComplete="current-password"
-                            sx={{ bgcolor: '#E8E8E8' }}
                         />
                         <Button
                             type="submit"
                             fullWidth
                             variant="contained"
-                            sx={{ 
-                                mt: 3, 
-                                mb: 2,
-                                bgcolor: '#333',
-                                color: '#fff',
-                                '&:hover': { bgcolor: '#555' }
-                            }}
+                            color="primary"
+                            sx={{ mt: 3, mb: 2 }}
                         >
-                            SIGN IN
+                            Sign in
                         </Button>
                         <Box sx={{ textAlign: 'center' }}>
-                            <Link href="/register/" variant="body2" sx={{ color: 'red' }}>
-                                Don't have an account? Sign Up
+                            <Link href="/register/" variant="body2" color="secondary">
+                                Need an account? Register
                             </Link>
                         </Box>
                         <Typography variant="body2" color="text.secondary" align="center" sx={{ mt: 3 }}>
-                            Copyright © Playlister 2025
+                            Copyright © Playlister 2026
                         </Typography>
                     </Box>
                 </Box>

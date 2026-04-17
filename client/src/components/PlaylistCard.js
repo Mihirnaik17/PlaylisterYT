@@ -114,23 +114,24 @@ function PlaylistCard(props) {
     let cardElement =
         <Box
             sx={{
-                bgcolor: 'white',
-                borderRadius: '8px',
+                bgcolor: 'background.paper',
+                borderRadius: 2,
                 mb: 2,
                 p: 2,
-                border: '2px solid #1976d2'
+                border: 1,
+                borderColor: 'divider',
             }}
         >
             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flex: 1 }}>
-                    <Avatar sx={{ bgcolor: '#FFA500', width: 56, height: 56 }}>
+                    <Avatar sx={{ bgcolor: 'secondary.dark', width: 56, height: 56 }}>
                         👤
                     </Avatar>
-                    <Box>
-                        <Typography variant="h6" sx={{ fontWeight: 'bold', color: '#000' }}>
+                    <Box sx={{ minWidth: 0 }}>
+                        <Typography variant="h6" sx={{ fontWeight: 700 }} noWrap title={idNamePair.name}>
                             {idNamePair.name}
                         </Typography>
-                        <Typography variant="body2" sx={{ color: '#666' }}>
+                        <Typography variant="body2" color="text.secondary" noWrap>
                             {idNamePair.ownerUsername || idNamePair.ownerEmail || 'Unknown'}
                         </Typography>
                     </Box>
@@ -201,8 +202,8 @@ function PlaylistCard(props) {
                 </Box>
             </Box>
 
-            <Typography variant="body2" sx={{ color: '#1976d2', mt: 1 }}>
-                {idNamePair.listens || 0} Listens
+            <Typography variant="body2" color="primary.main" sx={{ mt: 1, fontWeight: 600 }}>
+                {idNamePair.listens || 0} listens
             </Typography>
 
             {expanded && (
@@ -294,16 +295,17 @@ function PlaylistCard(props) {
                                     <Box
                                         key={idx}
                                         sx={{
-                                            bgcolor: '#f5f5f5',
+                                            bgcolor: 'background.default',
                                             p: 1.5,
                                             mb: 1,
-                                            borderRadius: '4px',
-                                            border: '1px solid #ddd'
+                                            borderRadius: 1,
+                                            border: 1,
+                                            borderColor: 'divider',
                                         }}
                                     >
                                         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                                             <Box sx={{ flex: 1 }}>
-                                                <Typography variant="caption" sx={{ color: '#1976d2', fontWeight: 'bold' }}>
+                                                <Typography variant="caption" color="primary.light" sx={{ fontWeight: 700 }}>
                                                     {comment.user || 'Anonymous'}
                                                 </Typography>
                                                 <Typography variant="body2" sx={{ mt: 0.5 }}>
@@ -347,12 +349,11 @@ function PlaylistCard(props) {
                                         }
                                     }}
                                     sx={{
-                                        bgcolor: 'white',
                                         '& .MuiOutlinedInput-root': {
                                             '&:hover fieldset': {
-                                                borderColor: '#1976d2',
+                                                borderColor: 'primary.main',
                                             },
-                                        }
+                                        },
                                     }}
                                 />
                                 <Button

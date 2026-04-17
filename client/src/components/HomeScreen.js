@@ -1,5 +1,4 @@
 import { useContext, useEffect, useState } from 'react'
-import { useHistory } from 'react-router-dom'
 import { GlobalStoreContext } from '../store'
 import AuthContext from '../auth'
 import PlaylistCard from './PlaylistCard.js'
@@ -7,8 +6,12 @@ import MUIDeleteModal from './MUIDeleteModal'
 import MUIEditPlaylistModal from './MUIEditPlaylistModal'
 import MUIPlayPlaylistModal from './MUIPlayPlaylistModal'
 import NavigationBar from './NavigationBar'
+import AIRecommendationsDialog from './AIRecommendationsDialog'
 
 import AddIcon from '@mui/icons-material/Add';
+import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
+import Fab from '@mui/material/Fab';
+import Tooltip from '@mui/material/Tooltip';
 import SearchIcon from '@mui/icons-material/Search';
 import ClearIcon from '@mui/icons-material/Clear';
 import Button from '@mui/material/Button';
@@ -31,6 +34,7 @@ const HomeScreen = () => {
     const [searchYear, setSearchYear] = useState('');
     const [sortBy, setSortBy] = useState('Listeners (Hi-Lo)');
     const [anchorEl, setAnchorEl] = useState(null);
+    const [aiOpen, setAiOpen] = useState(false);
 
     const [filteredPlaylists, setFilteredPlaylists] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -128,12 +132,23 @@ const HomeScreen = () => {
     }
 
     return (
-        <Box sx={{ height: '100vh', bgcolor: '#f0e6f6' }}>
+        <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
             <NavigationBar />
-            <Box sx={{ display: 'flex', height: 'calc(100vh - 80px)' }}>
-                <Box sx={{ width: '35%', bgcolor: '#FFFACD', p: 3, borderRight: '2px solid #000' }}>
-                    <Typography variant="h3" sx={{ color: '#9C27B0', fontWeight: 'bold', mb: 4 }}>
+            <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, minHeight: 'calc(100vh - 72px)' }}>
+                <Box
+                    sx={{
+                        width: { xs: '100%', md: '36%' },
+                        bgcolor: 'background.paper',
+                        p: 3,
+                        borderRight: { md: 1 },
+                        borderColor: 'divider',
+                    }}
+                >
+                    <Typography variant="h5" sx={{ fontWeight: 700, mb: 0.5 }}>
                         Playlists
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+                        Search published lists, then open one to play or copy.
                     </Typography>
 
                     <TextField
@@ -141,7 +156,7 @@ const HomeScreen = () => {
                         placeholder="by Playlist Name"
                         value={searchName}
                         onChange={(e) => setSearchName(e.target.value)}
-                        sx={{ mb: 3, bgcolor: '#E8E8E8' }}
+                        sx={{ mb: 2 }}
                         InputProps={{
                             endAdornment: searchName && (
                                 <InputAdornment position="end">
@@ -158,7 +173,7 @@ const HomeScreen = () => {
                         placeholder="by User Name"
                         value={searchUser}
                         onChange={(e) => setSearchUser(e.target.value)}
-                        sx={{ mb: 3, bgcolor: '#E8E8E8' }}
+                        sx={{ mb: 2 }}
                          InputProps={{
                             endAdornment: searchUser && (
                                 <InputAdornment position="end">
@@ -175,7 +190,7 @@ const HomeScreen = () => {
                         placeholder="by Song Title"
                         value={searchSongTitle}
                         onChange={(e) => setSearchSongTitle(e.target.value)}
-                        sx={{ mb: 3, bgcolor: '#E8E8E8' }}
+                        sx={{ mb: 2 }}
                         InputProps={{
                             endAdornment: searchSongTitle && (
                                 <InputAdornment position="end">
@@ -192,7 +207,7 @@ const HomeScreen = () => {
                         placeholder="by Song Artist"
                         value={searchArtist}
                         onChange={(e) => setSearchArtist(e.target.value)}
-                        sx={{ mb: 3, bgcolor: '#E8E8E8' }}
+                        sx={{ mb: 2 }}
                         InputProps={{
                             endAdornment: searchArtist && (
                                 <InputAdornment position="end">
@@ -209,7 +224,7 @@ const HomeScreen = () => {
                         placeholder="by Song Year"
                         value={searchYear}
                         onChange={(e) => setSearchYear(e.target.value)}
-                        sx={{ mb: 4, bgcolor: '#E8E8E8' }}
+                        sx={{ mb: 3 }}
                         InputProps={{
                             endAdornment: searchYear && (
                                 <InputAdornment position="end">
@@ -221,46 +236,30 @@ const HomeScreen = () => {
                         }}
                     />
 
-                    <Box sx={{ display: 'flex', gap: 2, mb: 3 }}>
-                        <Button
-                            variant="contained"
-                            startIcon={<SearchIcon />}
-                            onClick={handleSearch}
-                            sx={{
-                                bgcolor: '#7B68EE',
-                                color: '#fff',
-                                flex: 1,
-                                '&:hover': { bgcolor: '#6A5ACD' }
-                            }}
-                        >
-                            SEARCH
+                    <Box sx={{ display: 'flex', gap: 2, mb: 2 }}>
+                        <Button variant="contained" color="primary" startIcon={<SearchIcon />} onClick={handleSearch} sx={{ flex: 1 }}>
+                            Search
                         </Button>
-                        <Button
-                            variant="contained"
-                            onClick={handleClear}
-                            sx={{
-                                bgcolor: '#7B68EE',
-                                color: '#fff',
-                                flex: 1,
-                                '&:hover': { bgcolor: '#6A5ACD' }
-                            }}
-                        >
-                            CLEAR
+                        <Button variant="outlined" color="inherit" onClick={handleClear} sx={{ flex: 1 }}>
+                            Clear
                         </Button>
                     </Box>
                 </Box>
 
-                <Box sx={{ width: '65%', bgcolor: '#FFFACD', p: 3, position: 'relative' }}>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                <Box sx={{ flex: 1, bgcolor: 'background.default', p: 3, position: 'relative' }}>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2, flexWrap: 'wrap', gap: 1 }}>
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                            <Typography variant="body1">Sort:</Typography>
+                            <Typography variant="body2" color="text.secondary">
+                                Sort:
+                            </Typography>
                             <Typography
-                                variant="body1"
+                                variant="body2"
                                 onClick={handleSortClick}
                                 sx={{
-                                    color: '#1976d2',
+                                    color: 'primary.main',
                                     cursor: 'pointer',
-                                    '&:hover': { textDecoration: 'underline' }
+                                    fontWeight: 600,
+                                    '&:hover': { textDecoration: 'underline' },
                                 }}
                             >
                                 {sortBy}
@@ -278,21 +277,23 @@ const HomeScreen = () => {
                                 <MenuItem onClick={() => handleSortSelect('User (Z-A)')}>User (Z-A)</MenuItem>
                             </Menu>
                         </Box>
-                        <Typography variant="body1">
-                            {filteredPlaylists ? filteredPlaylists.length : 0} Playlists
+                        <Typography variant="body2" color="text.secondary">
+                            {filteredPlaylists ? filteredPlaylists.length : 0} playlists
                         </Typography>
                     </Box>
 
-                    <Box sx={{ height: 'calc(100% - 100px)', overflowY: 'auto' }}>
+                    <Box sx={{ maxHeight: { xs: 'none', md: 'calc(100vh - 220px)' }, overflowY: 'auto', pb: 10 }}>
                         {loading ? (
                             <Box sx={{ display: 'flex', justifyContent: 'center', mt: 6 }}>
-                                <CircularProgress sx={{ color: '#7B68EE' }} />
+                                <CircularProgress color="primary" />
                             </Box>
                         ) : filteredPlaylists && filteredPlaylists.length > 0 ? listCard : (
                             <Box sx={{ textAlign: 'center', mt: 6 }}>
-                                <Typography variant="h6" sx={{ color: '#aaa', mb: 1 }}>No playlists found</Typography>
-                                <Typography variant="body2" sx={{ color: '#bbb' }}>
-                                    {auth.isGuest ? 'No published playlists yet.' : 'Create your first playlist below!'}
+                                <Typography variant="h6" color="text.secondary" sx={{ mb: 1 }}>
+                                    No playlists found
+                                </Typography>
+                                <Typography variant="body2" color="text.disabled">
+                                    {auth.isGuest ? 'No published playlists yet.' : 'Create your first playlist with the button below.'}
                                 </Typography>
                             </Box>
                         )}
@@ -301,22 +302,39 @@ const HomeScreen = () => {
                     {!auth.isGuest && (
                         <Button
                             variant="contained"
+                            color="primary"
                             startIcon={<AddIcon />}
                             onClick={handleCreateNewList}
                             sx={{
-                                position: 'absolute',
-                                bottom: 20,
-                                right: 20,
-                                bgcolor: '#7B68EE',
-                                color: '#fff',
-                                '&:hover': { bgcolor: '#6A5ACD' }
+                                position: 'fixed',
+                                bottom: 24,
+                                right: 24,
+                                zIndex: 2,
+                                boxShadow: 6,
                             }}
                         >
-                            NEW PLAYLIST
+                            New playlist
                         </Button>
                     )}
+
+                    <Tooltip title="AI song recommendations">
+                        <Fab
+                            color="secondary"
+                            aria-label="ai recommendations"
+                            onClick={() => setAiOpen(true)}
+                            sx={{
+                                position: 'fixed',
+                                bottom: 24,
+                                left: 24,
+                                zIndex: 2,
+                            }}
+                        >
+                            <AutoAwesomeIcon />
+                        </Fab>
+                    </Tooltip>
                 </Box>
             </Box>
+            <AIRecommendationsDialog open={aiOpen} onClose={() => setAiOpen(false)} playlistContext={[]} />
             <MUIDeleteModal />
             <MUIEditPlaylistModal />
             <MUIPlayPlaylistModal />

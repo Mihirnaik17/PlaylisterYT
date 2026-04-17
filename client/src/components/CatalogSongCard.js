@@ -106,29 +106,29 @@ function CatalogSongCard(props) {
         store.setCurrentSong(song);
     };
 
-    const cardBgColor = isOwner ? '#FFE082' : '#FFD180';
-    
     return (
         <>
             <Box
                 onClick={handleCardClick}
                 sx={{
-                    bgcolor: cardBgColor,
+                    bgcolor: isOwner ? 'action.selected' : 'background.paper',
                     borderRadius: 1,
                     p: 2,
                     mb: 2,
                     display: 'flex',
                     justifyContent: 'space-between',
                     alignItems: 'center',
-                    border: isOwner ? '2px solid #FF6F00' : 'none',
-                    cursor: 'pointer'
+                    border: 1,
+                    borderColor: isOwner ? 'warning.main' : 'divider',
+                    cursor: 'pointer',
+                    '&:hover': { borderColor: 'primary.main' },
                 }}
             >
-                <Box sx={{ flex: 1 }}>
-                    <Box sx={{ fontWeight: 'bold', fontSize: '1.1rem' }}>
+                <Box sx={{ flex: 1, minWidth: 0 }}>
+                    <Box sx={{ fontWeight: 700, fontSize: '1.05rem', color: 'text.primary' }}>
                         {song.title} by {song.artist} ({song.year})
                     </Box>
-                    <Box sx={{ fontSize: '0.9rem', color: '#666', mt: 0.5 }}>
+                    <Box sx={{ fontSize: '0.9rem', color: 'text.secondary', mt: 0.5 }}>
                         <span style={{ marginRight: '20px' }}>Listens: {song.listens || 0}</span>
                         <span>Playlists: {song.playlists ? song.playlists.length : 0}</span>
                     </Box>
@@ -149,42 +149,18 @@ function CatalogSongCard(props) {
                             open={open}
                             onClose={handleMenuClose}
                         >
-                            <MenuItem 
-                                onClick={handleShowPlaylistMenu}
-                                sx={{ 
-                                    bgcolor: '#FFF9C4',
-                                    '&:hover': {
-                                        bgcolor: '#FFF59D'
-                                    }
-                                }}
-                            >
+                            <MenuItem onClick={handleShowPlaylistMenu}>
                                 Add to Playlist →
                             </MenuItem>
                             
                             {isOwner && (
-                                <MenuItem 
-                                    onClick={handleEditSong}
-                                    sx={{ 
-                                        bgcolor: '#E1BEE7',
-                                        '&:hover': {
-                                            bgcolor: '#CE93D8'
-                                        }
-                                    }}
-                                >
+                                <MenuItem onClick={handleEditSong}>
                                     Edit Song
                                 </MenuItem>
                             )}
                             
                             {isOwner && (
-                                <MenuItem 
-                                    onClick={handleRemoveSongFromCatalog}
-                                    sx={{ 
-                                        bgcolor: '#FFCDD2',
-                                        '&:hover': {
-                                            bgcolor: '#EF9A9A'
-                                        }
-                                    }}
-                                >
+                                <MenuItem onClick={handleRemoveSongFromCatalog} sx={{ color: 'error.light' }}>
                                     Remove from Catalog
                                 </MenuItem>
                             )}
@@ -206,16 +182,10 @@ function CatalogSongCard(props) {
                         >
                             {userPlaylists.length > 0 ? (
                                 userPlaylists.map((pair) => (
-                                    <MenuItem 
+                                    <MenuItem
                                         key={pair._id}
                                         onClick={(e) => handleAddToSpecificPlaylist(e, pair._id)}
-                                        sx={{ 
-                                            bgcolor: '#FFCDD2',
-                                            minWidth: '200px',
-                                            '&:hover': {
-                                                bgcolor: '#EF9A9A'
-                                            }
-                                        }}
+                                        sx={{ minWidth: 200 }}
                                     >
                                         {pair.name}
                                     </MenuItem>

@@ -22,99 +22,44 @@ export default function SplashScreen() {
     return (
         <Box
             sx={{
-                height: '100vh',
-                width: '100vw',
+                minHeight: '100vh',
+                width: '100%',
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: 'center',
                 justifyContent: 'center',
-                bgcolor: '#FFFACD',
-                position: 'fixed',
-                top: 0,
-                left: 0,
+                bgcolor: 'background.default',
+                px: 2,
+                py: 6,
             }}
         >
-            <Box
-                sx={{
-                    position: 'absolute',
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    height: '60px',
-                    bgcolor: '#FF00FF', 
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    px: 2
-                }}
-            >
-                <Box sx={{ color: 'white', fontSize: '24px' }}>🏠</Box>
-                <Box sx={{ color: 'white', fontSize: '24px', cursor: 'pointer' }}>👤</Box>
-            </Box>
-
-            <Typography 
-                variant="h2" 
-                sx={{ 
-                    mb: 4,
-                    fontWeight: 500,
-                    color: '#333'
-                }}
-            >
+            <Typography variant="h3" sx={{ mb: 1, fontWeight: 700, textAlign: 'center' }}>
                 The Playlister
+            </Typography>
+            <Typography variant="body1" color="text.secondary" sx={{ mb: 4, maxWidth: 520, textAlign: 'center' }}>
+                Build playlists, explore the catalog, and let AI suggest tracks that match your mood.
             </Typography>
 
             <Box
                 sx={{
-                    fontSize: '120px',
-                    mb: 6,
+                    fontSize: '96px',
+                    mb: 4,
+                    filter: 'drop-shadow(0 12px 40px rgba(167, 139, 250, 0.35))',
                 }}
             >
                 🎵
             </Box>
 
-            <Box sx={{ display: 'flex', gap: 2 }}>
-                <Button
-                    variant="contained"
-                    onClick={() => auth.continueAsGuest()} 
-                    sx={{
-                        bgcolor: '#333',
-                        color: '#fff',
-                        '&:hover': { bgcolor: '#555' },
-                        textTransform: 'none',
-                        px: 3,
-                        py: 1
-                    }}
-                >
+            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, justifyContent: 'center' }}>
+                <Button variant="contained" color="primary" size="large" onClick={() => auth.continueAsGuest()}>
                     Continue as Guest
                 </Button>
 
-                <Button
-                    variant="contained"
-                    onClick={() => history.push('/login')}
-                    sx={{
-                        bgcolor: '#333',
-                        color: '#fff',
-                        '&:hover': { bgcolor: '#555' },
-                        textTransform: 'none',
-                        px: 3,
-                        py: 1
-                    }}
-                >
+                <Button variant="outlined" color="secondary" size="large" onClick={() => history.push('/login')}>
                     Login
                 </Button>
 
-                <Button
-                    variant="contained"
-                    onClick={() => history.push('/register')}
-                    sx={{
-                        bgcolor: '#333',
-                        color: '#fff',
-                        '&:hover': { bgcolor: '#555' },
-                        textTransform: 'none',
-                        px: 3,
-                        py: 1
-                    }}
-                >
+                <Button variant="outlined" color="primary" size="large" onClick={() => history.push('/register')}>
                     Create Account
                 </Button>
             </Box>

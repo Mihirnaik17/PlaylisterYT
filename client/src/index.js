@@ -1,7 +1,9 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
+import { ThemeProvider, CssBaseline } from '@mui/material';
 import App from './App';
 import reportWebVitals from './reportWebVitals';
+import playlisterDarkTheme from './theme';
 /*
   This is the entry-point for our application. Notice that we
   inject our store into all the components in our application.
@@ -10,8 +12,11 @@ import reportWebVitals from './reportWebVitals';
 */
 
 ReactDOM.render(
-  <React.StrictMode>  
+  <React.StrictMode>
+    <ThemeProvider theme={playlisterDarkTheme}>
+      <CssBaseline />
       <App />
+    </ThemeProvider>
   </React.StrictMode>,
   document.getElementById('root')
 );

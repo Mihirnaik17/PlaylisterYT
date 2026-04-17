@@ -17,18 +17,18 @@
 }
 
 body {
-  /*background-image: url('https://thumbs.dreamstime.com/b/music-notes-symbols-seamless-pattern-design-fully-editable-fill-background-color-music-notes-symbols-seamless-pattern-118273669.jpg')*/
-  background-color: #f0e6f6;
+  background-color: #0b1020;
+  margin: 0;
 }
 
 #root {
-  background-color: var(--swatch-primary);
-  font-family: "Lexend Exa";
+  background-color: #0b1020;
+  font-family: "Lexend Exa", "Roboto", "Helvetica Neue", Arial, sans-serif;
   position: absolute;
-  width: 80%;
-  left: 10%;
-  height: 90%;
-  top: 5%;
+  width: 100%;
+  left: 0;
+  min-height: 100%;
+  top: 0;
 }
 
 #app-root {

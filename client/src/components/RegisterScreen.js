@@ -7,7 +7,6 @@ import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Container from '@mui/material/Container';
 import CssBaseline from '@mui/material/CssBaseline';
-import Grid from '@mui/material/Grid';
 import Link from '@mui/material/Link';
 import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
 import TextField from '@mui/material/TextField';
@@ -54,62 +53,42 @@ export default function RegisterScreen() {
     console.log(modalJSX);
 
     return (
-        <Box sx={{ height: '100vh', bgcolor: '#f0e6f6' }}>
-            <Box
-                sx={{
-                    height: '60px',
-                    bgcolor: '#FF00FF',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    px: 2
-                }}
-            >
-                <Box 
-                    onClick={() => window.location.href = '/'} 
-                    sx={{ color: 'white', fontSize: '24px', cursor: 'pointer' }}
-                >
-                    🏠
-                </Box>
-                <Box sx={{ color: 'white', fontSize: '24px', cursor: 'pointer' }}>👤</Box>
-            </Box>
+        <Box sx={{ minHeight: '100vh', bgcolor: 'background.default', py: 6, px: 2 }}>
             <Container component="main" maxWidth="xs">
                 <CssBaseline />
                 <Box
                     sx={{
-                        marginTop: 8,
                         display: 'flex',
                         flexDirection: 'column',
                         alignItems: 'center',
-                        bgcolor: '#FFFACD',
+                        bgcolor: 'background.paper',
                         padding: 4,
                         borderRadius: 2,
-                        border: '2px solid #000'
+                        border: 1,
+                        borderColor: 'divider',
                     }}
                 >
-                    <Avatar sx={{ m: 1, bgcolor: '#9C27B0' }}>
+                    <Avatar sx={{ m: 1, bgcolor: 'primary.main' }}>
                         <LockOutlinedIcon />
                     </Avatar>
-                    <Typography component="h1" variant="h5" sx={{ mb: 3 }}>
-                        Create Account
+                    <Typography component="h1" variant="h5" sx={{ mb: 1, fontWeight: 700 }}>
+                        Create account
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 2, textAlign: 'center' }}>
+                        Choose a username, secure password, and optional avatar.
                     </Typography>
                     <Box component="form" noValidate onSubmit={handleSubmit} sx={{ width: '100%' }}>
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
                             <Avatar
                                 src={avatarPreview || undefined}
-                                sx={{ width: 56, height: 56, bgcolor: '#1976d2' }}
+                                sx={{ width: 56, height: 56, bgcolor: 'secondary.main' }}
                             >
                                 {!avatarPreview && '👤'}
                             </Avatar>
                             <Button
-                                variant="contained"
+                                variant="outlined"
+                                color="inherit"
                                 component="label"
-                                sx={{ 
-                                    bgcolor: '#333',
-                                    color: '#fff',
-                                    textTransform: 'none',
-                                    '&:hover': { bgcolor: '#555' }
-                                }}
                             >
                                 Select
                                 <input
@@ -129,7 +108,6 @@ export default function RegisterScreen() {
                             name="username"
                             autoComplete="username"
                             autoFocus
-                            sx={{ bgcolor: '#E8E8E8' }}
                         />
                         <TextField
                             margin="normal"
@@ -139,7 +117,6 @@ export default function RegisterScreen() {
                             label="Email"
                             name="email"
                             autoComplete="email"
-                            sx={{ bgcolor: '#E8E8E8' }}
                         />
                         <TextField
                             margin="normal"
@@ -150,7 +127,6 @@ export default function RegisterScreen() {
                             type="password"
                             id="password"
                             autoComplete="new-password"
-                            sx={{ bgcolor: '#E8E8E8' }}
                         />
                         <TextField
                             margin="normal"
@@ -161,29 +137,23 @@ export default function RegisterScreen() {
                             type="password"
                             id="passwordVerify"
                             autoComplete="new-password"
-                            sx={{ bgcolor: '#E8E8E8' }}
                         />
                         <Button
                             type="submit"
                             fullWidth
                             variant="contained"
-                            sx={{ 
-                                mt: 3, 
-                                mb: 2,
-                                bgcolor: '#333',
-                                color: '#fff',
-                                '&:hover': { bgcolor: '#555' }
-                            }}
+                            color="primary"
+                            sx={{ mt: 3, mb: 2 }}
                         >
-                            Create Account
+                            Create account
                         </Button>
                         <Box sx={{ textAlign: 'center' }}>
-                            <Link href="/login/" variant="body2" sx={{ color: 'red' }}>
-                                Already have an account? Sign In
+                            <Link href="/login/" variant="body2" color="secondary">
+                                Already registered? Sign in
                             </Link>
                         </Box>
                         <Typography variant="body2" color="text.secondary" align="center" sx={{ mt: 3 }}>
-                            Copyright © Playlister 2025
+                            Copyright © Playlister 2026
                         </Typography>
                     </Box>
                 </Box>

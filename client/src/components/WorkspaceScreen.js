@@ -1,8 +1,9 @@
-import { useContext } from 'react'
+import { useContext, useState, useMemo } from 'react'
 import { useHistory } from 'react-router-dom'
 import { GlobalStoreContext } from '../store/index.js'
 import AuthContext from '../auth'
 import NavigationBar from './NavigationBar'
+import AIRecommendationsDialog from './AIRecommendationsDialog'
 import SongCard from './SongCard.js'
 import MUIEditSongModal from './MUIEditSongModal.js'
 import Box from '@mui/material/Box';
@@ -14,6 +15,9 @@ import IconButton from '@mui/material/IconButton';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import SkipPreviousIcon from '@mui/icons-material/SkipPrevious';
 import SkipNextIcon from '@mui/icons-material/SkipNext';
+import Fab from '@mui/material/Fab';
+import Tooltip from '@mui/material/Tooltip';
+import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 
 /*
     This React component lets us edit a loaded list, which only
@@ -24,8 +28,17 @@ import SkipNextIcon from '@mui/icons-material/SkipNext';
 function WorkspaceScreen() {
     const { store } = useContext(GlobalStoreContext);
     const { auth } = useContext(AuthContext);
+    const [aiOpen, setAiOpen] = useState(false);
     store.history = useHistory();
-    
+
+    const playlistContext = useMemo(() => {
+        const songs = store.currentList && store.currentList.songs;
+        if (!songs) {
+            return [];
+        }
+        return songs.map((s) => ({ title: s.title, artist: s.artist }));
+    }, [store.currentList]);
+
     if (!store.currentList) {
         return null;
     }
@@ -38,44 +51,53 @@ function WorkspaceScreen() {
     }
 
     return (
-        <Box sx={{ height: '100vh', bgcolor: '#f0e6f6' }}>
+        <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
             <NavigationBar />
-            <Box sx={{ 
-                height: 'calc(100vh - 80px)', 
-                bgcolor: '#00ff00',
-                display: 'flex',
-                flexDirection: 'column',
-                position: 'relative'
-            }}>
-                <Box sx={{ 
-                    bgcolor: '#1976d2', 
-                    p: 2,
+            <Box
+                sx={{
+                    minHeight: 'calc(100vh - 72px)',
                     display: 'flex',
-                    alignItems: 'center',
-                    gap: 2
-                }}>
-                    <Typography variant="h6" sx={{ color: 'white', fontWeight: 'bold' }}>
-                        Play Playlist
+                    flexDirection: 'column',
+                    position: 'relative',
+                }}
+            >
+                <Box
+                    sx={{
+                        bgcolor: 'background.paper',
+                        p: 2,
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 2,
+                        borderBottom: 1,
+                        borderColor: 'divider',
+                    }}
+                >
+                    <Typography variant="h6" sx={{ fontWeight: 700 }}>
+                        Now playing
                     </Typography>
                 </Box>
 
-                <Box sx={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
-                    <Box sx={{ 
-                        width: '40%', 
-                        bgcolor: '#e8d5f0',
-                        p: 2,
-                        display: 'flex',
-                        flexDirection: 'column'
-                    }}>
+                <Box sx={{ display: 'flex', flex: 1, overflow: 'hidden', flexDirection: { xs: 'column', md: 'row' } }}>
+                    <Box
+                        sx={{
+                            width: { xs: '100%', md: '40%' },
+                            bgcolor: 'background.paper',
+                            p: 2,
+                            display: 'flex',
+                            flexDirection: 'column',
+                            borderRight: { md: 1 },
+                            borderColor: 'divider',
+                        }}
+                    >
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
-                            <Avatar sx={{ bgcolor: '#1976d2', width: 48, height: 48 }}>
+                            <Avatar sx={{ bgcolor: 'primary.main', color: 'primary.contrastText', width: 48, height: 48 }}>
                                 👤
                             </Avatar>
-                            <Box>
-                                <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
+                            <Box sx={{ minWidth: 0 }}>
+                                <Typography variant="h6" sx={{ fontWeight: 700 }} noWrap title={store.currentList.name}>
                                     {store.currentList.name}
                                 </Typography>
-                                <Typography variant="body2" sx={{ color: '#666' }}>
+                                <Typography variant="body2" color="text.secondary" noWrap>
                                     {store.currentList.ownerUsername}
                                 </Typography>
                             </Box>
@@ -94,22 +116,30 @@ function WorkspaceScreen() {
                         </List>
                     </Box>
 
-                    <Box sx={{ 
-                        width: '60%', 
-                        bgcolor: '#90ee90',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        p: 4
-                    }}>
-                        <Box sx={{ 
-                            width: '100%',
-                            maxWidth: '600px',
-                            bgcolor: '#000',
-                            aspectRatio: '16/9',
-                            mb: 4
-                        }}>
+                    <Box
+                        sx={{
+                            flex: 1,
+                            bgcolor: 'background.default',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            p: { xs: 2, md: 4 },
+                        }}
+                    >
+                        <Box
+                            sx={{
+                                width: '100%',
+                                maxWidth: 720,
+                                bgcolor: 'common.black',
+                                borderRadius: 2,
+                                overflow: 'hidden',
+                                aspectRatio: '16/9',
+                                mb: 3,
+                                border: 1,
+                                borderColor: 'divider',
+                            }}
+                        >
                             <iframe
                                 width="100%"
                                 height="100%"
@@ -122,13 +152,13 @@ function WorkspaceScreen() {
                         </Box>
 
                         <Box sx={{ display: 'flex', gap: 2 }}>
-                            <IconButton sx={{ bgcolor: 'white', '&:hover': { bgcolor: '#f0f0f0' } }}>
+                            <IconButton sx={{ bgcolor: 'background.paper', '&:hover': { bgcolor: 'action.hover' } }}>
                                 <SkipPreviousIcon />
                             </IconButton>
-                            <IconButton sx={{ bgcolor: 'white', '&:hover': { bgcolor: '#f0f0f0' } }}>
+                            <IconButton sx={{ bgcolor: 'primary.main', color: 'primary.contrastText', '&:hover': { bgcolor: 'primary.dark' } }}>
                                 <PlayArrowIcon />
                             </IconButton>
-                            <IconButton sx={{ bgcolor: 'white', '&:hover': { bgcolor: '#f0f0f0' } }}>
+                            <IconButton sx={{ bgcolor: 'background.paper', '&:hover': { bgcolor: 'action.hover' } }}>
                                 <SkipNextIcon />
                             </IconButton>
                         </Box>
@@ -136,20 +166,32 @@ function WorkspaceScreen() {
                 </Box>
 
                 <Button
-                    variant="contained"
-                    onClick={() => store.history.push('/')}
+                    variant="outlined"
+                    color="inherit"
+                    onClick={() => store.history.push('/home')}
                     sx={{
-                        position: 'absolute',
-                        bottom: 20,
-                        right: 20,
-                        bgcolor: '#008080',
-                        color: 'white',
-                        '&:hover': { bgcolor: '#006666' }
+                        position: 'fixed',
+                        bottom: 24,
+                        right: 24,
+                        zIndex: 2,
                     }}
                 >
-                    Close
+                    Back to lists
                 </Button>
+
+                <Tooltip title="AI picks for this playlist vibe">
+                    <Fab
+                        color="secondary"
+                        size="medium"
+                        aria-label="ai recommendations"
+                        onClick={() => setAiOpen(true)}
+                        sx={{ position: 'fixed', bottom: 24, left: 24, zIndex: 2 }}
+                    >
+                        <AutoAwesomeIcon />
+                    </Fab>
+                </Tooltip>
             </Box>
+            <AIRecommendationsDialog open={aiOpen} onClose={() => setAiOpen(false)} playlistContext={playlistContext} />
             {modalJSX}
         </Box>
     )

@@ -45,23 +45,27 @@ export default function NavigationBar() {
 
     return (
         <Box
+            component="header"
             sx={{
-                height: '80px',
-                bgcolor: '#FF00FF',
+                height: 72,
+                px: 2,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
-                px: 2
+                borderBottom: 1,
+                borderColor: 'divider',
+                bgcolor: 'background.paper',
+                backdropFilter: 'blur(8px)',
             }}
         >
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                 <IconButton
                     onClick={handleHomeClick}
                     sx={{
-                        bgcolor: 'white',
-                        '&:hover': { bgcolor: '#f0f0f0' },
+                        bgcolor: 'action.hover',
+                        '&:hover': { bgcolor: 'action.selected' },
                         width: 40,
-                        height: 40
+                        height: 40,
                     }}
                 >
                     <HomeIcon />
@@ -69,41 +73,31 @@ export default function NavigationBar() {
 
                 <Button
                     variant="contained"
-                    onClick={() => history.push('/home')}  
-                    sx={{
-                        bgcolor: '#333',
-                        color: '#fff',
-                        '&:hover': { bgcolor: '#555' },
-                        textTransform: 'none',
-                        px: 3
-                    }}
+                    color="primary"
+                    onClick={() => history.push('/home')}
+                    sx={{ px: 2.5 }}
                 >
                     Playlists
                 </Button>
 
                 <Button
-                    variant="contained"
-                    onClick={() => history.push('/songs')} 
-                    sx={{
-                        bgcolor: '#1976d2',
-                        color: '#fff',
-                        '&:hover': { bgcolor: '#1565c0' },
-                        textTransform: 'none',
-                        px: 3
-                    }}
+                    variant="outlined"
+                    color="secondary"
+                    onClick={() => history.push('/songs')}
+                    sx={{ px: 2.5 }}
                 >
                     Song Catalog
                 </Button>
             </Box>
 
-            <Typography variant="h4" sx={{ color: 'white', fontWeight: 'bold' }}>
+            <Typography variant="h5" sx={{ fontWeight: 700, color: 'text.primary', letterSpacing: 0.2 }}>
                 The Playlister
             </Typography>
 
             <Box>
-                <IconButton onClick={handleMenuOpen}>
+                <IconButton onClick={handleMenuOpen} sx={{ p: 0.5 }}>
                     <Avatar
-                        sx={{ bgcolor: '#1976d2', width: 48, height: 48 }}
+                        sx={{ bgcolor: 'secondary.main', color: 'secondary.contrastText', width: 44, height: 44 }}
                         src={auth.user?.avatar}
                     >
                         {auth.getUserInitials()}

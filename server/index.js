@@ -31,6 +31,8 @@ const storeRouter = require('./routes/store-router')
 app.use('/api', storeRouter)
 const songRouter = require('./routes/song-router')
 app.use('/api', songRouter)
+const aiRouter = require('./routes/ai-router')
+app.use('/api', aiRouter)
 
 // INITIALIZE OUR DATABASE OBJECT
 const db = require('./db')

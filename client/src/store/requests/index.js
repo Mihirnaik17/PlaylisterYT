@@ -286,6 +286,24 @@ export const getPlaylistsByUsername = async (username) => {
     }
 }
 
+export const recommendSongs = async (payload) => {
+    try {
+        const response = await fetch(`${baseURL}/ai/recommend-songs`, {
+            method: 'POST',
+            credentials: 'include',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(payload),
+        });
+        const data = await handleresponse(response);
+        return data;
+    } catch (error) {
+        console.error(error);
+        throw error;
+    }
+};
+
 export const addSongToPlaylist = async (playlistId, songId) => {
     const payload = {
         songId: songId
@@ -322,7 +340,8 @@ const apis = {
     getPublishedPlaylists,
     searchPlaylists,
     getPlaylistsByUsername,
-    addSongToPlaylist
+    addSongToPlaylist,
+    recommendSongs,
 }
 
 export default apis

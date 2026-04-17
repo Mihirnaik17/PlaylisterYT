@@ -1,8 +1,10 @@
 import { useContext, useEffect, useState } from 'react'
+import { useLocation } from 'react-router-dom'
 import { GlobalStoreContext } from '../store'
 import AuthContext from '../auth'
 import CatalogSongCard from './CatalogSongCard'
-import NavigationBar from './NavigationBar'  
+import NavigationBar from './NavigationBar'
+import AIRecommendationsDialog from './AIRecommendationsDialog'
 import MUIRemoveSongModal from './MUIRemoveSongModal'
 import MUICreateSongModal from './MUICreateSongModal'
 import MUIEditSongModal from './MUIEditSongModal'
@@ -15,10 +17,15 @@ import FormControl from '@mui/material/FormControl';
 import InputLabel from '@mui/material/InputLabel';
 import CircularProgress from '@mui/material/CircularProgress';
 import Typography from '@mui/material/Typography';
+import Fab from '@mui/material/Fab';
+import Tooltip from '@mui/material/Tooltip';
+import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 
 export default function SongsCatalogScreen() {
     const { store } = useContext(GlobalStoreContext);
     const { auth } = useContext(AuthContext);
+    const location = useLocation();
+    const [aiOpen, setAiOpen] = useState(false);
     
     
     const [titleSearch, setTitleSearch] = useState('');
@@ -31,6 +38,13 @@ export default function SongsCatalogScreen() {
         setLoading(true);
         store.loadSongs({ sortBy: 'listens', sortOrder: 'desc' }).finally(() => setLoading(false));
     }, []);
+
+    useEffect(() => {
+        const prefill = location.state && location.state.prefillTitle;
+        if (prefill) {
+            setTitleSearch(String(prefill));
+        }
+    }, [location.state]);
     
     const handleSearch = () => {
         const searchParams = {};
@@ -117,19 +131,26 @@ export default function SongsCatalogScreen() {
     }
     
     return (
-        <>
+        <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
             <NavigationBar />
-            <Box sx={{ display: 'flex', height: 'calc(100vh - 80px)' }}>
-                <Box sx={{ 
-                    width: '40%', 
-                    bgcolor: '#F5E6D3', 
-                    p: 3,
-                    display: 'flex',
-                    flexDirection: 'column'
-                }}>
-                    <Box sx={{ mb: 2 }}>
-                        <h2 style={{ color: '#9C27B0', margin: '0 0 20px 0' }}>Songs Catalog</h2>
-                    </Box>
+            <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, minHeight: 'calc(100vh - 72px)' }}>
+                <Box
+                    sx={{
+                        width: { xs: '100%', md: '40%' },
+                        bgcolor: 'background.paper',
+                        p: 3,
+                        display: 'flex',
+                        flexDirection: 'column',
+                        borderRight: { md: 1 },
+                        borderColor: 'divider',
+                    }}
+                >
+                    <Typography variant="h5" sx={{ fontWeight: 700, mb: 0.5 }}>
+                        Song catalog
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                        Search the library, preview on YouTube, add tracks to playlists when signed in.
+                    </Typography>
                     
                     <TextField
                         fullWidth
@@ -137,7 +158,7 @@ export default function SongsCatalogScreen() {
                         value={titleSearch}
                         onChange={(e) => setTitleSearch(e.target.value)}
                         onKeyPress={(e) => { if (e.key === 'Enter') handleSearch(); }}
-                        sx={{ mb: 2, bgcolor: '#E0D4E8' }}
+                        sx={{ mb: 2 }}
                     />
                     
                     <TextField
@@ -146,7 +167,7 @@ export default function SongsCatalogScreen() {
                         value={artistSearch}
                         onChange={(e) => setArtistSearch(e.target.value)}
                         onKeyPress={(e) => { if (e.key === 'Enter') handleSearch(); }}
-                        sx={{ mb: 2, bgcolor: '#E0D4E8' }}
+                        sx={{ mb: 2 }}
                     />
                     
                     <TextField
@@ -155,33 +176,29 @@ export default function SongsCatalogScreen() {
                         value={yearSearch}
                         onChange={(e) => setYearSearch(e.target.value)}
                         onKeyPress={(e) => { if (e.key === 'Enter') handleSearch(); }}
-                        sx={{ mb: 2, bgcolor: '#E0D4E8' }}
+                        sx={{ mb: 2 }}
                     />
                     
-                    <Box sx={{ display: 'flex', gap: 2, mb: 4 }}>
-                        <Button 
-                            variant="contained" 
-                            onClick={handleSearch}
-                            sx={{ bgcolor: '#5E35B1', '&:hover': { bgcolor: '#4527A0' } }}
-                        >
+                    <Box sx={{ display: 'flex', gap: 2, mb: 3 }}>
+                        <Button variant="contained" color="primary" onClick={handleSearch} sx={{ flex: 1 }}>
                             Search
                         </Button>
-                        <Button 
-                            variant="contained"
-                            onClick={handleClear}
-                            sx={{ bgcolor: '#5E35B1', '&:hover': { bgcolor: '#4527A0' } }}
-                        >
+                        <Button variant="outlined" color="inherit" onClick={handleClear} sx={{ flex: 1 }}>
                             Clear
                         </Button>
                     </Box>
                     
                     <Box sx={{ 
-                        bgcolor: '#424242', 
-                        height: '250px', 
+                        bgcolor: 'common.black', 
+                        height: 250, 
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        color: 'white'
+                        color: 'text.secondary',
+                        borderRadius: 2,
+                        overflow: 'hidden',
+                        border: 1,
+                        borderColor: 'divider',
                     }}>
                         {store.currentSong && store.currentSong.youTubeId ? (
                             <iframe
@@ -200,25 +217,16 @@ export default function SongsCatalogScreen() {
                     
                     {!auth.isGuest && (
                         <Box sx={{ mt: 'auto', pt: 2 }}>
-                            <Button 
-                                variant="contained"
-                                onClick={handleNewSong}
-                                fullWidth
-                                sx={{ 
-                                    bgcolor: '#5E35B1', 
-                                    '&:hover': { bgcolor: '#4527A0' },
-                                    py: 1.5
-                                }}
-                            >
-                                ⊕ New Song
+                            <Button variant="contained" color="secondary" onClick={handleNewSong} fullWidth sx={{ py: 1.5 }}>
+                                New song
                             </Button>
                         </Box>
                     )}
                 </Box>
                 
                 <Box sx={{ 
-                    width: '60%', 
-                    bgcolor: '#FFF9E6', 
+                    flex: 1,
+                    bgcolor: 'background.default', 
                     p: 3,
                     overflowY: 'auto'
                 }}>
@@ -229,12 +237,12 @@ export default function SongsCatalogScreen() {
                         mb: 2
                     }}>
                         <FormControl sx={{ minWidth: 200 }}>
-                            <InputLabel>Sort</InputLabel>
+                            <InputLabel id="catalog-sort-label">Sort</InputLabel>
                             <Select
+                                labelId="catalog-sort-label"
                                 value={currentSort}
                                 label="Sort"
                                 onChange={handleSortChange}
-                                sx={{ bgcolor: 'white' }}
                             >
                                 <MenuItem value="listens-hi">Listens (Hi-Lo)</MenuItem>
                                 <MenuItem value="listens-lo">Listens (Lo-Hi)</MenuItem>
@@ -249,30 +257,41 @@ export default function SongsCatalogScreen() {
                             </Select>
                         </FormControl>
                         
-                        <Box sx={{ fontWeight: 'bold' }}>
-                            {store.songs ? store.songs.length : 0} Songs
-                        </Box>
+                        <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 600 }}>
+                            {store.songs ? store.songs.length : 0} songs
+                        </Typography>
                     </Box>
                     
-                    <Box>
+                    <Box sx={{ pb: 10 }}>
                         {loading ? (
                             <Box sx={{ display: 'flex', justifyContent: 'center', mt: 6 }}>
-                                <CircularProgress sx={{ color: '#5E35B1' }} />
+                                <CircularProgress color="primary" />
                             </Box>
                         ) : store.songs && store.songs.length > 0 ? songCards : (
                             <Box sx={{ textAlign: 'center', mt: 6 }}>
-                                <Typography variant="h6" sx={{ color: '#aaa', mb: 1 }}>No songs found</Typography>
-                                <Typography variant="body2" sx={{ color: '#bbb' }}>
-                                    {auth.isGuest ? 'No songs in the catalog yet.' : 'Add the first song using the button below!'}
+                                <Typography variant="h6" color="text.secondary" sx={{ mb: 1 }}>No songs found</Typography>
+                                <Typography variant="body2" color="text.disabled">
+                                    {auth.isGuest ? 'No songs in the catalog yet.' : 'Add the first song from the sidebar.'}
                                 </Typography>
                             </Box>
                         )}
                     </Box>
                 </Box>
             </Box>
+            <Tooltip title="AI song recommendations">
+                <Fab
+                    color="secondary"
+                    aria-label="ai recommendations"
+                    onClick={() => setAiOpen(true)}
+                    sx={{ position: 'fixed', bottom: 24, left: 24, zIndex: 2 }}
+                >
+                    <AutoAwesomeIcon />
+                </Fab>
+            </Tooltip>
+            <AIRecommendationsDialog open={aiOpen} onClose={() => setAiOpen(false)} playlistContext={[]} />
             <MUIRemoveSongModal />
             <MUICreateSongModal />
             <MUIEditSongModal />
-        </> 
+        </Box> 
     )
 }
