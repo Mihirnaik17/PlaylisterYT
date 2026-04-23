@@ -41,6 +41,7 @@ export const GlobalStoreActionType = {
     SET_CURRENT_SONG: "SET_CURRENT_SONG",
     MARK_SONG_FOR_DELETION: "MARK_SONG_FOR_DELETION",
     CREATE_SONG_MODAL: "CREATE_SONG_MODAL",
+    APPEND_ID_NAME_PAIR: "APPEND_ID_NAME_PAIR",
 }
 
 // WE'LL NEED THIS TO PROCESS TRANSACTIONS
@@ -155,6 +156,14 @@ function GlobalStoreContextProvider(props) {
                     songs: store.songs,
                     songIdMarkedForDeletion: null,
                 });
+            }
+            case GlobalStoreActionType.APPEND_ID_NAME_PAIR: {
+                // Functional update: SSE callbacks hold a stale store closure,
+                // so we must derive next state from the latest committed state.
+                return setStore(prev => ({
+                    ...prev,
+                    idNamePairs: [...prev.idNamePairs, payload],
+                }));
             }
             // PREPARE TO DELETE A LIST
             case GlobalStoreActionType.MARK_LIST_FOR_DELETION: {
@@ -430,22 +439,37 @@ store.createNewList = async function () {
 }
     // THIS FUNCTION LOADS ALL THE ID, NAME PAIRS SO WE CAN LIST ALL THE LISTS
     store.loadIdNamePairs = function () {
+        if (auth.isGuest) {
+            // Stream published playlists incrementally via SSE
+            storeReducer({ type: GlobalStoreActionType.LOAD_ID_NAME_PAIRS, payload: [] });
+
+            const es = new EventSource('http://localhost:4000/api/playlists/published/stream');
+
+            es.onmessage = (event) => {
+                try {
+                    const playlist = JSON.parse(event.data);
+                    storeReducer({ type: GlobalStoreActionType.APPEND_ID_NAME_PAIR, payload: playlist });
+                } catch (e) {
+                    console.error('SSE parse error:', e);
+                }
+            };
+
+            es.addEventListener('done', () => { es.close(); });
+            es.addEventListener('error', (e) => {
+                console.error('SSE error:', e);
+                es.close();
+            });
+
+            return;
+        }
+
+        // Logged-in: normal axios path (user's own playlists are few, no streaming needed)
         async function asyncLoadIdNamePairs() {
-            let response;
-            if (auth.isGuest) {
-                response = await storeRequestSender.getPublishedPlaylists();
-            } else {
-                response = await storeRequestSender.getPlaylistPairs();
-            }
+            const response = await storeRequestSender.getPlaylistPairs();
             if (response.data.success) {
-                let pairsArray = response.data.idNamePairs || response.data.data;
-                console.log(pairsArray);
-                storeReducer({
-                    type: GlobalStoreActionType.LOAD_ID_NAME_PAIRS,
-                    payload: pairsArray
-                });
-            }
-            else {
+                const pairsArray = response.data.idNamePairs || response.data.data;
+                storeReducer({ type: GlobalStoreActionType.LOAD_ID_NAME_PAIRS, payload: pairsArray });
+            } else {
                 console.log("FAILED TO GET THE LIST PAIRS");
             }
         }

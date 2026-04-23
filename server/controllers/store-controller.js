@@ -607,11 +607,14 @@ incrementListens = async (req, res) => {
 
 getPublishedPlaylists = async (req, res) => {
     try {
-        const allPlaylists = await dbManager.getAllPlaylists();
-        const publishedPlaylists = allPlaylists.filter(p => p.published === true);
-        return res.status(200).json({ 
-            success: true, 
-            data: publishedPlaylists 
+        const Playlist = require('../models/playlist-model');
+        const publishedPlaylists = await Playlist
+            .find({ published: true })
+            .select('name ownerEmail ownerUsername likes dislikes likedBy dislikedBy listens comments published lastAccessed createdAt updatedAt')
+            .lean();
+        return res.status(200).json({
+            success: true,
+            data: publishedPlaylists
         })
     } catch (error) {
         console.error(error);
@@ -619,6 +622,41 @@ getPublishedPlaylists = async (req, res) => {
             errorMessage: 'Error fetching published playlists',
             error: error.message
         })
+    }
+}
+
+streamPublishedPlaylists = async (req, res) => {
+    try {
+        res.setHeader('Content-Type', 'text/event-stream');
+        res.setHeader('Cache-Control', 'no-cache');
+        res.setHeader('Connection', 'keep-alive');
+        res.setHeader('X-Accel-Buffering', 'no');
+        res.flushHeaders();
+
+        const cursor = dbManager.getPublishedPlaylistsCursor();
+
+        cursor.on('data', (playlist) => {
+            res.write(`data: ${JSON.stringify(playlist)}\n\n`);
+        });
+
+        cursor.on('end', () => {
+            res.write('event: done\ndata: {}\n\n');
+            res.end();
+        });
+
+        cursor.on('error', (err) => {
+            console.error('Stream error:', err);
+            res.write(`event: error\ndata: ${JSON.stringify({ message: err.message })}\n\n`);
+            res.end();
+        });
+
+        req.on('close', () => {
+            cursor.destroy();
+        });
+    } catch (error) {
+        console.error(error);
+        res.write(`event: error\ndata: ${JSON.stringify({ message: error.message })}\n\n`);
+        res.end();
     }
 }
 
@@ -837,6 +875,7 @@ module.exports = {
     deleteComment,
     incrementListens,
     getPublishedPlaylists,
+    streamPublishedPlaylists,
     searchPlaylists,
     getPlaylistsByUsername,
     addSongToPlaylist

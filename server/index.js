@@ -1,6 +1,7 @@
 // THESE ARE NODE APIs WE WISH TO USE
 const express = require('express')
 const cors = require('cors')
+const compression = require('compression')
 const dotenv = require('dotenv')
 const cookieParser = require('cookie-parser')
 
@@ -21,6 +22,7 @@ app.use(cors({
     preflightContinue: false,
     optionsSuccessStatus: 204
 }))
+app.use(compression())
 app.use(express.urlencoded({ extended: true, limit: '10mb' }))
 app.use(express.json({ limit: '10mb' }))
 app.use(cookieParser())

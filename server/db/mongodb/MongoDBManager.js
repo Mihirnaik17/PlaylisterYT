@@ -66,6 +66,14 @@ class MongoDBManager extends DatabaseManager{
     async getAllPlaylists() {
         return await Playlist.find({});
     }
+
+    getPublishedPlaylistsCursor() {
+        return Playlist
+            .find({ published: true })
+            .select('name ownerEmail ownerUsername likes dislikes likedBy dislikedBy listens comments published lastAccessed createdAt updatedAt')
+            .lean()
+            .cursor();
+    }
     
     async updatePlaylist(playlistId, updateData) {
     const playlist = await Playlist.findOne({ _id: playlistId });

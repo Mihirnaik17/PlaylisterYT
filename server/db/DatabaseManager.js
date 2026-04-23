@@ -30,6 +30,9 @@ class DatabaseManager {
     async getAllPlaylists() {
         throw new Error('getAllPlaylists() must be implemented by subclass');
     }
+    getPublishedPlaylistsCursor() {
+        throw new Error('getPublishedPlaylistsCursor() must be implemented by subclass');
+    }
     async updatePlaylist(playlistId, updateData) {
         throw new Error('updatePlaylist() must be implemented by subclass');
     }
