@@ -1,4 +1,5 @@
 import { useContext, useState } from 'react';
+import { useHistory } from 'react-router-dom';
 import AuthContext from '../auth'
 import MUIErrorModal from './MUIErrorModal'
 
@@ -7,13 +8,13 @@ import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Container from '@mui/material/Container';
 import CssBaseline from '@mui/material/CssBaseline';
-import Link from '@mui/material/Link';
 import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
 import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
 
 export default function RegisterScreen() {
     const { auth } = useContext(AuthContext);
+    const history = useHistory();
     const [avatarImage, setAvatarImage] = useState(null);
     const [avatarPreview, setAvatarPreview] = useState(null);
 
@@ -148,9 +149,18 @@ export default function RegisterScreen() {
                             Create account
                         </Button>
                         <Box sx={{ textAlign: 'center' }}>
-                            <Link href="/login/" variant="body2" color="secondary">
+                            <Typography
+                                variant="body2"
+                                onClick={() => history.push('/login')}
+                                sx={{
+                                    color: 'secondary.main',
+                                    cursor: 'pointer',
+                                    textDecoration: 'underline',
+                                    '&:hover': { color: '#fff' },
+                                }}
+                            >
                                 Already registered? Sign in
-                            </Link>
+                            </Typography>
                         </Box>
                         <Typography variant="body2" color="text.secondary" align="center" sx={{ mt: 3 }}>
                             Copyright © Playlister 2026

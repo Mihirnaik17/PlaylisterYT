@@ -4,14 +4,16 @@ import Box from '@mui/material/Box';
 import Modal from '@mui/material/Modal';
 import Button from '@mui/material/Button';
 import Typography from '@mui/material/Typography';
-import Avatar from '@mui/material/Avatar';
 import IconButton from '@mui/material/IconButton';
-import Checkbox from '@mui/material/Checkbox';
-import FormControlLabel from '@mui/material/FormControlLabel';
+import Tooltip from '@mui/material/Tooltip';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import PauseIcon from '@mui/icons-material/Pause';
 import SkipPreviousIcon from '@mui/icons-material/SkipPrevious';
 import SkipNextIcon from '@mui/icons-material/SkipNext';
+import RepeatIcon from '@mui/icons-material/Repeat';
+import CloseIcon from '@mui/icons-material/Close';
+import MusicNoteIcon from '@mui/icons-material/MusicNote';
+import LibraryMusicIcon from '@mui/icons-material/LibraryMusic';
 
 export default function MUIPlayPlaylistModal() {
     const { store } = useContext(GlobalStoreContext);
@@ -23,7 +25,6 @@ export default function MUIPlayPlaylistModal() {
 
     const playlist = store.currentList;
 
-    // Load YouTube IFrame API
     useEffect(() => {
         if (!window.YT) {
             const tag = document.createElement('script');
@@ -31,11 +32,7 @@ export default function MUIPlayPlaylistModal() {
             const firstScriptTag = document.getElementsByTagName('script')[0];
             firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
         }
-
-        window.onYouTubeIframeAPIReady = () => {
-            console.log('YouTube IFrame API Ready');
-        };
-
+        window.onYouTubeIframeAPIReady = () => {};
         return () => {
             if (playerRef.current && playerRef.current.destroy) {
                 playerRef.current.destroy();
@@ -43,82 +40,45 @@ export default function MUIPlayPlaylistModal() {
         };
     }, []);
 
-    // Initialize player when song changes
     useEffect(() => {
         if (playlist && playlist.songs && playlist.songs[currentSongIndex] && window.YT) {
-            // Destroy previous player if exists
             if (playerRef.current && playerRef.current.destroy) {
                 playerRef.current.destroy();
             }
-
-            // Create new player
             playerRef.current = new window.YT.Player('youtube-player', {
                 height: '100%',
                 width: '100%',
                 videoId: playlist.songs[currentSongIndex].youTubeId,
-                playerVars: {
-                    autoplay: isPlaying ? 1 : 0,
-                    controls: 1,
-                    modestbranding: 1,
-                    rel: 0
-                },
-                events: {
-                    onReady: onPlayerReady,
-                    onStateChange: onPlayerStateChange
-                }
+                playerVars: { autoplay: isPlaying ? 1 : 0, controls: 1, modestbranding: 1, rel: 0 },
+                events: { onReady: onPlayerReady, onStateChange: onPlayerStateChange },
             });
         }
     }, [currentSongIndex, playlist]);
 
     function onPlayerReady(event) {
         playerReadyRef.current = true;
-        if (isPlaying) {
-            event.target.playVideo();
-        }
+        if (isPlaying) event.target.playVideo();
     }
 
     function onPlayerStateChange(event) {
-        // YT.PlayerState.ENDED = 0
-        if (event.data === 0) {
-            handleVideoEnd();
-        }
-        // YT.PlayerState.PLAYING = 1
-        else if (event.data === 1) {
-            setIsPlaying(true);
-        }
-        // YT.PlayerState.PAUSED = 2
-        else if (event.data === 2) {
-            setIsPlaying(false);
-        }
+        if (event.data === 0) handleVideoEnd();
+        else if (event.data === 1) setIsPlaying(true);
+        else if (event.data === 2) setIsPlaying(false);
     }
 
     function handleVideoEnd() {
-        console.log('Video ended. Current index:', currentSongIndex, 'Repeat:', repeat);
-        
         if (!playlist || !playlist.songs) return;
-
         if (currentSongIndex === playlist.songs.length - 1) {
-            if (repeat) {
-                console.log('Looping back to first song');
-                setCurrentSongIndex(0);
-                setIsPlaying(true);
-            } else {
-                // Stop playing
-                console.log('Playlist finished');
-                setIsPlaying(false);
-            }
+            if (repeat) { setCurrentSongIndex(0); setIsPlaying(true); }
+            else setIsPlaying(false);
         } else {
-            // Go to next song
-            console.log('Auto-advancing to next song');
             setCurrentSongIndex(currentSongIndex + 1);
             setIsPlaying(true);
         }
     }
 
     function handleClose() {
-        if (playerRef.current && playerRef.current.destroy) {
-            playerRef.current.destroy();
-        }
+        if (playerRef.current && playerRef.current.destroy) playerRef.current.destroy();
         store.hideModals();
         setCurrentSongIndex(0);
         setIsPlaying(false);
@@ -127,31 +87,22 @@ export default function MUIPlayPlaylistModal() {
 
     function handlePlayPause() {
         if (playerRef.current && playerReadyRef.current) {
-            if (isPlaying) {
-                playerRef.current.pauseVideo();
-            } else {
-                playerRef.current.playVideo();
-            }
+            if (isPlaying) playerRef.current.pauseVideo();
+            else playerRef.current.playVideo();
             setIsPlaying(!isPlaying);
         }
     }
 
     function handlePrevious() {
         if (playlist && playlist.songs.length > 0) {
-            const newIndex = currentSongIndex === 0 
-                ? playlist.songs.length - 1 
-                : currentSongIndex - 1;
-            setCurrentSongIndex(newIndex);
+            setCurrentSongIndex(currentSongIndex === 0 ? playlist.songs.length - 1 : currentSongIndex - 1);
             setIsPlaying(true);
         }
     }
 
     function handleNext() {
         if (playlist && playlist.songs.length > 0) {
-            const newIndex = currentSongIndex === playlist.songs.length - 1 
-                ? 0 
-                : currentSongIndex + 1;
-            setCurrentSongIndex(newIndex);
+            setCurrentSongIndex(currentSongIndex === playlist.songs.length - 1 ? 0 : currentSongIndex + 1);
             setIsPlaying(true);
         }
     }
@@ -161,202 +112,240 @@ export default function MUIPlayPlaylistModal() {
         setIsPlaying(true);
     }
 
-    function handleRepeatChange(event) {
-        setRepeat(event.target.checked);
-        console.log('Repeat toggled:', event.target.checked);
-    }
-
-    if (!store.isPlayPlaylistModalOpen() || !playlist) {
-        return null;
-    }
+    if (!store.isPlayPlaylistModalOpen() || !playlist) return null;
 
     const currentSong = playlist.songs && playlist.songs[currentSongIndex];
 
-    const modalStyle = {
-        position: 'absolute',
-        top: '50%',
-        left: '50%',
-        transform: 'translate(-50%, -50%)',
-        width: '80%',
-        height: '80%',
-        bgcolor: '#90EE90',
-        border: '2px solid #000',
-        boxShadow: 24,
-        display: 'flex',
-        flexDirection: 'column'
-    };
-
     return (
         <Modal open={true} onClose={handleClose}>
-            <Box sx={modalStyle}>
+            <Box
+                sx={{
+                    position: 'absolute',
+                    top: '50%',
+                    left: '50%',
+                    transform: 'translate(-50%, -50%)',
+                    width: { xs: '96vw', md: '82vw' },
+                    maxWidth: 1100,
+                    height: { xs: '90vh', md: '80vh' },
+                    bgcolor: '#121212',
+                    borderRadius: 2,
+                    border: '1px solid rgba(255,255,255,0.08)',
+                    boxShadow: '0 24px 80px rgba(0,0,0,0.8)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    overflow: 'hidden',
+                }}
+            >
+                {/* Header */}
                 <Box
                     sx={{
-                        bgcolor: '#006400',
-                        color: 'white',
-                        p: 2,
+                        px: 3,
+                        py: 1.5,
                         display: 'flex',
                         alignItems: 'center',
-                        justifyContent: 'space-between'
+                        justifyContent: 'space-between',
+                        borderBottom: '1px solid rgba(255,255,255,0.06)',
+                        bgcolor: '#181818',
+                        flexShrink: 0,
                     }}
                 >
-                    <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
-                        Play Playlist
-                    </Typography>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <LibraryMusicIcon sx={{ color: '#1DB954', fontSize: 22 }} />
+                        <Typography sx={{ fontWeight: 700, fontSize: '1rem', color: '#fff' }}>
+                            {playlist.name}
+                        </Typography>
+                        <Typography sx={{ fontSize: '0.8rem', color: '#B3B3B3', ml: 0.5 }}>
+                            · {playlist.songs ? playlist.songs.length : 0} songs
+                        </Typography>
+                    </Box>
+                    <IconButton onClick={handleClose} size="small" sx={{ color: '#B3B3B3', '&:hover': { color: '#fff' } }}>
+                        <CloseIcon />
+                    </IconButton>
                 </Box>
 
+                {/* Body */}
                 <Box sx={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
+                    {/* Song queue (left panel) */}
                     <Box
                         sx={{
-                            width: '40%',
-                            bgcolor: '#E6E6FA',
-                            p: 2,
+                            width: { xs: '38%', md: '32%' },
+                            borderRight: '1px solid rgba(255,255,255,0.06)',
                             overflowY: 'auto',
-                            borderRight: '2px solid #000'
+                            flexShrink: 0,
+                            bgcolor: '#181818',
+                            py: 1,
                         }}
                     >
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
-                            <Avatar sx={{ bgcolor: '#FFA500', width: 48, height: 48 }}>
-                                A
-                            </Avatar>
-                            <Box>
-                                <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
-                                    {playlist.name}
-                                </Typography>
-                                <Typography variant="body2" sx={{ color: '#666' }}>
-                                    {playlist.ownerEmail || 'The McKilla Gorilla'}
-                                </Typography>
-                            </Box>
-                        </Box>
-
-                        <Box>
-                            {playlist.songs && playlist.songs.map((song, index) => (
-                                <Box
-                                    key={index}
-                                    onClick={() => handleSongClick(index)}
-                                    sx={{
-                                        bgcolor: index === currentSongIndex ? '#FFD700' : '#FFFACD',
-                                        p: 1.5,
-                                        mb: 1,
-                                        borderRadius: '4px',
-                                        cursor: 'pointer',
-                                        border: '1px solid #000',
-                                        '&:hover': {
-                                            bgcolor: index === currentSongIndex ? '#FFD700' : '#FFFFE0'
-                                        }
-                                    }}
-                                >
-                                    <Typography variant="body1" sx={{ fontWeight: 'bold' }}>
-                                        {index + 1}. {song.title} by {song.artist} ({song.year})
+                        <Typography sx={{ px: 2, py: 1, fontSize: '0.72rem', fontWeight: 700, color: '#B3B3B3', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+                            Queue
+                        </Typography>
+                        {playlist.songs && playlist.songs.map((song, index) => (
+                            <Box
+                                key={index}
+                                onClick={() => handleSongClick(index)}
+                                sx={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: 1.5,
+                                    px: 2,
+                                    py: 1,
+                                    cursor: 'pointer',
+                                    bgcolor: index === currentSongIndex ? 'rgba(29,185,84,0.1)' : 'transparent',
+                                    borderLeft: index === currentSongIndex ? '3px solid #1DB954' : '3px solid transparent',
+                                    transition: 'all 0.12s',
+                                    '&:hover': {
+                                        bgcolor: index === currentSongIndex ? 'rgba(29,185,84,0.15)' : 'rgba(255,255,255,0.05)',
+                                    },
+                                }}
+                            >
+                                {index === currentSongIndex && isPlaying ? (
+                                    <Box sx={{ width: 18, flexShrink: 0, display: 'flex', alignItems: 'flex-end', gap: '2px', height: 18 }}>
+                                        {[1, 0.6, 0.85].map((h, i) => (
+                                            <Box
+                                                key={i}
+                                                sx={{
+                                                    width: 3,
+                                                    bgcolor: '#1DB954',
+                                                    borderRadius: 0.5,
+                                                    animation: `eqBar${i} 0.8s ease-in-out ${i * 0.12}s infinite alternate`,
+                                                    [`@keyframes eqBar${i}`]: {
+                                                        from: { height: `${h * 6}px` },
+                                                        to: { height: `${h * 18}px` },
+                                                    },
+                                                }}
+                                            />
+                                        ))}
+                                    </Box>
+                                ) : (
+                                    <Typography sx={{ width: 18, textAlign: 'center', fontSize: '0.78rem', color: index === currentSongIndex ? '#1DB954' : '#B3B3B3', flexShrink: 0 }}>
+                                        {index + 1}
+                                    </Typography>
+                                )}
+                                <Box sx={{ minWidth: 0 }}>
+                                    <Typography
+                                        noWrap
+                                        sx={{
+                                            fontSize: '0.85rem',
+                                            fontWeight: index === currentSongIndex ? 700 : 400,
+                                            color: index === currentSongIndex ? '#1DB954' : '#fff',
+                                            lineHeight: 1.3,
+                                        }}
+                                    >
+                                        {song.title}
+                                    </Typography>
+                                    <Typography noWrap sx={{ fontSize: '0.76rem', color: '#B3B3B3', lineHeight: 1.3 }}>
+                                        {song.artist}
                                     </Typography>
                                 </Box>
-                            ))}
-                        </Box>
+                            </Box>
+                        ))}
                     </Box>
 
+                    {/* Player (right panel) */}
                     <Box
                         sx={{
-                            width: '60%',
+                            flex: 1,
                             display: 'flex',
                             flexDirection: 'column',
                             alignItems: 'center',
                             justifyContent: 'center',
-                            p: 3,
-                            position: 'relative'
+                            p: { xs: 2, md: 4 },
+                            bgcolor: '#121212',
+                            gap: 3,
                         }}
                     >
+                        {/* Now playing label */}
+                        {currentSong && (
+                            <Box sx={{ textAlign: 'center', width: '100%' }}>
+                                <Typography sx={{ fontSize: '0.7rem', fontWeight: 700, color: '#1DB954', letterSpacing: '0.1em', textTransform: 'uppercase', mb: 0.5 }}>
+                                    Now Playing
+                                </Typography>
+                                <Typography noWrap sx={{ fontSize: '1.1rem', fontWeight: 700, color: '#fff' }}>
+                                    {currentSong.title}
+                                </Typography>
+                                <Typography noWrap sx={{ fontSize: '0.85rem', color: '#B3B3B3' }}>
+                                    {currentSong.artist} · {currentSong.year}
+                                </Typography>
+                            </Box>
+                        )}
+
+                        {/* YouTube embed */}
                         <Box
                             sx={{
                                 width: '100%',
-                                maxWidth: '600px',
+                                maxWidth: 560,
                                 aspectRatio: '16/9',
                                 bgcolor: '#000',
-                                mb: 3
+                                borderRadius: 1,
+                                overflow: 'hidden',
+                                border: '1px solid rgba(255,255,255,0.06)',
+                                boxShadow: '0 8px 40px rgba(0,0,0,0.6)',
                             }}
                         >
-                            {currentSong && (
-                                <div id="youtube-player"></div>
+                            {currentSong ? (
+                                <div id="youtube-player" style={{ width: '100%', height: '100%' }} />
+                            ) : (
+                                <Box sx={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                    <MusicNoteIcon sx={{ fontSize: 56, color: '#535353' }} />
+                                </Box>
                             )}
                         </Box>
 
-                        <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', mb: 2 }}>
+                        {/* Controls */}
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <Tooltip title={repeat ? 'Repeat: On' : 'Repeat: Off'}>
+                                <IconButton
+                                    onClick={() => setRepeat(!repeat)}
+                                    sx={{
+                                        color: repeat ? '#1DB954' : '#B3B3B3',
+                                        '&:hover': { color: repeat ? '#1ed760' : '#fff' },
+                                    }}
+                                >
+                                    <RepeatIcon />
+                                </IconButton>
+                            </Tooltip>
+
                             <IconButton
                                 onClick={handlePrevious}
                                 sx={{
-                                    bgcolor: '#E6E6FA',
-                                    '&:hover': { bgcolor: '#D8BFD8' },
-                                    width: 56,
-                                    height: 56
+                                    color: '#B3B3B3',
+                                    '&:hover': { color: '#fff' },
+                                    width: 44,
+                                    height: 44,
                                 }}
                             >
-                                <SkipPreviousIcon sx={{ fontSize: 32 }} />
+                                <SkipPreviousIcon sx={{ fontSize: 28 }} />
                             </IconButton>
 
                             <IconButton
                                 onClick={handlePlayPause}
                                 sx={{
-                                    bgcolor: '#E6E6FA',
-                                    '&:hover': { bgcolor: '#D8BFD8' },
-                                    width: 56,
-                                    height: 56
+                                    bgcolor: '#1DB954',
+                                    color: '#000',
+                                    width: 52,
+                                    height: 52,
+                                    '&:hover': { bgcolor: '#1ed760', transform: 'scale(1.06)' },
+                                    transition: 'all 0.15s',
                                 }}
                             >
-                                {isPlaying ? (
-                                    <PauseIcon sx={{ fontSize: 32 }} />
-                                ) : (
-                                    <PlayArrowIcon sx={{ fontSize: 32 }} />
-                                )}
+                                {isPlaying ? <PauseIcon sx={{ fontSize: 28 }} /> : <PlayArrowIcon sx={{ fontSize: 28 }} />}
                             </IconButton>
 
                             <IconButton
                                 onClick={handleNext}
                                 sx={{
-                                    bgcolor: '#E6E6FA',
-                                    '&:hover': { bgcolor: '#D8BFD8' },
-                                    width: 56,
-                                    height: 56
+                                    color: '#B3B3B3',
+                                    '&:hover': { color: '#fff' },
+                                    width: 44,
+                                    height: 44,
                                 }}
                             >
-                                <SkipNextIcon sx={{ fontSize: 32 }} />
+                                <SkipNextIcon sx={{ fontSize: 28 }} />
                             </IconButton>
+
+                            {/* placeholder to balance the repeat button */}
+                            <Box sx={{ width: 40 }} />
                         </Box>
-
-                        {/* REPEAT CHECKBOX - NEW! */}
-                        <FormControlLabel
-                            control={
-                                <Checkbox 
-                                    checked={repeat}
-                                    onChange={handleRepeatChange}
-                                    sx={{
-                                        color: '#006400',
-                                        '&.Mui-checked': {
-                                            color: '#006400',
-                                        },
-                                    }}
-                                />
-                            }
-                            label={
-                                <Typography sx={{ fontWeight: 'bold', color: '#006400' }}>
-                                    Repeat
-                                </Typography>
-                            }
-                        />
-
-                        <Button
-                            onClick={handleClose}
-                            variant="contained"
-                            sx={{
-                                position: 'absolute',
-                                bottom: 20,
-                                right: 20,
-                                bgcolor: '#006400',
-                                color: 'white',
-                                px: 4,
-                                py: 1,
-                                '&:hover': { bgcolor: '#004d00' }
-                            }}
-                        >
-                            Close
-                        </Button>
                     </Box>
                 </Box>
             </Box>
