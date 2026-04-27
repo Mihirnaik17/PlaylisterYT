@@ -238,9 +238,9 @@ export const incrementListens = async (id) => {
     }
 }
 
-export const getPublishedPlaylists = async () => {
+export const getPublishedPlaylists = async (page = 1, limit = 15) => {
     try{
-        const response = await fetch(`${baseURL}/playlists/published`,{
+        const response = await fetch(`${baseURL}/playlists/published?page=${page}&limit=${limit}`,{
             credentials: "include"
         });
         const data = await handleresponse(response);

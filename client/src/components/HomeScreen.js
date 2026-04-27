@@ -10,6 +10,8 @@ import AIRecommendationsDialog from './AIRecommendationsDialog'
 
 import AddIcon from '@mui/icons-material/Add';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
+import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
+import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import Fab from '@mui/material/Fab';
 import Tooltip from '@mui/material/Tooltip';
 import SearchIcon from '@mui/icons-material/Search';
@@ -38,9 +40,11 @@ const HomeScreen = () => {
 
     const [filteredPlaylists, setFilteredPlaylists] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [currentPage, setCurrentPage] = useState(1);
 
     useEffect(() => {
         setLoading(true);
+        setCurrentPage(1);
         store.loadIdNamePairs();
     }, [auth.isGuest, auth.loggedIn]);
 
@@ -50,6 +54,12 @@ const HomeScreen = () => {
             setLoading(false);
         }
     }, [store.idNamePairs]);
+
+    function handlePageChange(newPage) {
+        setLoading(true);
+        setCurrentPage(newPage);
+        store.loadPublishedPage(newPage);
+    }
 
     function handleCreateNewList() {
         store.createNewList();
@@ -77,7 +87,7 @@ const HomeScreen = () => {
         setSearchSongTitle('');
         setSearchArtist('');
         setSearchYear('');
-        setFilteredPlaylists(store.idNamePairs);
+        setCurrentPage(1);
         store.loadIdNamePairs();
     }
 
@@ -319,7 +329,10 @@ const HomeScreen = () => {
                             </Menu>
                         </Box>
                         <Typography variant="body2" color="text.secondary">
-                            {filteredPlaylists ? filteredPlaylists.length : 0} playlists
+                            {auth.isGuest && store._pagination
+                                ? `${store._pagination.current.total ?? filteredPlaylists.length} playlists`
+                                : `${filteredPlaylists ? filteredPlaylists.length : 0} playlists`
+                            }
                         </Typography>
                     </Box>
 
@@ -339,6 +352,39 @@ const HomeScreen = () => {
                             </Box>
                         )}
                     </Box>
+
+                    {auth.isGuest && store._pagination && store._pagination.current.totalPages > 1 && (
+                        <Box
+                            sx={{
+                                flexShrink: 0,
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                gap: 2,
+                                py: 1.5,
+                                borderTop: '1px solid',
+                                borderColor: 'divider',
+                            }}
+                        >
+                            <IconButton
+                                onClick={() => handlePageChange(currentPage - 1)}
+                                disabled={currentPage <= 1 || loading}
+                                sx={{ color: 'text.secondary', '&:not(:disabled):hover': { color: 'primary.main' } }}
+                            >
+                                <ChevronLeftIcon />
+                            </IconButton>
+                            <Typography variant="body2" color="text.secondary">
+                                Page {currentPage} of {store._pagination.current.totalPages}
+                            </Typography>
+                            <IconButton
+                                onClick={() => handlePageChange(currentPage + 1)}
+                                disabled={currentPage >= store._pagination.current.totalPages || loading}
+                                sx={{ color: 'text.secondary', '&:not(:disabled):hover': { color: 'primary.main' } }}
+                            >
+                                <ChevronRightIcon />
+                            </IconButton>
+                        </Box>
+                    )}
 
                     {!auth.isGuest && (
                         <Button

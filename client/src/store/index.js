@@ -1,4 +1,4 @@
-import { createContext, useContext, useState } from 'react'
+import { createContext, useContext, useState, useRef } from 'react'
 import { useHistory } from 'react-router-dom'
 import {jsTPS} from "jstps"
 import storeRequestSender from './requests'
@@ -41,7 +41,6 @@ export const GlobalStoreActionType = {
     SET_CURRENT_SONG: "SET_CURRENT_SONG",
     MARK_SONG_FOR_DELETION: "MARK_SONG_FOR_DELETION",
     CREATE_SONG_MODAL: "CREATE_SONG_MODAL",
-    APPEND_ID_NAME_PAIR: "APPEND_ID_NAME_PAIR",
 }
 
 // WE'LL NEED THIS TO PROCESS TRANSACTIONS
@@ -63,6 +62,11 @@ const CurrentModal = {
 // WITH THIS WE'RE MAKING OUR GLOBAL DATA STORE
 // AVAILABLE TO THE REST OF THE APPLICATION
 function GlobalStoreContextProvider(props) {
+    // Pagination metadata for guest published-playlist browsing.
+    // Stored in a ref (not state) so it's always current when a component reads
+    // it during the re-render triggered by the LOAD_ID_NAME_PAIRS dispatch.
+    const paginationRef = useRef({ currentPage: 1, totalPages: 1 });
+
     // THESE ARE ALL THE THINGS OUR DATA STORE WILL MANAGE
     const [store, setStore] = useState({
         currentModal : CurrentModal.NONE,
@@ -156,14 +160,6 @@ function GlobalStoreContextProvider(props) {
                     songs: store.songs,
                     songIdMarkedForDeletion: null,
                 });
-            }
-            case GlobalStoreActionType.APPEND_ID_NAME_PAIR: {
-                // Functional update: SSE callbacks hold a stale store closure,
-                // so we must derive next state from the latest committed state.
-                return setStore(prev => ({
-                    ...prev,
-                    idNamePairs: [...prev.idNamePairs, payload],
-                }));
             }
             // PREPARE TO DELETE A LIST
             case GlobalStoreActionType.MARK_LIST_FOR_DELETION: {
@@ -437,33 +433,29 @@ store.createNewList = async function () {
         console.log("FAILED TO CREATE A NEW LIST");
     }
 }
+    // Expose the pagination ref so components can read totalPages after re-render
+    store._pagination = paginationRef;
+
+    // Load a specific page of published playlists (guest browsing)
+    store.loadPublishedPage = function (page = 1) {
+        async function asyncLoad() {
+            const response = await storeRequestSender.getPublishedPlaylists(page, 15);
+            if (response.data.success) {
+                paginationRef.current = response.data.pagination;
+                storeReducer({ type: GlobalStoreActionType.LOAD_ID_NAME_PAIRS, payload: response.data.data });
+            } else {
+                console.log("FAILED TO GET PUBLISHED PLAYLISTS");
+            }
+        }
+        asyncLoad();
+    }
+
     // THIS FUNCTION LOADS ALL THE ID, NAME PAIRS SO WE CAN LIST ALL THE LISTS
     store.loadIdNamePairs = function () {
         if (auth.isGuest) {
-            // Stream published playlists incrementally via SSE
-            storeReducer({ type: GlobalStoreActionType.LOAD_ID_NAME_PAIRS, payload: [] });
-
-            const es = new EventSource('http://localhost:4000/api/playlists/published/stream');
-
-            es.onmessage = (event) => {
-                try {
-                    const playlist = JSON.parse(event.data);
-                    storeReducer({ type: GlobalStoreActionType.APPEND_ID_NAME_PAIR, payload: playlist });
-                } catch (e) {
-                    console.error('SSE parse error:', e);
-                }
-            };
-
-            es.addEventListener('done', () => { es.close(); });
-            es.addEventListener('error', (e) => {
-                console.error('SSE error:', e);
-                es.close();
-            });
-
+            store.loadPublishedPage(1);
             return;
         }
-
-        // Logged-in: normal axios path (user's own playlists are few, no streaming needed)
         async function asyncLoadIdNamePairs() {
             const response = await storeRequestSender.getPlaylistPairs();
             if (response.data.success) {
