@@ -150,13 +150,47 @@ export const getUserSongs = async () => {
     }
 }
 
+export const lookupSong = async ({ title, artist, year }) => {
+    const queryParams = new URLSearchParams();
+    if (title) queryParams.append('title', title);
+    if (artist) queryParams.append('artist', artist);
+    if (year !== undefined && year !== null) queryParams.append('year', year);
+
+    try {
+        const response = await fetch(`${baseURL}/songs/lookup?${queryParams.toString()}`, {
+            credentials: "include",
+        });
+        const data = await handleresponse(response);
+        return data;
+    } catch (error) {
+        console.error(error);
+        throw error;
+    }
+};
+
+export const likeSong = async (songId) => {
+    try {
+        const response = await fetch(`${baseURL}/song/${songId}/like`, {
+            method: 'POST',
+            credentials: "include",
+        });
+        const data = await handleresponse(response);
+        return data;
+    } catch (error) {
+        console.error(error);
+        throw error;
+    }
+};
+
 const apis = {
     getAllSongs,
     getSongById,
     createSong,
     updateSong,
     deleteSong,
-    getUserSongs
+    getUserSongs,
+    lookupSong,
+    likeSong
 }
 
 export default apis;

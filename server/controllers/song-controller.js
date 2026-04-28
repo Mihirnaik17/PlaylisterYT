@@ -96,6 +96,51 @@ getSongById = async (req, res) => {
     }
 };
 
+lookupSong = async (req, res) => {
+    try {
+        const { title, artist, year } = req.query;
+
+        if (!title || !artist || !year) {
+            return res.status(400).json({
+                success: false,
+                errorMessage: 'title, artist, and year are required'
+            });
+        }
+
+        const yearNum = parseInt(year);
+        if (Number.isNaN(yearNum)) {
+            return res.status(400).json({
+                success: false,
+                errorMessage: 'year must be a number'
+            });
+        }
+
+        const song = await Song.findOne({
+            title: title.trim(),
+            artist: artist.trim(),
+            year: yearNum
+        });
+
+        if (!song) {
+            return res.status(404).json({
+                success: false,
+                errorMessage: 'Song not found in catalog'
+            });
+        }
+
+        return res.status(200).json({
+            success: true,
+            song
+        });
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({
+            success: false,
+            errorMessage: 'Failed to lookup song'
+        });
+    }
+};
+
 createSong = async (req, res) => {
     try {
         const { title, artist, year, youTubeId } = req.body;
@@ -341,11 +386,115 @@ getUserSongs = async (req, res) => {
     }
 };
 
+likeSong = async (req, res) => {
+    try {
+        const userId = auth.verifyUser(req);
+        if (!userId) {
+            return res.status(401).json({
+                success: false,
+                errorMessage: 'Unauthorized'
+            });
+        }
+
+        const User = require('../models/user-model');
+        const user = await User.findById(userId);
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                errorMessage: 'User not found'
+            });
+        }
+
+        const song = await Song.findById(req.params.id);
+        if (!song) {
+            return res.status(404).json({
+                success: false,
+                errorMessage: 'Song not found'
+            });
+        }
+
+        // Find or create the user's "Liked Songs" playlist
+        let likedPlaylist = await Playlist.findOne({
+            ownerEmail: user.email,
+            name: 'Liked Songs'
+        });
+
+        if (!likedPlaylist) {
+            likedPlaylist = new Playlist({
+                name: 'Liked Songs',
+                ownerEmail: user.email,
+                ownerUsername: user.username,
+                published: false,
+                likes: 0,
+                dislikes: 0,
+                likedBy: [],
+                dislikedBy: [],
+                listens: 0,
+                comments: [],
+                songs: []
+            });
+            await likedPlaylist.save();
+
+            const playlistId = (likedPlaylist._id || likedPlaylist.id).toString();
+            const userPlaylists = Array.isArray(user.playlists) ? user.playlists.map(p => p.toString()) : [];
+            if (!userPlaylists.includes(playlistId)) {
+                user.playlists = [...(user.playlists || []), likedPlaylist._id || likedPlaylist.id];
+                await user.save();
+            }
+        }
+
+        const alreadyLiked = (likedPlaylist.songs || []).some(s =>
+            s.title === song.title &&
+            s.artist === song.artist &&
+            s.year === song.year
+        );
+
+        if (alreadyLiked) {
+            return res.status(200).json({
+                success: true,
+                playlistId: likedPlaylist._id || likedPlaylist.id,
+                message: 'Already in liked songs'
+            });
+        }
+
+        likedPlaylist.songs.push({
+            title: song.title,
+            artist: song.artist,
+            year: song.year,
+            youTubeId: song.youTubeId
+        });
+        await likedPlaylist.save();
+
+        const playlistsArray = Array.isArray(song.playlists) ? song.playlists : [];
+        const likedIdString = (likedPlaylist._id || likedPlaylist.id).toString();
+        const alreadyInList = playlistsArray.some(pId => pId.toString() === likedIdString);
+        if (!alreadyInList) {
+            playlistsArray.push(likedPlaylist._id || likedPlaylist.id);
+            song.playlists = playlistsArray;
+            await song.save();
+        }
+
+        return res.status(200).json({
+            success: true,
+            playlistId: likedPlaylist._id || likedPlaylist.id,
+            message: 'Added to liked songs'
+        });
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({
+            success: false,
+            errorMessage: 'Failed to like song'
+        });
+    }
+};
+
 module.exports = {
     getAllSongs,
+    lookupSong,
     getSongById,
     createSong,
     updateSong,
     deleteSong,
-    getUserSongs
+    getUserSongs,
+    likeSong
 };

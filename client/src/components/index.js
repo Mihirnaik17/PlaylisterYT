@@ -13,6 +13,7 @@ import SongCard from './SongCard'
 import SplashScreen from './SplashScreen'
 import Statusbar from './Statusbar'
 import WorkspaceScreen from './WorkspaceScreen'
+import MyMusicScreen from './MyMusicScreen'
 
 import SongsCatalogScreen from './SongsCatalogScreen'
 import CatalogSongCard from './CatalogSongCard'
@@ -44,6 +45,7 @@ export {
     SplashScreen,
     Statusbar, 
     WorkspaceScreen,
+    MyMusicScreen,
     SongsCatalogScreen,
     CatalogSongCard,
     MUIRemoveSongModal,

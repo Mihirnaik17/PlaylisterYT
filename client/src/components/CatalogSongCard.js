@@ -15,6 +15,7 @@ import Typography from '@mui/material/Typography';
 import MusicNoteIcon from '@mui/icons-material/MusicNote';
 import HeadphonesIcon from '@mui/icons-material/Headphones';
 import QueueMusicIcon from '@mui/icons-material/QueueMusic';
+import FavoriteBorderIcon from '@mui/icons-material/FavoriteBorder';
 
 const YT_THUMB = (id) => id ? `https://img.youtube.com/vi/${id}/mqdefault.jpg` : null;
 
@@ -28,6 +29,8 @@ function CatalogSongCard(props) {
     const [userPlaylists, setUserPlaylists] = useState([]);
     const [duplicateDialogOpen, setDuplicateDialogOpen] = useState(false);
     const [duplicateDialogMessage, setDuplicateDialogMessage] = useState('');
+    const [loginPromptOpen, setLoginPromptOpen] = useState(false);
+    const [loginPromptMessage, setLoginPromptMessage] = useState('');
     const [thumbError, setThumbError] = useState(false);
     const open = Boolean(anchorEl);
     const playlistMenuOpen = Boolean(playlistMenuAnchor);
@@ -69,6 +72,12 @@ function CatalogSongCard(props) {
 
     const handleShowPlaylistMenu = (event) => {
         event.stopPropagation();
+        if (auth.isGuest) {
+            setLoginPromptMessage('Login to add songs to your playlists.');
+            setLoginPromptOpen(true);
+            handleMenuClose();
+            return;
+        }
         setPlaylistMenuAnchor(event.currentTarget);
     };
 
@@ -102,6 +111,30 @@ function CatalogSongCard(props) {
             }
         } catch (error) {
             console.error('Error adding song:', error);
+        }
+    };
+
+    const handleLikeSong = async (event) => {
+        event.stopPropagation();
+        handleMenuClose();
+        if (auth.isGuest) {
+            setLoginPromptMessage('Login to like songs and save them to Liked Songs.');
+            setLoginPromptOpen(true);
+            return;
+        }
+        try {
+            const result = await store.likeCatalogSong(song._id);
+            if (!result.success) {
+                setDuplicateDialogMessage(result.error || 'Failed to like song.');
+                setDuplicateDialogOpen(true);
+            } else {
+                setDuplicateDialogMessage('Added to Liked Songs.');
+                setDuplicateDialogOpen(true);
+            }
+        } catch (error) {
+            console.error('Error liking song:', error);
+            setDuplicateDialogMessage('Failed to like song.');
+            setDuplicateDialogOpen(true);
         }
     };
 
@@ -235,57 +268,61 @@ function CatalogSongCard(props) {
                     </Box>
                 </Box>
 
-                {!auth.isGuest && (
-                    <Box onClick={(e) => e.stopPropagation()}>
-                        <IconButton
-                            onClick={handleMenuOpen}
-                            size="small"
-                            sx={{ color: '#B3B3B3', '&:hover': { color: '#fff' } }}
-                        >
-                            <MoreVertIcon fontSize="small" />
-                        </IconButton>
+                <Box onClick={(e) => e.stopPropagation()}>
+                    <IconButton
+                        onClick={handleMenuOpen}
+                        size="small"
+                        sx={{ color: '#B3B3B3', '&:hover': { color: '#fff' } }}
+                    >
+                        <MoreVertIcon fontSize="small" />
+                    </IconButton>
 
-                        <Menu
-                            anchorEl={anchorEl}
-                            open={open}
-                            onClose={handleMenuClose}
-                            PaperProps={{ sx: menuPaperSx }}
-                        >
-                            <MenuItem onClick={handleShowPlaylistMenu}>Add to Playlist →</MenuItem>
-                            {isOwner && <MenuItem onClick={handleEditSong}>Edit Song</MenuItem>}
-                            {isOwner && (
-                                <MenuItem onClick={handleRemoveSongFromCatalog} sx={{ color: '#f44336 !important' }}>
-                                    Remove from Catalog
-                                </MenuItem>
-                            )}
-                        </Menu>
+                    <Menu
+                        anchorEl={anchorEl}
+                        open={open}
+                        onClose={handleMenuClose}
+                        PaperProps={{ sx: menuPaperSx }}
+                    >
+                        <MenuItem onClick={handleShowPlaylistMenu}>Add to Playlist →</MenuItem>
+                        <MenuItem onClick={handleLikeSong}>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                <FavoriteBorderIcon sx={{ fontSize: 18 }} />
+                                Like Song
+                            </Box>
+                        </MenuItem>
+                        {isOwner && <MenuItem onClick={handleEditSong}>Edit Song</MenuItem>}
+                        {isOwner && (
+                            <MenuItem onClick={handleRemoveSongFromCatalog} sx={{ color: '#f44336 !important' }}>
+                                Remove from Catalog
+                            </MenuItem>
+                        )}
+                    </Menu>
 
-                        <Menu
-                            anchorEl={playlistMenuAnchor}
-                            open={playlistMenuOpen}
-                            onClose={handleHidePlaylistMenu}
-                            PaperProps={{ sx: menuPaperSx }}
-                            anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
-                            transformOrigin={{ vertical: 'top', horizontal: 'left' }}
-                        >
-                            {userPlaylists.length > 0 ? (
-                                userPlaylists.map((pair) => (
-                                    <MenuItem
-                                        key={pair._id}
-                                        onClick={(e) => handleAddToSpecificPlaylist(e, pair._id)}
-                                        sx={{ minWidth: 200 }}
-                                    >
-                                        {pair.name}
-                                    </MenuItem>
-                                ))
-                            ) : (
-                                <MenuItem disabled>
-                                    {store.idNamePairs === null ? 'Loading...' : 'No playlists available'}
+                    <Menu
+                        anchorEl={playlistMenuAnchor}
+                        open={playlistMenuOpen}
+                        onClose={handleHidePlaylistMenu}
+                        PaperProps={{ sx: menuPaperSx }}
+                        anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+                        transformOrigin={{ vertical: 'top', horizontal: 'left' }}
+                    >
+                        {userPlaylists.length > 0 ? (
+                            userPlaylists.map((pair) => (
+                                <MenuItem
+                                    key={pair._id}
+                                    onClick={(e) => handleAddToSpecificPlaylist(e, pair._id)}
+                                    sx={{ minWidth: 200 }}
+                                >
+                                    {pair.name}
                                 </MenuItem>
-                            )}
-                        </Menu>
-                    </Box>
-                )}
+                            ))
+                        ) : (
+                            <MenuItem disabled>
+                                {store.idNamePairs === null ? 'Loading...' : 'No playlists available'}
+                            </MenuItem>
+                        )}
+                    </Menu>
+                </Box>
             </Box>
 
             <Dialog
@@ -297,6 +334,18 @@ function CatalogSongCard(props) {
                 <DialogContent sx={{ color: '#B3B3B3' }}>{duplicateDialogMessage}</DialogContent>
                 <DialogActions>
                     <Button onClick={() => setDuplicateDialogOpen(false)} sx={{ color: '#1DB954' }}>OK</Button>
+                </DialogActions>
+            </Dialog>
+
+            <Dialog
+                open={loginPromptOpen}
+                onClose={() => setLoginPromptOpen(false)}
+                PaperProps={{ sx: { bgcolor: '#282828', color: '#fff', border: '1px solid rgba(255,255,255,0.1)' } }}
+            >
+                <DialogTitle sx={{ color: '#fff' }}>Login required</DialogTitle>
+                <DialogContent sx={{ color: '#B3B3B3' }}>{loginPromptMessage}</DialogContent>
+                <DialogActions>
+                    <Button onClick={() => setLoginPromptOpen(false)} sx={{ color: '#1DB954' }}>OK</Button>
                 </DialogActions>
             </Dialog>
         </>

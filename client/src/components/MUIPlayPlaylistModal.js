@@ -14,14 +14,30 @@ import RepeatIcon from '@mui/icons-material/Repeat';
 import CloseIcon from '@mui/icons-material/Close';
 import MusicNoteIcon from '@mui/icons-material/MusicNote';
 import LibraryMusicIcon from '@mui/icons-material/LibraryMusic';
+import MoreVertIcon from '@mui/icons-material/MoreVert';
+import FavoriteBorderIcon from '@mui/icons-material/FavoriteBorder';
+import Menu from '@mui/material/Menu';
+import MenuItem from '@mui/material/MenuItem';
+import Dialog from '@mui/material/Dialog';
+import DialogTitle from '@mui/material/DialogTitle';
+import DialogContent from '@mui/material/DialogContent';
+import DialogActions from '@mui/material/DialogActions';
+import AuthContext from '../auth';
 
 export default function MUIPlayPlaylistModal() {
     const { store } = useContext(GlobalStoreContext);
+    const { auth } = useContext(AuthContext);
     const [currentSongIndex, setCurrentSongIndex] = useState(0);
     const [isPlaying, setIsPlaying] = useState(false);
     const [repeat, setRepeat] = useState(false);
     const playerRef = useRef(null);
     const playerReadyRef = useRef(false);
+    const [songMenuAnchor, setSongMenuAnchor] = useState(null);
+    const [playlistMenuAnchor, setPlaylistMenuAnchor] = useState(null);
+    const [userPlaylists, setUserPlaylists] = useState([]);
+    const [infoDialogOpen, setInfoDialogOpen] = useState(false);
+    const [infoDialogTitle, setInfoDialogTitle] = useState('Info');
+    const [infoDialogMessage, setInfoDialogMessage] = useState('');
 
     const playlist = store.currentList;
 
@@ -54,6 +70,22 @@ export default function MUIPlayPlaylistModal() {
             });
         }
     }, [currentSongIndex, playlist]);
+
+    useEffect(() => {
+        if (!auth.isGuest && Boolean(songMenuAnchor)) {
+            if (!store.idNamePairs || store.idNamePairs.length === 0) {
+                store.loadIdNamePairs();
+            }
+            const sorted = store.idNamePairs && store.idNamePairs.length > 0
+                ? [...store.idNamePairs].sort((a, b) => {
+                    const dateA = a.lastAccessed ? new Date(a.lastAccessed) : new Date(0);
+                    const dateB = b.lastAccessed ? new Date(b.lastAccessed) : new Date(0);
+                    return dateB - dateA;
+                })
+                : [];
+            setUserPlaylists(sorted);
+        }
+    }, [songMenuAnchor]);
 
     function onPlayerReady(event) {
         playerReadyRef.current = true;
@@ -106,6 +138,103 @@ export default function MUIPlayPlaylistModal() {
             setIsPlaying(true);
         }
     }
+
+    const openSongMenu = (event) => {
+        event.stopPropagation();
+        setSongMenuAnchor(event.currentTarget);
+        setPlaylistMenuAnchor(null);
+    };
+
+    const closeSongMenu = () => {
+        setSongMenuAnchor(null);
+        setPlaylistMenuAnchor(null);
+    };
+
+    const showPlaylistMenu = (event) => {
+        event.stopPropagation();
+        if (auth.isGuest) {
+            setInfoDialogTitle('Login required');
+            setInfoDialogMessage('Login to add songs to your playlists.');
+            setInfoDialogOpen(true);
+            closeSongMenu();
+            return;
+        }
+        setPlaylistMenuAnchor(event.currentTarget);
+    };
+
+    const hidePlaylistMenu = () => setPlaylistMenuAnchor(null);
+
+    const withCatalogSongId = async (embeddedSong) => {
+        const lookup = await store.lookupCatalogSongId({
+            title: embeddedSong.title,
+            artist: embeddedSong.artist,
+            year: embeddedSong.year,
+        });
+        if (!lookup.success) {
+            setInfoDialogTitle('Not in catalog');
+            setInfoDialogMessage('This song is not in the catalog yet, so it can’t be liked or added to other playlists.');
+            setInfoDialogOpen(true);
+            return null;
+        }
+        return lookup.songId;
+    };
+
+    const handleAddToPlaylist = async (event, playlistId) => {
+        event.stopPropagation();
+        const embeddedSong = playlist?.songs?.[currentSongIndex];
+        if (!embeddedSong) return;
+
+        hidePlaylistMenu();
+        closeSongMenu();
+
+        const songId = await withCatalogSongId(embeddedSong);
+        if (!songId) return;
+
+        const result = await store.addSongToPlaylist(playlistId, songId);
+        if (!result.success) {
+            setInfoDialogTitle('Cannot add song');
+            setInfoDialogMessage(
+                result.error && result.error.includes('already in playlist')
+                    ? 'This song is already in that playlist.'
+                    : (result.error || 'Failed to add song.')
+            );
+            setInfoDialogOpen(true);
+            return;
+        }
+
+        setInfoDialogTitle('Added');
+        setInfoDialogMessage('Song added to playlist.');
+        setInfoDialogOpen(true);
+    };
+
+    const handleLikeSong = async (event) => {
+        event.stopPropagation();
+        const embeddedSong = playlist?.songs?.[currentSongIndex];
+        closeSongMenu();
+
+        if (!embeddedSong) return;
+        if (auth.isGuest) {
+            setInfoDialogTitle('Login required');
+            setInfoDialogMessage('Login to like songs and save them to Liked Songs.');
+            setInfoDialogOpen(true);
+            return;
+        }
+
+        const songId = await withCatalogSongId(embeddedSong);
+        if (!songId) return;
+
+        const result = await store.likeCatalogSong(songId);
+        if (!result.success) {
+            setInfoDialogTitle('Failed');
+            setInfoDialogMessage(result.error || 'Failed to like song.');
+            setInfoDialogOpen(true);
+            return;
+        }
+
+        setInfoDialogTitle('Liked');
+        setInfoDialogMessage('Added to Liked Songs.');
+        setInfoDialogOpen(true);
+    };
 
     function handleSongClick(index) {
         setCurrentSongIndex(index);
@@ -343,12 +472,93 @@ export default function MUIPlayPlaylistModal() {
                                 <SkipNextIcon sx={{ fontSize: 28 }} />
                             </IconButton>
 
-                            {/* placeholder to balance the repeat button */}
-                            <Box sx={{ width: 40 }} />
+                            <IconButton
+                                onClick={openSongMenu}
+                                sx={{
+                                    color: '#B3B3B3',
+                                    '&:hover': { color: '#fff' },
+                                    width: 44,
+                                    height: 44,
+                                }}
+                            >
+                                <MoreVertIcon />
+                            </IconButton>
+
+                            <Menu
+                                anchorEl={songMenuAnchor}
+                                open={Boolean(songMenuAnchor)}
+                                onClose={closeSongMenu}
+                                PaperProps={{
+                                    sx: {
+                                        bgcolor: '#282828',
+                                        border: '1px solid rgba(255,255,255,0.1)',
+                                        '& .MuiMenuItem-root': {
+                                            color: '#FFFFFF',
+                                            fontSize: '0.9rem',
+                                            '&:hover': { bgcolor: 'rgba(255,255,255,0.08)' },
+                                        },
+                                    },
+                                }}
+                            >
+                                <MenuItem onClick={showPlaylistMenu}>Add to Playlist →</MenuItem>
+                                <MenuItem onClick={handleLikeSong}>
+                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                        <FavoriteBorderIcon sx={{ fontSize: 18 }} />
+                                        Like Song
+                                    </Box>
+                                </MenuItem>
+                            </Menu>
+
+                            <Menu
+                                anchorEl={playlistMenuAnchor}
+                                open={Boolean(playlistMenuAnchor)}
+                                onClose={hidePlaylistMenu}
+                                PaperProps={{
+                                    sx: {
+                                        bgcolor: '#282828',
+                                        border: '1px solid rgba(255,255,255,0.1)',
+                                        '& .MuiMenuItem-root': {
+                                            color: '#FFFFFF',
+                                            fontSize: '0.9rem',
+                                            '&:hover': { bgcolor: 'rgba(255,255,255,0.08)' },
+                                        },
+                                    },
+                                }}
+                                anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+                                transformOrigin={{ vertical: 'top', horizontal: 'left' }}
+                            >
+                                {userPlaylists.length > 0 ? (
+                                    userPlaylists.map((pair) => (
+                                        <MenuItem
+                                            key={pair._id}
+                                            onClick={(e) => handleAddToPlaylist(e, pair._id)}
+                                            sx={{ minWidth: 220 }}
+                                        >
+                                            {pair.name}
+                                        </MenuItem>
+                                    ))
+                                ) : (
+                                    <MenuItem disabled>
+                                        {store.idNamePairs === null ? 'Loading...' : 'No playlists available'}
+                                    </MenuItem>
+                                )}
+                            </Menu>
                         </Box>
                     </Box>
                 </Box>
             </Box>
+
+            <Dialog
+                open={infoDialogOpen}
+                onClose={() => setInfoDialogOpen(false)}
+                PaperProps={{ sx: { bgcolor: '#282828', color: '#fff', border: '1px solid rgba(255,255,255,0.1)' } }}
+            >
+                <DialogTitle sx={{ color: '#fff' }}>{infoDialogTitle}</DialogTitle>
+                <DialogContent sx={{ color: '#B3B3B3' }}>{infoDialogMessage}</DialogContent>
+                <DialogActions>
+                    <Button onClick={() => setInfoDialogOpen(false)} sx={{ color: '#1DB954' }}>OK</Button>
+                </DialogActions>
+            </Dialog>
         </Modal>
     );
 }

@@ -81,6 +81,15 @@ export default function NavigationBar() {
                 </Button>
 
                 <Button
+                    variant="text"
+                    color="inherit"
+                    onClick={() => history.push('/my-music')}
+                    sx={{ px: 2.5, color: 'text.primary' }}
+                >
+                    MY MUSIC
+                </Button>
+
+                <Button
                     variant="outlined"
                     color="secondary"
                     onClick={() => history.push('/songs')}

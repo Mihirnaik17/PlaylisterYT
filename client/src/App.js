@@ -13,7 +13,8 @@ import {
     Statusbar,
     WorkspaceScreen,
     SongsCatalogScreen,
-    EditAccountScreen
+    EditAccountScreen,
+    MyMusicScreen
 } from './components'
 
 export const spotifyTheme = createTheme({
@@ -119,6 +120,7 @@ const App = () => {
                             <Route path="/register/" exact component={RegisterScreen} />
                             <Route path="/playlist/:id" exact component={WorkspaceScreen} />
                             <Route path="/songs" exact component={SongsCatalogScreen} />
+                            <Route path="/my-music" exact component={MyMusicScreen} />
                             <Route path="/edit-account" exact component={EditAccountScreen} />
                         </Switch>
                         <Route path="/home" exact component={Statusbar} />

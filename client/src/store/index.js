@@ -984,6 +984,32 @@ store.createNewList = async function () {
     }
     }   
 
+    store.likeCatalogSong = async function (songId) {
+        try {
+            const response = await songApi.likeSong(songId);
+            if (response.data && response.data.success) {
+                // Ensure "Liked Songs" shows up in playlist lists immediately
+                store.loadIdNamePairs();
+                return { success: true, playlistId: response.data.playlistId, message: response.data.message };
+            }
+            return { success: false, error: response.data?.errorMessage || 'Failed to like song' };
+        } catch (error) {
+            return { success: false, error: error.message };
+        }
+    };
+
+    store.lookupCatalogSongId = async function ({ title, artist, year }) {
+        try {
+            const response = await songApi.lookupSong({ title, artist, year });
+            if (response.data && response.data.success && response.data.song && response.data.song._id) {
+                return { success: true, songId: response.data.song._id };
+            }
+            return { success: false, error: response.data?.errorMessage || 'Song not found in catalog' };
+        } catch (error) {
+            return { success: false, error: error.message };
+        }
+    };
+
     function KeyPress(event) {
         if (!store.modalOpen && event.ctrlKey){
             if(event.key === 'z'){
