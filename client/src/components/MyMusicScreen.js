@@ -8,6 +8,9 @@ import { GlobalStoreContext } from '../store';
 import AuthContext from '../auth';
 import NavigationBar from './NavigationBar';
 import PlaylistCard from './PlaylistCard';
+import MUIPlayPlaylistModal from './MUIPlayPlaylistModal';
+import MUIEditPlaylistModal from './MUIEditPlaylistModal';
+import MUIDeleteModal from './MUIDeleteModal';
 
 export default function MyMusicScreen() {
     const { store } = useContext(GlobalStoreContext);
@@ -71,6 +74,11 @@ export default function MyMusicScreen() {
                     </Box>
                 )}
             </Box>
+
+            {/* Modals must be mounted on this page too */}
+            <MUIDeleteModal />
+            <MUIEditPlaylistModal />
+            <MUIPlayPlaylistModal />
         </Box>
     );
 }

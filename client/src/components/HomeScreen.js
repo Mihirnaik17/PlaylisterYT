@@ -45,7 +45,9 @@ const HomeScreen = () => {
     useEffect(() => {
         setLoading(true);
         setCurrentPage(1);
-        store.loadIdNamePairs();
+        // Always show the global published feed on the Playlists page
+        // (guests and logged-in users).
+        store.loadPublishedPage(1);
     }, [auth.isGuest, auth.loggedIn]);
 
     useEffect(() => {
@@ -75,7 +77,7 @@ const HomeScreen = () => {
         if (searchYear) searchParams.year = searchYear;
         
         if (Object.keys(searchParams).length === 0) {
-            store.loadIdNamePairs();
+            store.loadPublishedPage(1);
         } else {
             store.searchPlaylists(searchParams);
         }
@@ -88,7 +90,7 @@ const HomeScreen = () => {
         setSearchArtist('');
         setSearchYear('');
         setCurrentPage(1);
-        store.loadIdNamePairs();
+        store.loadPublishedPage(1);
     }
 
     function handleSortClick(event) {
@@ -329,7 +331,7 @@ const HomeScreen = () => {
                             </Menu>
                         </Box>
                         <Typography variant="body2" color="text.secondary">
-                            {auth.isGuest && store._pagination
+                            {store._pagination
                                 ? `${store._pagination.current.total ?? filteredPlaylists.length} playlists`
                                 : `${filteredPlaylists ? filteredPlaylists.length : 0} playlists`
                             }
@@ -353,7 +355,7 @@ const HomeScreen = () => {
                         )}
                     </Box>
 
-                    {auth.isGuest && store._pagination && store._pagination.current.totalPages > 1 && (
+                    {store._pagination && store._pagination.current.totalPages > 1 && (
                         <Box
                             sx={{
                                 flexShrink: 0,
