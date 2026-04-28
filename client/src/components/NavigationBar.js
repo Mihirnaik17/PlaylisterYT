@@ -1,5 +1,6 @@
 import { useContext, useState } from 'react';
 import { useHistory } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 import AuthContext from '../auth';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
@@ -13,6 +14,7 @@ import HomeIcon from '@mui/icons-material/Home';
 export default function NavigationBar() {
     const { auth } = useContext(AuthContext);
     const history = useHistory();
+    const location = useLocation();
     const [anchorEl, setAnchorEl] = useState(null);
 
     const handleMenuOpen = (event) => {
@@ -71,32 +73,48 @@ export default function NavigationBar() {
                     <HomeIcon />
                 </IconButton>
 
-                <Button
-                    variant="contained"
-                    color="primary"
-                    onClick={() => history.push('/home')}
-                    sx={{ px: 2.5 }}
-                >
-                    Playlists
-                </Button>
+                {(() => {
+                    const path = location.pathname;
+                    const isActive = (target) => path === target;
+                    const navBtnSx = (active) => ({
+                        px: 2.5,
+                        borderRadius: 500,
+                        ...(active
+                            ? { bgcolor: 'primary.main', color: '#000', borderColor: 'primary.main', '&:hover': { bgcolor: 'secondary.main' } }
+                            : { color: 'text.primary', borderColor: 'primary.main', '&:hover': { borderColor: 'secondary.main', bgcolor: 'rgba(255,255,255,0.06)' } }),
+                    });
 
-                <Button
-                    variant="text"
-                    color="inherit"
-                    onClick={() => history.push('/my-music')}
-                    sx={{ px: 2.5, color: 'text.primary' }}
-                >
-                    MY MUSIC
-                </Button>
+                    return (
+                        <>
+                            <Button
+                                variant={isActive('/home') ? 'contained' : 'outlined'}
+                                color={isActive('/home') ? 'primary' : 'inherit'}
+                                onClick={() => history.push('/home')}
+                                sx={navBtnSx(isActive('/home'))}
+                            >
+                                Playlists
+                            </Button>
 
-                <Button
-                    variant="outlined"
-                    color="secondary"
-                    onClick={() => history.push('/songs')}
-                    sx={{ px: 2.5 }}
-                >
-                    Song Catalog
-                </Button>
+                            <Button
+                                variant={isActive('/my-music') ? 'contained' : 'outlined'}
+                                color={isActive('/my-music') ? 'primary' : 'inherit'}
+                                onClick={() => history.push('/my-music')}
+                                sx={navBtnSx(isActive('/my-music'))}
+                            >
+                                MY MUSIC
+                            </Button>
+
+                            <Button
+                                variant={isActive('/songs') ? 'contained' : 'outlined'}
+                                color={isActive('/songs') ? 'primary' : 'inherit'}
+                                onClick={() => history.push('/songs')}
+                                sx={navBtnSx(isActive('/songs'))}
+                            >
+                                Song Catalog
+                            </Button>
+                        </>
+                    );
+                })()}
             </Box>
 
             <Typography variant="h5" sx={{ fontWeight: 700, color: 'text.primary', letterSpacing: 0.2 }}>

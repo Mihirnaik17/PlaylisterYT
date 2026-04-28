@@ -28,6 +28,7 @@ function CatalogSongCard(props) {
     const [playlistMenuAnchor, setPlaylistMenuAnchor] = useState(null);
     const [userPlaylists, setUserPlaylists] = useState([]);
     const [duplicateDialogOpen, setDuplicateDialogOpen] = useState(false);
+    const [duplicateDialogTitle, setDuplicateDialogTitle] = useState('Notice');
     const [duplicateDialogMessage, setDuplicateDialogMessage] = useState('');
     const [loginPromptOpen, setLoginPromptOpen] = useState(false);
     const [loginPromptMessage, setLoginPromptMessage] = useState('');
@@ -105,12 +106,20 @@ function CatalogSongCard(props) {
             const result = await store.addSongToPlaylist(playlistId, song._id);
             if (!result.success) {
                 if (result.error && result.error.includes('already in playlist')) {
+                    setDuplicateDialogTitle('Cannot Add Song');
                     setDuplicateDialogMessage('This song is already in that playlist.');
+                    setDuplicateDialogOpen(true);
+                } else {
+                    setDuplicateDialogTitle('Cannot Add Song');
+                    setDuplicateDialogMessage(result.error || 'Failed to add song.');
                     setDuplicateDialogOpen(true);
                 }
             }
         } catch (error) {
             console.error('Error adding song:', error);
+            setDuplicateDialogTitle('Error');
+            setDuplicateDialogMessage('Failed to add song.');
+            setDuplicateDialogOpen(true);
         }
     };
 
@@ -125,14 +134,17 @@ function CatalogSongCard(props) {
         try {
             const result = await store.likeCatalogSong(song._id);
             if (!result.success) {
+                setDuplicateDialogTitle('Error');
                 setDuplicateDialogMessage(result.error || 'Failed to like song.');
                 setDuplicateDialogOpen(true);
             } else {
+                setDuplicateDialogTitle('Liked');
                 setDuplicateDialogMessage('Added to Liked Songs.');
                 setDuplicateDialogOpen(true);
             }
         } catch (error) {
             console.error('Error liking song:', error);
+            setDuplicateDialogTitle('Error');
             setDuplicateDialogMessage('Failed to like song.');
             setDuplicateDialogOpen(true);
         }
@@ -330,7 +342,7 @@ function CatalogSongCard(props) {
                 onClose={() => setDuplicateDialogOpen(false)}
                 PaperProps={{ sx: { bgcolor: '#282828', color: '#fff', border: '1px solid rgba(255,255,255,0.1)' } }}
             >
-                <DialogTitle sx={{ color: '#fff' }}>Cannot Add Song</DialogTitle>
+                <DialogTitle sx={{ color: '#fff' }}>{duplicateDialogTitle}</DialogTitle>
                 <DialogContent sx={{ color: '#B3B3B3' }}>{duplicateDialogMessage}</DialogContent>
                 <DialogActions>
                     <Button onClick={() => setDuplicateDialogOpen(false)} sx={{ color: '#1DB954' }}>OK</Button>
