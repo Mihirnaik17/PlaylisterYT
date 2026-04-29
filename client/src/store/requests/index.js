@@ -37,13 +37,13 @@ const handleresponse =  async (response) => {
         } catch(e){
             err = {errorMessage: response.statusText};
             errormsg = response.statusText;
-        } throw {
-            response:{
-                data: err,
-                status: response.status
-            },
-            message: errormsg
+        }
+        const error = new Error(errormsg);
+        error.response = {
+            data: err,
+            status: response.status
         };
+        throw error;
     }   
     try{
         const jsonData = await response.json();

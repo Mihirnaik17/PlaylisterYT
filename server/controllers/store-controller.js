@@ -5,6 +5,22 @@ require('dotenv').config();
 const Song = require('../models/song-model');
 const Playlist = require('../models/playlist-model');
 
+// #region agent log helper
+const fs = require('fs');
+const __agentLogPath = '/Users/mihirnethavath/Documents/PlaylisterYT/.cursor/debug-8f40b7.log';
+const __agentLog = (payload) => {
+    try {
+        const line = JSON.stringify({ sessionId: '8f40b7', timestamp: Date.now(), ...payload }) + '\n';
+        fs.appendFile(__agentLogPath, line, () => {});
+    } catch (e) {}
+};
+
+// Create the log file on server start (diagnostic).
+try {
+    fs.appendFileSync(__agentLogPath, JSON.stringify({ sessionId: '8f40b7', timestamp: Date.now(), runId: 'pre-fix', hypothesisId: 'H0', location: 'store-controller.js:module', message: 'logger initialized' }) + '\n');
+} catch (e) {}
+// #endregion agent log helper
+
 
 /*
     This is our back-end API. It provides all the data services
@@ -104,9 +120,12 @@ deletePlaylist = async (req, res) => {
 }
 }
 getPlaylistById = async (req, res) => {
+    const t0 = Date.now();
+    __agentLog({ runId: 'pre-fix', hypothesisId: 'H2', location: 'store-controller.js:getPlaylistById', message: 'getPlaylistById start', data: { playlistId: req.params?.id, hasUserId: !!req.userId } });
     try{
         const list = await dbManager.getPlaylistById(req.params.id);
         if (!list) {
+            __agentLog({ runId: 'pre-fix', hypothesisId: 'H2', location: 'store-controller.js:getPlaylistById', message: 'getPlaylistById not found', data: { playlistId: req.params?.id, ms: Date.now() - t0 } });
             return res.status(404).json({ success: false, error: 'Playlist not found' });
         }
         console.log("Found list: " + JSON.stringify(list));
@@ -114,10 +133,12 @@ getPlaylistById = async (req, res) => {
         if (list.published) {
             console.log("Published playlist - allowing view");
             await dbManager.updatePlaylist(req.params.id, { lastAccessed: new Date() });
+            __agentLog({ runId: 'pre-fix', hypothesisId: 'H2', location: 'store-controller.js:getPlaylistById', message: 'getPlaylistById allowed (published)', data: { playlistId: req.params?.id, ms: Date.now() - t0, songCount: Array.isArray(list.songs) ? list.songs.length : null } });
             return res.status(200).json({ success: true, playlist: list })
         }
         
         if (!req.userId) {
+            __agentLog({ runId: 'pre-fix', hypothesisId: 'H2', location: 'store-controller.js:getPlaylistById', message: 'getPlaylistById forbidden (no user)', data: { playlistId: req.params?.id, ms: Date.now() - t0 } });
             return res.status(403).json({
                 success: false,
                 errorMessage: 'You must be logged in to view unpublished playlists'
@@ -139,9 +160,11 @@ getPlaylistById = async (req, res) => {
         if (list.ownerEmail === user.email) {
             console.log("correct user!");
             await dbManager.updatePlaylist(req.params.id, { lastAccessed: new Date() });
+            __agentLog({ runId: 'pre-fix', hypothesisId: 'H2', location: 'store-controller.js:getPlaylistById', message: 'getPlaylistById allowed (owner)', data: { playlistId: req.params?.id, ms: Date.now() - t0, songCount: Array.isArray(list.songs) ? list.songs.length : null } });
             return res.status(200).json({ success: true, playlist: list })
         } else {
             console.log("incorrect user - unpublished playlist!");
+            __agentLog({ runId: 'pre-fix', hypothesisId: 'H2', location: 'store-controller.js:getPlaylistById', message: 'getPlaylistById forbidden (not owner)', data: { playlistId: req.params?.id, ms: Date.now() - t0 } });
             return res.status(403).json({ 
                 success: false, 
                 errorMessage: "You don't have permission to view this unpublished playlist" 
@@ -151,6 +174,7 @@ getPlaylistById = async (req, res) => {
     }
     catch (err) { 
         console.error(err); 
+        __agentLog({ runId: 'pre-fix', hypothesisId: 'H2', location: 'store-controller.js:getPlaylistById', message: 'getPlaylistById error', data: { playlistId: req.params?.id, ms: Date.now() - t0, err: String(err?.message || err) } });
         return res.status(400).json({ success: false, error: err.message }); 
     }
 }
@@ -566,11 +590,14 @@ deleteComment = async (req, res) => {
     }
 }
 incrementListens = async (req, res) => {
+    const t0 = Date.now();
+    __agentLog({ runId: 'pre-fix', hypothesisId: 'H3', location: 'store-controller.js:incrementListens', message: 'incrementListens start', data: { playlistId: req.params?.id } });
     try {
         const playlistId = req.params.id;
         const playlist = await dbManager.getPlaylistById(playlistId);
 
         if (!playlist) {
+            __agentLog({ runId: 'pre-fix', hypothesisId: 'H3', location: 'store-controller.js:incrementListens', message: 'incrementListens not found', data: { playlistId, ms: Date.now() - t0 } });
             return res.status(404).json({
                 errorMessage: 'Playlist not found'
             });
@@ -593,12 +620,14 @@ incrementListens = async (req, res) => {
             );
         }
 
+        __agentLog({ runId: 'pre-fix', hypothesisId: 'H3', location: 'store-controller.js:incrementListens', message: 'incrementListens success', data: { playlistId, songCount: songsInPlaylist.length, ms: Date.now() - t0 } });
         return res.status(200).json({ 
             success: true, 
             listens: playlist.listens 
         });
     } catch (error) {
         console.error(error);
+        __agentLog({ runId: 'pre-fix', hypothesisId: 'H3', location: 'store-controller.js:incrementListens', message: 'incrementListens error', data: { playlistId: req.params?.id, ms: Date.now() - t0, err: String(error?.message || error) } });
         return res.status(500).json({
             errorMessage: 'Failed to increment listens'
         });
@@ -606,6 +635,8 @@ incrementListens = async (req, res) => {
 };
 
 getPublishedPlaylists = async (req, res) => {
+    const t0 = Date.now();
+    __agentLog({ runId: 'pre-fix', hypothesisId: 'H3', location: 'store-controller.js:getPublishedPlaylists', message: 'getPublishedPlaylists start', data: { page: req.query?.page, limit: req.query?.limit } });
     try {
         const Playlist = require('../models/playlist-model');
         const page  = Math.max(1, parseInt(req.query.page)  || 1);
@@ -627,6 +658,7 @@ getPublishedPlaylists = async (req, res) => {
         // Cache each page for 60 s; serve stale up to 5 min while revalidating
         res.setHeader('Cache-Control', 'public, max-age=60, stale-while-revalidate=300');
 
+        __agentLog({ runId: 'pre-fix', hypothesisId: 'H3', location: 'store-controller.js:getPublishedPlaylists', message: 'getPublishedPlaylists success', data: { page, limit, returned: Array.isArray(data) ? data.length : null, total, ms: Date.now() - t0 } });
         return res.status(200).json({
             success: true,
             data,
@@ -634,6 +666,7 @@ getPublishedPlaylists = async (req, res) => {
         });
     } catch (error) {
         console.error(error);
+        __agentLog({ runId: 'pre-fix', hypothesisId: 'H3', location: 'store-controller.js:getPublishedPlaylists', message: 'getPublishedPlaylists error', data: { ms: Date.now() - t0, err: String(error?.message || error) } });
         return res.status(400).json({
             errorMessage: 'Error fetching published playlists',
             error: error.message,

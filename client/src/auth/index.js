@@ -1,4 +1,4 @@
-import React, { createContext, useEffect, useState } from "react";
+import React, { createContext, useEffect, useState, useCallback } from "react";
 import { useHistory } from 'react-router-dom'
 import authRequestSender from './requests'
 
@@ -22,10 +22,6 @@ function AuthContextProvider(props) {
         errorMessage: null
     });
     const history = useHistory();
-
-    useEffect(() => {
-        auth.getLoggedIn();
-    }, []);
 
     const authReducer = (action) => {
         const { type, payload } = action;
@@ -71,28 +67,33 @@ function AuthContextProvider(props) {
                 })
             }
             case AuthActionType.CLEAR_ERROR: {
-                return setAuth({
-                    ...auth,
+                return setAuth((prev) => ({
+                    ...prev,
                     errorMessage: null
-                })
+                }))
             }
             default:
                 return auth;
         }
     }
 
-    auth.getLoggedIn = async function () {
+    const getLoggedIn = useCallback(async () => {
         const response = await authRequestSender.getLoggedIn();
         if (response.status === 200) {
-            authReducer({
-                type: AuthActionType.GET_LOGGED_IN,
-                payload: {
-                    loggedIn: response.data.loggedIn,
-                    user: response.data.user
-                }
-            });
+            setAuth({
+                user: response.data.user,
+                loggedIn: response.data.loggedIn,
+                isGuest: false,
+                errorMessage: null
+            })
         }
-    }
+    }, []);
+
+    useEffect(() => {
+        getLoggedIn();
+    }, [getLoggedIn]);
+
+    auth.getLoggedIn = getLoggedIn;
 
     auth.registerUser = async function(firstName, lastName, username, email, password, passwordVerify, avatar) {
         console.log("REGISTERING USER");

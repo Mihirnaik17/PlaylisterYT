@@ -1,4 +1,4 @@
-import { useContext, useState, useEffect } from 'react'
+import { useContext, useState, useEffect, useCallback } from 'react'
 import { GlobalStoreContext } from '../store'
 import AuthContext from '../auth'
 import IconButton from '@mui/material/IconButton';
@@ -40,13 +40,7 @@ function CatalogSongCard(props) {
     const isActive = store.currentSong && store.currentSong._id === song._id;
     const thumbUrl = YT_THUMB(song.youTubeId);
 
-    useEffect(() => {
-        if (!auth.isGuest && open) {
-            loadUserPlaylists();
-        }
-    }, [open]);
-
-    const loadUserPlaylists = () => {
+    const loadUserPlaylists = useCallback(() => {
         if (!store.idNamePairs || store.idNamePairs.length === 0) {
             store.loadIdNamePairs();
         }
@@ -58,7 +52,13 @@ function CatalogSongCard(props) {
             })
             : [];
         setUserPlaylists(sorted);
-    };
+    }, [store]);
+
+    useEffect(() => {
+        if (!auth.isGuest && open) {
+            loadUserPlaylists();
+        }
+    }, [open, auth.isGuest, loadUserPlaylists]);
 
     const handleMenuOpen = (event) => {
         event.stopPropagation();

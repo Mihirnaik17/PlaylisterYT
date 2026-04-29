@@ -39,7 +39,7 @@ export default function MUIEditSongModal() {
             setYear(store.currentSong.year || '');
             setYouTubeId(store.currentSong.youTubeId || '');
         }
-    }, [store.currentSong, store.currentModal]);
+    }, [store, store.currentSong, store.currentModal]);
 
     async function handleConfirmEditSong() {
         const isCatalogSong = store.currentSong && store.currentSong._id && store.currentSongIndex === -1;

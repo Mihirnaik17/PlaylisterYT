@@ -57,6 +57,9 @@ function PlaylistCard(props) {
 
     function handlePlayPlaylist(event) {
         event.stopPropagation();
+        // #region agent log
+        fetch('http://127.0.0.1:7422/ingest/9ace4fda-60c4-46e4-a96b-c3c04a750130',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'8f40b7'},body:JSON.stringify({sessionId:'8f40b7',runId:'pre-fix',hypothesisId:'H1',location:'PlaylistCard.js:handlePlayPlaylist',message:'PLAY handler invoked',data:{playlistId:idNamePair?._id,hasStore:!!store,isGuest:!!auth?.isGuest},timestamp:Date.now()})}).catch(()=>{});
+        // #endregion agent log
         store.openPlayPlaylistModal(idNamePair._id);
     }
 

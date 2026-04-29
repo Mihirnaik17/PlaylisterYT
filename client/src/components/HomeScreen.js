@@ -48,7 +48,7 @@ const HomeScreen = () => {
         // Always show the global published feed on the Playlists page
         // (guests and logged-in users).
         store.loadPublishedPage(1);
-    }, [auth.isGuest, auth.loggedIn]);
+    }, [auth.isGuest, auth.loggedIn, store]);
 
     useEffect(() => {
         if (store.idNamePairs) {

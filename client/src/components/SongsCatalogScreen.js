@@ -38,7 +38,7 @@ export default function SongsCatalogScreen() {
     useEffect(() => {
         setLoading(true);
         store.loadSongs({ sortBy: 'listens', sortOrder: 'desc' }).finally(() => setLoading(false));
-    }, []);
+    }, [store]);
 
     useEffect(() => {
         const prefill = location.state && location.state.prefillTitle;

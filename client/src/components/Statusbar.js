@@ -1,7 +1,3 @@
-import { useContext } from 'react'
-import AuthContext from '../auth'
-import { GlobalStoreContext } from '../store'
-
 /**
  * Our Status bar React component goes at the bottom of our UI.
  * 
