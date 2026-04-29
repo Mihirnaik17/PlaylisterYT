@@ -18,6 +18,7 @@ import SkipNextIcon from '@mui/icons-material/SkipNext';
 import Fab from '@mui/material/Fab';
 import Tooltip from '@mui/material/Tooltip';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
+import Chip from '@mui/material/Chip';
 
 /*
     This React component lets us edit a loaded list, which only
@@ -126,15 +127,29 @@ function WorkspaceScreen() {
                         </Box>
 
                         <List sx={{ flex: 1, minHeight: 0, overflowY: 'auto', bgcolor: 'transparent' }}>
-                            {store.currentList.songs.map((song, index) => (
-                                <SongCard
-                                    id={'playlist-song-' + (index)}
-                                    key={'playlist-song-' + (index)}
-                                    index={index}
-                                    song={song}
-                                    readOnly={!isOwner}
-                                />
-                            ))}
+                            {store.currentList.songs.length > 0 ? (
+                                store.currentList.songs.map((song, index) => (
+                                    <SongCard
+                                        id={'playlist-song-' + (index)}
+                                        key={'playlist-song-' + (index)}
+                                        index={index}
+                                        song={song}
+                                        readOnly={!isOwner}
+                                    />
+                                ))
+                            ) : (
+                                <Box sx={{ mt: 4, textAlign: 'center', px: 2 }}>
+                                    <Typography variant="subtitle1" color="text.secondary" sx={{ mb: 1 }}>
+                                        This playlist is empty
+                                    </Typography>
+                                    <Typography variant="body2" color="text.disabled" sx={{ mb: 1.5 }}>
+                                        Add songs from the catalog to start building your vibe.
+                                    </Typography>
+                                    <Button size="small" variant="outlined" onClick={() => store.history.push('/songs')}>
+                                        Open Song Catalog
+                                    </Button>
+                                </Box>
+                            )}
                         </List>
                     </Box>
 
@@ -186,6 +201,11 @@ function WorkspaceScreen() {
                                 <SkipNextIcon />
                             </IconButton>
                         </Box>
+                        {isOwner && (
+                            <Box sx={{ mt: 2 }}>
+                                <Chip label="Tip: Ctrl+Z / Ctrl+Y to undo/redo edits" size="small" />
+                            </Box>
+                        )}
                     </Box>
                 </Box>
 

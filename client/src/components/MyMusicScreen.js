@@ -1,8 +1,9 @@
-import { useContext, useEffect } from 'react';
+import { useContext, useEffect, useState } from 'react';
 import { useHistory } from 'react-router-dom';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Typography from '@mui/material/Typography';
+import Skeleton from '@mui/material/Skeleton';
 
 import { GlobalStoreContext } from '../store';
 import AuthContext from '../auth';
@@ -16,10 +17,14 @@ export default function MyMusicScreen() {
     const { store } = useContext(GlobalStoreContext);
     const { auth } = useContext(AuthContext);
     const history = useHistory();
+    const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         if (!auth.isGuest && auth.loggedIn) {
-            store.loadIdNamePairs();
+            setLoading(true);
+            Promise.resolve(store.loadIdNamePairs()).finally(() => setLoading(false));
+        } else {
+            setLoading(false);
         }
     }, [auth.isGuest, auth.loggedIn]);
 
@@ -57,6 +62,17 @@ export default function MyMusicScreen() {
                             Login
                         </Button>
                     </Box>
+                ) : loading ? (
+                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.2 }}>
+                        {[...Array(5)].map((_, idx) => (
+                            <Skeleton
+                                key={`my-music-skeleton-${idx}`}
+                                variant="rounded"
+                                height={74}
+                                sx={{ bgcolor: 'rgba(255,255,255,0.08)' }}
+                            />
+                        ))}
+                    </Box>
                 ) : playlists.length > 0 ? (
                     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.25 }}>
                         {playlists.map((pair) => (
@@ -71,6 +87,9 @@ export default function MyMusicScreen() {
                         <Typography variant="body2" color="text.disabled">
                             Create your first playlist from the Playlists tab.
                         </Typography>
+                        <Button variant="outlined" sx={{ mt: 2 }} onClick={() => history.push('/home')}>
+                            Go to Playlists
+                        </Button>
                     </Box>
                 )}
             </Box>

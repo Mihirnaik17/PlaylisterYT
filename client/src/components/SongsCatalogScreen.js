@@ -15,10 +15,10 @@ import MenuItem from '@mui/material/MenuItem';
 import Select from '@mui/material/Select';
 import FormControl from '@mui/material/FormControl';
 import InputLabel from '@mui/material/InputLabel';
-import CircularProgress from '@mui/material/CircularProgress';
 import Typography from '@mui/material/Typography';
 import Fab from '@mui/material/Fab';
 import Tooltip from '@mui/material/Tooltip';
+import Skeleton from '@mui/material/Skeleton';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 
 export default function SongsCatalogScreen() {
@@ -33,6 +33,7 @@ export default function SongsCatalogScreen() {
     const [yearSearch, setYearSearch] = useState('');
     const [currentSort, setCurrentSort] = useState('listens-hi');
     const [loading, setLoading] = useState(true);
+    const [resultMeta, setResultMeta] = useState('');
 
     useEffect(() => {
         setLoading(true);
@@ -57,7 +58,9 @@ export default function SongsCatalogScreen() {
         searchParams.sortBy = field;
         searchParams.sortOrder = order;
         
-        store.loadSongs(searchParams);
+        setLoading(true);
+        setResultMeta('Showing filtered catalog results');
+        store.loadSongs(searchParams).finally(() => setLoading(false));
     }
     
     const handleClear = () => {
@@ -65,7 +68,9 @@ export default function SongsCatalogScreen() {
         setArtistSearch('');
         setYearSearch('');
         setCurrentSort('listens-hi');
-        store.loadSongs({ sortBy: 'listens', sortOrder: 'desc' });
+        setLoading(true);
+        setResultMeta('');
+        store.loadSongs({ sortBy: 'listens', sortOrder: 'desc' }).finally(() => setLoading(false));
     }
     
     const handleSortChange = (event) => {
@@ -113,7 +118,8 @@ export default function SongsCatalogScreen() {
         searchParams.sortBy = field;
         searchParams.sortOrder = order;
         
-        store.loadSongs(searchParams);
+        setLoading(true);
+        store.loadSongs(searchParams).finally(() => setLoading(false));
     }
     
     const handleNewSong = () => {
@@ -289,11 +295,23 @@ export default function SongsCatalogScreen() {
                             {store.songs ? store.songs.length : 0} songs
                         </Typography>
                     </Box>
+                    {resultMeta && (
+                        <Typography variant="caption" color="text.secondary" sx={{ mb: 1, display: 'block' }}>
+                            {resultMeta}
+                        </Typography>
+                    )}
                     
                     <Box sx={{ flex: 1, minHeight: 0, overflowY: 'auto', pb: 2 }}>
                         {loading ? (
-                            <Box sx={{ display: 'flex', justifyContent: 'center', mt: 6 }}>
-                                <CircularProgress color="primary" />
+                            <Box sx={{ mt: 1 }}>
+                                {[...Array(6)].map((_, idx) => (
+                                    <Skeleton
+                                        key={`catalog-skeleton-${idx}`}
+                                        variant="rounded"
+                                        height={78}
+                                        sx={{ mb: 1, bgcolor: 'rgba(255,255,255,0.08)' }}
+                                    />
+                                ))}
                             </Box>
                         ) : store.songs && store.songs.length > 0 ? songCards : (
                             <Box sx={{ textAlign: 'center', mt: 6 }}>
@@ -301,6 +319,9 @@ export default function SongsCatalogScreen() {
                                 <Typography variant="body2" color="text.disabled">
                                     {auth.isGuest ? 'No songs in the catalog yet.' : 'Add the first song from the sidebar.'}
                                 </Typography>
+                                <Button onClick={handleClear} sx={{ mt: 1.5 }}>
+                                    Reset filters
+                                </Button>
                             </Box>
                         )}
                     </Box>

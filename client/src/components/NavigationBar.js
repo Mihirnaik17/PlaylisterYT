@@ -10,6 +10,7 @@ import Menu from '@mui/material/Menu';
 import MenuItem from '@mui/material/MenuItem';
 import IconButton from '@mui/material/IconButton';
 import HomeIcon from '@mui/icons-material/Home';
+import Tooltip from '@mui/material/Tooltip';
 
 export default function NavigationBar() {
     const { auth } = useContext(AuthContext);
@@ -61,17 +62,25 @@ export default function NavigationBar() {
             }}
         >
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                <IconButton
-                    onClick={handleHomeClick}
-                    sx={{
-                        bgcolor: 'action.hover',
-                        '&:hover': { bgcolor: 'action.selected' },
-                        width: 40,
-                        height: 40,
-                    }}
-                >
-                    <HomeIcon />
-                </IconButton>
+                <Box
+                    component="img"
+                    src="/assets/ytapp-logo.png"
+                    alt="PlaylisterYT"
+                    sx={{ width: 40, height: 40, borderRadius: 1, objectFit: 'contain' }}
+                />
+                <Tooltip title="Go home">
+                    <IconButton
+                        onClick={handleHomeClick}
+                        sx={{
+                            bgcolor: 'action.hover',
+                            '&:hover': { bgcolor: 'action.selected' },
+                            width: 40,
+                            height: 40,
+                        }}
+                    >
+                        <HomeIcon />
+                    </IconButton>
+                </Tooltip>
 
                 {(() => {
                     const path = location.pathname;
@@ -101,7 +110,7 @@ export default function NavigationBar() {
                                 onClick={() => history.push('/my-music')}
                                 sx={navBtnSx(isActive('/my-music'))}
                             >
-                                MY MUSIC
+                                My Music
                             </Button>
 
                             <Button
@@ -118,7 +127,7 @@ export default function NavigationBar() {
             </Box>
 
             <Typography variant="h5" sx={{ fontWeight: 700, color: 'text.primary', letterSpacing: 0.2 }}>
-                The Playlister
+                PlaylisterYT
             </Typography>
 
             <Box>

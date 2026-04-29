@@ -24,7 +24,7 @@ import MenuItem from '@mui/material/MenuItem';
 import Menu from '@mui/material/Menu';
 import IconButton from '@mui/material/IconButton';
 import InputAdornment from '@mui/material/InputAdornment';
-import CircularProgress from '@mui/material/CircularProgress';
+import Skeleton from '@mui/material/Skeleton';
 
 const HomeScreen = () => {
     const { store } = useContext(GlobalStoreContext);
@@ -68,6 +68,7 @@ const HomeScreen = () => {
     }
 
     function handleSearch() {
+        setLoading(true);
         const searchParams = {};
         
         if (searchName) searchParams.name = searchName;
@@ -188,6 +189,7 @@ const HomeScreen = () => {
                         placeholder="by Playlist Name"
                         value={searchName}
                         onChange={(e) => setSearchName(e.target.value)}
+                        onKeyDown={(e) => { if (e.key === 'Enter') handleSearch(); }}
                         sx={{ mb: 2 }}
                         InputProps={{
                             endAdornment: searchName && (
@@ -205,6 +207,7 @@ const HomeScreen = () => {
                         placeholder="by User Name"
                         value={searchUser}
                         onChange={(e) => setSearchUser(e.target.value)}
+                        onKeyDown={(e) => { if (e.key === 'Enter') handleSearch(); }}
                         sx={{ mb: 2 }}
                          InputProps={{
                             endAdornment: searchUser && (
@@ -222,6 +225,7 @@ const HomeScreen = () => {
                         placeholder="by Song Title"
                         value={searchSongTitle}
                         onChange={(e) => setSearchSongTitle(e.target.value)}
+                        onKeyDown={(e) => { if (e.key === 'Enter') handleSearch(); }}
                         sx={{ mb: 2 }}
                         InputProps={{
                             endAdornment: searchSongTitle && (
@@ -239,6 +243,7 @@ const HomeScreen = () => {
                         placeholder="by Song Artist"
                         value={searchArtist}
                         onChange={(e) => setSearchArtist(e.target.value)}
+                        onKeyDown={(e) => { if (e.key === 'Enter') handleSearch(); }}
                         sx={{ mb: 2 }}
                         InputProps={{
                             endAdornment: searchArtist && (
@@ -256,6 +261,7 @@ const HomeScreen = () => {
                         placeholder="by Song Year"
                         value={searchYear}
                         onChange={(e) => setSearchYear(e.target.value)}
+                        onKeyDown={(e) => { if (e.key === 'Enter') handleSearch(); }}
                         sx={{ mb: 3 }}
                         InputProps={{
                             endAdornment: searchYear && (
@@ -340,8 +346,15 @@ const HomeScreen = () => {
 
                     <Box sx={{ flex: 1, minHeight: 0, overflowY: 'auto', pb: 2 }}>
                         {loading ? (
-                            <Box sx={{ display: 'flex', justifyContent: 'center', mt: 6 }}>
-                                <CircularProgress color="primary" />
+                            <Box sx={{ mt: 1 }}>
+                                {[...Array(5)].map((_, idx) => (
+                                    <Skeleton
+                                        key={`home-playlist-skeleton-${idx}`}
+                                        variant="rounded"
+                                        height={78}
+                                        sx={{ mb: 1, bgcolor: 'rgba(255,255,255,0.08)' }}
+                                    />
+                                ))}
                             </Box>
                         ) : filteredPlaylists && filteredPlaylists.length > 0 ? listCard : (
                             <Box sx={{ textAlign: 'center', mt: 6 }}>
@@ -351,6 +364,9 @@ const HomeScreen = () => {
                                 <Typography variant="body2" color="text.disabled">
                                     {auth.isGuest ? 'No published playlists yet.' : 'Create your first playlist with the button below.'}
                                 </Typography>
+                                <Button variant="text" onClick={handleClear} sx={{ mt: 1.5 }}>
+                                    Clear search filters
+                                </Button>
                             </Box>
                         )}
                     </Box>
