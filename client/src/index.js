@@ -4,12 +4,7 @@ import { ThemeProvider, CssBaseline } from '@mui/material';
 import App from './App';
 import reportWebVitals from './reportWebVitals';
 import playlisterDarkTheme from './theme';
-/*
-  This is the entry-point for our application. Notice that we
-  inject our store into all the components in our application.
-  
-  @author McKilla Gorilla
-*/
+
 
 ReactDOM.render(
   <React.StrictMode>

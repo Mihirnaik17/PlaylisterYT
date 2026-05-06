@@ -1,8 +1,6 @@
 /**
  * Our Status bar React component goes at the bottom of our UI.
- * 
- * @author McKilla Gorilla
-*/
+ */
 
 function Statusbar() {
     // const { auth } = useContext(AuthContext);

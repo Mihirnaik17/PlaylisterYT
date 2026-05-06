@@ -10,13 +10,6 @@ import AuthContext from '../auth'
 
 import songApi from './SongRequests'
 
-/*
-    This is our global data store. Note that it uses the Flux design pattern,
-    which makes use of things like actions and reducers. 
-    
-    @author McKilla Gorilla
-*/
-
 // THIS IS THE CONTEXT WE'LL USE TO SHARE OUR STORE
 export const GlobalStoreContext = createContext({});
 console.log("create GlobalStoreContext");
@@ -443,10 +436,6 @@ store.createNewList = async function () {
             const cacheKey = `publishedPlaylists:v1:page=${page}:limit=${limit}`;
             const t0 = Date.now();
 
-            // #region agent log
-            fetch('http://127.0.0.1:7422/ingest/9ace4fda-60c4-46e4-a96b-c3c04a750130',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'8f40b7'},body:JSON.stringify({sessionId:'8f40b7',runId:'pre-fix',hypothesisId:'H3',location:'store/index.js:loadPublishedPage',message:'loadPublishedPage start',data:{page,limit,cacheKey},timestamp:Date.now()})}).catch(()=>{});
-            // #endregion agent log
-
             // Fast path: render cached results immediately to improve perceived load.
             try {
                 const cachedRaw = localStorage.getItem(cacheKey);
@@ -455,9 +444,6 @@ store.createNewList = async function () {
                     if (cached && Array.isArray(cached.data) && cached.pagination) {
                         paginationRef.current = cached.pagination;
                         storeReducer({ type: GlobalStoreActionType.LOAD_ID_NAME_PAIRS, payload: cached.data });
-                        // #region agent log
-                        fetch('http://127.0.0.1:7422/ingest/9ace4fda-60c4-46e4-a96b-c3c04a750130',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'8f40b7'},body:JSON.stringify({sessionId:'8f40b7',runId:'pre-fix',hypothesisId:'H4',location:'store/index.js:loadPublishedPage',message:'cache hit and rendered',data:{page,cachedCount:cached.data.length,msSinceStart:Date.now()-t0},timestamp:Date.now()})}).catch(()=>{});
-                        // #endregion agent log
                     }
                 }
             } catch (e) {
@@ -469,9 +455,6 @@ store.createNewList = async function () {
                 if (response.data.success) {
                     paginationRef.current = response.data.pagination;
                     storeReducer({ type: GlobalStoreActionType.LOAD_ID_NAME_PAIRS, payload: response.data.data });
-                    // #region agent log
-                    fetch('http://127.0.0.1:7422/ingest/9ace4fda-60c4-46e4-a96b-c3c04a750130',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'8f40b7'},body:JSON.stringify({sessionId:'8f40b7',runId:'pre-fix',hypothesisId:'H3',location:'store/index.js:loadPublishedPage',message:'network published playlists loaded',data:{page,count:response.data.data?.length,msSinceStart:Date.now()-t0,totalPages:response.data.pagination?.totalPages},timestamp:Date.now()})}).catch(()=>{});
-                    // #endregion agent log
                     try {
                         localStorage.setItem(cacheKey, JSON.stringify({
                             data: response.data.data,
@@ -648,33 +631,20 @@ store.createNewList = async function () {
 
         store.openPlayPlaylistModal = function (id) {
         async function asyncOpenPlayPlaylistModal(id) {
-            const t0 = Date.now();
-            // #region agent log
-            fetch('http://127.0.0.1:7422/ingest/9ace4fda-60c4-46e4-a96b-c3c04a750130',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'8f40b7'},body:JSON.stringify({sessionId:'8f40b7',runId:'pre-fix',hypothesisId:'H2',location:'store/index.js:openPlayPlaylistModal',message:'openPlayPlaylistModal start',data:{playlistId:id,isLoggedIn:!!auth?.loggedIn,isGuest:!!auth?.isGuest},timestamp:Date.now()})}).catch(()=>{});
-            // #endregion agent log
             try {
                 const response = await storeRequestSender.getPlaylistById(id);
                 if (!response?.data?.success) {
                     console.error("Failed to load playlist for playing", response?.data);
-                    // #region agent log
-                    fetch('http://127.0.0.1:7422/ingest/9ace4fda-60c4-46e4-a96b-c3c04a750130',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'8f40b7'},body:JSON.stringify({sessionId:'8f40b7',runId:'pre-fix',hypothesisId:'H2',location:'store/index.js:openPlayPlaylistModal',message:'getPlaylistById failed',data:{playlistId:id,msSinceStart:Date.now()-t0,success:response?.data?.success,errorMessage:response?.data?.errorMessage},timestamp:Date.now()})}).catch(()=>{});
-                    // #endregion agent log
                     return;
                 }
 
                 const playlist = response.data.playlist;
-                // #region agent log
-                fetch('http://127.0.0.1:7422/ingest/9ace4fda-60c4-46e4-a96b-c3c04a750130',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'8f40b7'},body:JSON.stringify({sessionId:'8f40b7',runId:'pre-fix',hypothesisId:'H2',location:'store/index.js:openPlayPlaylistModal',message:'getPlaylistById success',data:{playlistId:id,msSinceStart:Date.now()-t0,songCount:playlist?.songs?.length,ownerEmail:playlist?.ownerEmail?'<redacted>':null},timestamp:Date.now()})}).catch(()=>{});
-                // #endregion agent log
 
                 // Open the modal immediately for responsiveness.
                 storeReducer({
                     type: GlobalStoreActionType.OPEN_PLAY_PLAYLIST_MODAL,
                     payload: playlist
                 });
-                // #region agent log
-                fetch('http://127.0.0.1:7422/ingest/9ace4fda-60c4-46e4-a96b-c3c04a750130',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'8f40b7'},body:JSON.stringify({sessionId:'8f40b7',runId:'pre-fix',hypothesisId:'H2',location:'store/index.js:openPlayPlaylistModal',message:'dispatched OPEN_PLAY_PLAYLIST_MODAL',data:{playlistId:id,msSinceStart:Date.now()-t0},timestamp:Date.now()})}).catch(()=>{});
-                // #endregion agent log
 
                 // Increment listens in the background. This can be slow (it also updates per-song listens server-side),
                 // so we intentionally do NOT block showing the player.

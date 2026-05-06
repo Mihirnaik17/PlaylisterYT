@@ -1,9 +1,4 @@
-/*
-    This is where we'll route all of the received http requests
-    into controller response functions.
-    
-    @author McKilla Gorilla
-*/
+
 const express = require('express')
 const StoreController = require('../controllers/store-controller')
 const router = express.Router()

@@ -4,6 +4,8 @@ const cors = require('cors')
 const compression = require('compression')
 const dotenv = require('dotenv')
 const cookieParser = require('cookie-parser')
+const requestLogger = require('./middleware/request-logger')
+const createRateLimiter = require('./middleware/rate-limit')
 
 // CREATE OUR SERVER
 dotenv.config()
@@ -22,6 +24,9 @@ app.use(cors({
     preflightContinue: false,
     optionsSuccessStatus: 204
 }))
+app.set('trust proxy', 1)
+app.use(requestLogger())
+app.use(createRateLimiter())
 app.use(compression())
 app.use(express.urlencoded({ extended: true, limit: '10mb' }))
 app.use(express.json({ limit: '10mb' }))

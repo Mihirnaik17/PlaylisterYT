@@ -1,8 +1,12 @@
 import { beforeAll, beforeEach, afterEach, afterAll, expect, test } from 'vitest';
-const dotenv = require('dotenv').config({ path: __dirname + '/.env' });
+// Optional: local test configuration (do not rely on this in CI).
+require('dotenv').config({ path: __dirname + '/.env' });
 //const mongoose = require('mongoose')
 const dbManager = require('../db'); 
 const testData = require('./data/example-db-data.json');
+
+const RUN_DB_TESTS = process.env.RUN_DB_TESTS === 'true';
+const t = RUN_DB_TESTS ? test : test.skip;
 
 /**
  * Vitest test script for the Playlister app's Mongo Database Manager. Testing should verify that the Mongo Database Manager 
@@ -21,6 +25,7 @@ const testData = require('./data/example-db-data.json');
  * Executed once before all tests are performed.
  */
 beforeAll(async () => {
+    if (!RUN_DB_TESTS) return;
     // SETUP THE CONNECTION VIA MONGOOSE JUST ONCE - IT IS IMPORTANT TO NOTE THAT INSTEAD
     // OF DOING THIS HERE, IT SHOULD BE DONE INSIDE YOUR Database Manager (WHICHEVER)
     // await mongoose
@@ -37,6 +42,7 @@ beforeAll(async () => {
  * Executed before each test is performed.
  */
 beforeEach(async () => {
+     if (!RUN_DB_TESTS) return;
      await dbManager.resetDatabase(testData);
 });
 
@@ -108,7 +114,7 @@ test('Test #2) Creating a User in the Database', () => {
 // THE REST OF YOUR TEST SHOULD BE PUT BELOW
 
 
-test('getUserById returns a user', async () => {
+t('getUserById returns a user', async () => {
 
     const user = await dbManager.getUserByEmail('joe@shmo.com');
     const userId = user.id || user._id;
@@ -120,7 +126,7 @@ test('getUserById returns a user', async () => {
     expect(foundUser.lastName).toBe('Shmo');
 });
 
-test('getUserByEmail returns a user', async () => {
+t('getUserByEmail returns a user', async () => {
     const user = await dbManager.getUserByEmail('jane@doe.com');
     
     expect(user).toBeDefined();
@@ -129,7 +135,7 @@ test('getUserByEmail returns a user', async () => {
     expect(user.email).toBe('jane@doe.com');
 });
 
-test('createUser creates a new user', async () => {
+t('createUser creates a new user', async () => {
     const newUser = {
         firstName: 'Mihir',
         lastName: 'Naik',
@@ -149,7 +155,7 @@ test('createUser creates a new user', async () => {
     expect(retrieved.email).toBe('myemail.com');
 });
 
-test('getPlaylistsByOwnerEmail returns user playlists', async () => {
+t('getPlaylistsByOwnerEmail returns user playlists', async () => {
     const playlists = await dbManager.getPlaylistsByOwnerEmail('joe@shmo.com');
     
     expect(playlists).toBeDefined();
@@ -159,7 +165,7 @@ test('getPlaylistsByOwnerEmail returns user playlists', async () => {
     });
 });
 
-test('getAllPlaylists returns all playlists', async () => {
+t('getAllPlaylists returns all playlists', async () => {
     const playlists = await dbManager.getAllPlaylists();
     
     expect(playlists).toBeDefined();
@@ -167,7 +173,7 @@ test('getAllPlaylists returns all playlists', async () => {
     expect(playlists.length).toBeGreaterThanOrEqual(5);
 });
 
-test('getPlaylistById returns a playlist', async () => {
+t('getPlaylistById returns a playlist', async () => {
     const playlists = await dbManager.getAllPlaylists();
     expect(playlists.length).toBeGreaterThan(0);
     
@@ -180,7 +186,7 @@ test('getPlaylistById returns a playlist', async () => {
     expect(retrieved.ownerEmail).toBe(firstPlaylist.ownerEmail);
 });
 
-test('updatePlaylist updates playlist data', async () => {
+t('updatePlaylist updates playlist data', async () => {
     const playlists = await dbManager.getPlaylistsByOwnerEmail('joe@shmo.com');
     const playlist = playlists[0];
     const playlistId = playlist.id || playlist._id;
@@ -204,7 +210,7 @@ test('updatePlaylist updates playlist data', async () => {
     expect(updated.songs[0].title).toBe('New Song');
 });
 
-test('deletePlaylist removes a playlist', async () => {
+t('deletePlaylist removes a playlist', async () => {
     const newPlaylist = {
         name: 'Playlist to Delete',
         ownerEmail: 'jane@doe.com',

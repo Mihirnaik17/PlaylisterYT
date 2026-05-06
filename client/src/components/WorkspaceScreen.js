@@ -20,12 +20,7 @@ import Tooltip from '@mui/material/Tooltip';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import Chip from '@mui/material/Chip';
 
-/*
-    This React component lets us edit a loaded list, which only
-    happens when we are on the proper route.
-    
-    @author McKilla Gorilla
-*/
+
 function WorkspaceScreen() {
     const { store } = useContext(GlobalStoreContext);
     const { auth } = useContext(AuthContext);

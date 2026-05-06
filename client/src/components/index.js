@@ -23,12 +23,7 @@ import MUIRemoveSongModal from './MUIRemoveSongModal'
 import MUICreateSongModal from './MUICreateSongModal'
 export { default as EditAccountScreen } from './EditAccountScreen';
 
-/*
-    This serves as a module so that we can import
-    all the other components as we wish.
-    
-    @author McKilla Gorilla
-*/
+
 export { 
     AppBanner,  
     EditToolbar, 

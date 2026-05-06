@@ -1,8 +1,9 @@
 {
-  "name": "playlister-hw4",
-  "version": "0.1.0",
+  "name": "playlisteryt-client",
+  "version": "1.0.0",
   "private": true,
   "dependencies": {
+    "@babel/core": "^7.26.0",
     "@emotion/react": "^11.4.1",
     "@emotion/styled": "^11.3.0",
     "@fontsource/roboto": "^4.5.1",

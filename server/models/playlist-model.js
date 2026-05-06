@@ -1,11 +1,6 @@
 const mongoose = require('mongoose')
 const Schema = mongoose.Schema
-/*
-    This is where we specify the format of the data we're going to put into
-    the database.
-    
-    @author McKilla Gorilla
-*/
+
 const playlistSchema = new Schema(
     {
         name: {type: String, required: true },
@@ -41,5 +36,10 @@ const playlistSchema = new Schema(
     },
     { timestamps: true },
 )
+
+playlistSchema.index({ ownerEmail: 1, lastAccessed: -1 });
+playlistSchema.index({ published: 1, likes: -1 });
+playlistSchema.index({ published: 1, listens: -1 });
+playlistSchema.index({ name: 1 });
 
 module.exports = mongoose.model('Playlist', playlistSchema)
