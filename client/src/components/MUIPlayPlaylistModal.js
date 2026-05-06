@@ -57,7 +57,7 @@ export default function MUIPlayPlaylistModal() {
         if (store.idNamePairs === null || (Array.isArray(store.idNamePairs) && store.idNamePairs.length === 0)) {
             store.loadIdNamePairs();
         }
-    }, [auth.isGuest, store]);
+    }, [auth.isGuest, store.idNamePairs]);
 
     const userPlaylists = useMemo(() => {
         const pairs = store.idNamePairs;
