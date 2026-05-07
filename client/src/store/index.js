@@ -434,7 +434,6 @@ store.createNewList = async function () {
         async function asyncLoad() {
             const limit = 15;
             const cacheKey = `publishedPlaylists:v1:page=${page}:limit=${limit}`;
-            const t0 = Date.now();
 
             // Fast path: render cached results immediately to improve perceived load.
             try {

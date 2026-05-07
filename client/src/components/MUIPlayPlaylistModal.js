@@ -29,6 +29,7 @@ export default function MUIPlayPlaylistModal() {
     const playButtonRef = useRef(null);
 
     const playlist = store.currentList;
+    const isOpen = store.isPlayPlaylistModalOpen() && !!playlist;
     const {
         currentSongIndex,
         currentSong,
@@ -186,15 +187,16 @@ export default function MUIPlayPlaylistModal() {
         selectSong(index);
     }
 
-    if (!store.isPlayPlaylistModalOpen() || !playlist) return null;
-
     // Focus the play button when the modal opens (better keyboard UX).
     useEffect(() => {
+        if (!isOpen) return;
         const t = setTimeout(() => {
             playButtonRef.current?.focus?.();
         }, 0);
         return () => clearTimeout(t);
-    }, []);
+    }, [isOpen]);
+
+    if (!isOpen) return null;
 
     return (
         <Modal
