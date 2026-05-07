@@ -38,7 +38,10 @@ export default function SongsCatalogScreen() {
     useEffect(() => {
         setLoading(true);
         store.loadSongs({ sortBy: 'listens', sortOrder: 'desc' }).finally(() => setLoading(false));
-    }, [store]);
+        // We intentionally run this once on mount. Including `store` in deps can
+        // cause repeated requests due to object identity changes in context.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
     useEffect(() => {
         const prefill = location.state && location.state.prefillTitle;
