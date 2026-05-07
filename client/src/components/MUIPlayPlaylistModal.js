@@ -199,104 +199,106 @@ export default function MUIPlayPlaylistModal() {
     if (!isOpen) return null;
 
     return (
-        <Modal
-            open={store.isPlayPlaylistModalOpen()}
-            onClose={handleClose}
-            aria-labelledby="play-playlist-modal-title"
-            onKeyDown={(e) => {
-                if (e.key === ' ') {
-                    e.preventDefault();
-                    handlePlayPause();
-                } else if (e.key === 'ArrowLeft') {
-                    e.preventDefault();
-                    previous();
-                } else if (e.key === 'ArrowRight') {
-                    e.preventDefault();
-                    next();
-                }
-            }}
-        >
-            <Box
-                sx={{
-                    position: 'absolute',
-                    top: '50%',
-                    left: '50%',
-                    transform: 'translate(-50%, -50%)',
-                    width: { xs: '96vw', md: '82vw' },
-                    maxWidth: 1100,
-                    height: { xs: '90vh', md: '80vh' },
-                    bgcolor: '#121212',
-                    borderRadius: 2,
-                    border: '1px solid rgba(255,255,255,0.08)',
-                    boxShadow: '0 24px 80px rgba(0,0,0,0.8)',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    overflow: 'hidden',
+        <>
+            <Modal
+                open={store.isPlayPlaylistModalOpen()}
+                onClose={handleClose}
+                aria-labelledby="play-playlist-modal-title"
+                onKeyDown={(e) => {
+                    if (e.key === ' ') {
+                        e.preventDefault();
+                        handlePlayPause();
+                    } else if (e.key === 'ArrowLeft') {
+                        e.preventDefault();
+                        previous();
+                    } else if (e.key === 'ArrowRight') {
+                        e.preventDefault();
+                        next();
+                    }
                 }}
             >
-                {/* Header */}
                 <Box
                     sx={{
-                        px: 3,
-                        py: 1.5,
+                        position: 'absolute',
+                        top: '50%',
+                        left: '50%',
+                        transform: 'translate(-50%, -50%)',
+                        width: { xs: '96vw', md: '82vw' },
+                        maxWidth: 1100,
+                        height: { xs: '90vh', md: '80vh' },
+                        bgcolor: '#121212',
+                        borderRadius: 2,
+                        border: '1px solid rgba(255,255,255,0.08)',
+                        boxShadow: '0 24px 80px rgba(0,0,0,0.8)',
                         display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        borderBottom: '1px solid rgba(255,255,255,0.06)',
-                        bgcolor: '#181818',
-                        flexShrink: 0,
+                        flexDirection: 'column',
+                        overflow: 'hidden',
                     }}
                 >
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <LibraryMusicIcon sx={{ color: '#1DB954', fontSize: 22 }} />
-                        <Typography id="play-playlist-modal-title" sx={{ fontWeight: 700, fontSize: '1rem', color: '#fff' }}>
-                            {playlist.name}
-                        </Typography>
-                        <Typography sx={{ fontSize: '0.8rem', color: '#B3B3B3', ml: 0.5 }}>
-                            · {playlist.songs ? playlist.songs.length : 0} songs
-                        </Typography>
+                    {/* Header */}
+                    <Box
+                        sx={{
+                            px: 3,
+                            py: 1.5,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            borderBottom: '1px solid rgba(255,255,255,0.06)',
+                            bgcolor: '#181818',
+                            flexShrink: 0,
+                        }}
+                    >
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <LibraryMusicIcon sx={{ color: '#1DB954', fontSize: 22 }} />
+                            <Typography id="play-playlist-modal-title" sx={{ fontWeight: 700, fontSize: '1rem', color: '#fff' }}>
+                                {playlist.name}
+                            </Typography>
+                            <Typography sx={{ fontSize: '0.8rem', color: '#B3B3B3', ml: 0.5 }}>
+                                · {playlist.songs ? playlist.songs.length : 0} songs
+                            </Typography>
+                        </Box>
+                        <IconButton aria-label="Close player" onClick={handleClose} size="small" sx={{ color: '#B3B3B3', '&:hover': { color: '#fff' } }}>
+                            <CloseIcon />
+                        </IconButton>
                     </Box>
-                    <IconButton aria-label="Close player" onClick={handleClose} size="small" sx={{ color: '#B3B3B3', '&:hover': { color: '#fff' } }}>
-                        <CloseIcon />
-                    </IconButton>
-                </Box>
 
-                {/* Body */}
-                <Box sx={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
-                    <PlaylistQueue
-                        songs={playlist.songs || []}
-                        currentSongIndex={currentSongIndex}
-                        isPlaying={isPlaying}
-                        onSelectSong={handleSongClick}
-                    />
-
-                    <Box sx={{ position: 'relative', flex: 1, display: 'flex' }}>
-                        <PlayerSurface
-                            currentSong={currentSong}
+                    {/* Body */}
+                    <Box sx={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
+                        <PlaylistQueue
+                            songs={playlist.songs || []}
+                            currentSongIndex={currentSongIndex}
                             isPlaying={isPlaying}
-                            repeat={repeat}
-                            onToggleRepeat={() => setRepeat((r) => !r)}
-                            onPrevious={previous}
-                            onPlayPause={handlePlayPause}
-                            onNext={next}
-                            onOpenSongMenu={openSongMenu}
-                            playButtonRef={playButtonRef}
+                            onSelectSong={handleSongClick}
                         />
 
-                        <SongActionsMenu
-                            songMenuAnchor={songMenuAnchor}
-                            playlistMenuAnchor={playlistMenuAnchor}
-                            onCloseSongMenu={closeSongMenu}
-                            onShowPlaylistMenu={showPlaylistMenu}
-                            onHidePlaylistMenu={hidePlaylistMenu}
-                            onLikeSong={handleLikeSong}
-                            userPlaylists={userPlaylists}
-                            idNamePairsLoading={idNamePairsLoading}
-                            onAddToPlaylist={handleAddToPlaylist}
-                        />
+                        <Box sx={{ position: 'relative', flex: 1, display: 'flex' }}>
+                            <PlayerSurface
+                                currentSong={currentSong}
+                                isPlaying={isPlaying}
+                                repeat={repeat}
+                                onToggleRepeat={() => setRepeat((r) => !r)}
+                                onPrevious={previous}
+                                onPlayPause={handlePlayPause}
+                                onNext={next}
+                                onOpenSongMenu={openSongMenu}
+                                playButtonRef={playButtonRef}
+                            />
+
+                            <SongActionsMenu
+                                songMenuAnchor={songMenuAnchor}
+                                playlistMenuAnchor={playlistMenuAnchor}
+                                onCloseSongMenu={closeSongMenu}
+                                onShowPlaylistMenu={showPlaylistMenu}
+                                onHidePlaylistMenu={hidePlaylistMenu}
+                                onLikeSong={handleLikeSong}
+                                userPlaylists={userPlaylists}
+                                idNamePairsLoading={idNamePairsLoading}
+                                onAddToPlaylist={handleAddToPlaylist}
+                            />
+                        </Box>
                     </Box>
                 </Box>
-            </Box>
+            </Modal>
 
             <Dialog
                 open={infoDialogOpen}
@@ -309,6 +311,6 @@ export default function MUIPlayPlaylistModal() {
                     <Button onClick={() => setInfoDialogOpen(false)} sx={{ color: '#1DB954' }}>OK</Button>
                 </DialogActions>
             </Dialog>
-        </Modal>
+        </>
     );
 }
