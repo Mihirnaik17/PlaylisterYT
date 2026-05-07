@@ -46,6 +46,7 @@ export const getAllSongs = async (searchParams = {}) => {
         
         const response = await fetch(url, {
             credentials: "include",
+            cache: 'no-store',
         });
         const data = await handleresponse(response);
         return data;
@@ -60,6 +61,7 @@ export const getSongById = async (id) => {
     try{
         const response = await fetch(`${baseURL}/song/${id}`, {
             credentials: "include",
+            cache: 'no-store',
         });
         const data = await handleresponse(response);
         return data;
@@ -141,6 +143,7 @@ export const getUserSongs = async () => {
     try{
         const response = await fetch(`${baseURL}/songs/user`, {
             credentials: "include",
+            cache: 'no-store',
         });
         const data = await handleresponse(response);
         return data;
@@ -159,6 +162,7 @@ export const lookupSong = async ({ title, artist, year }) => {
     try {
         const response = await fetch(`${baseURL}/songs/lookup?${queryParams.toString()}`, {
             credentials: "include",
+            cache: 'no-store',
         });
         const data = await handleresponse(response);
         return data;

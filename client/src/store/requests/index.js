@@ -73,6 +73,7 @@ export const getPlaylistById = async (id) => {
     try{
         const response = await fetch(`${baseURL}/playlist/${id}`,{
             credentials: "include",
+            cache: 'no-store',
         });
         const data = await handleresponse(response);
         return data;
@@ -86,6 +87,7 @@ export const getPlaylistPairs = async () => {
     try{
         const response = await fetch(`${baseURL}/playlistpairs/`,{
             credentials: "include",
+            cache: 'no-store',
         });
         const data = await handleresponse(response);
         return data;
@@ -231,6 +233,7 @@ export const getPublishedPlaylists = async (page = 1, limit = 15) => {
     try{
         const response = await fetch(`${baseURL}/playlists/published?page=${page}&limit=${limit}`,{
             credentials: "include"
+            ,cache: 'no-store'
         });
         const data = await handleresponse(response);
         return data;
