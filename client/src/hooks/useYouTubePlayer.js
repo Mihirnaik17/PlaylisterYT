@@ -73,7 +73,14 @@ export function useYouTubePlayer({
         height: '100%',
         width: '100%',
         videoId,
-        playerVars: playerVars || { autoplay: 0, controls: 1, modestbranding: 1, rel: 0 },
+        playerVars: playerVars || {
+          autoplay: 0,
+          controls: 1,
+          modestbranding: 1,
+          rel: 0,
+          enablejsapi: 1,
+          origin: window.location.origin,
+        },
         events: {
           onReady: (event) => {
             playerReadyRef.current = true;
