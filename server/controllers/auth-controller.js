@@ -14,7 +14,6 @@ getLoggedIn = async (req, res) => {
         }
 
         const loggedInUser = await dbManager.getUserById(userId);
-        console.log("loggedInUser: " + loggedInUser);
 
         return res.status(200).json({
             loggedIn: true,
@@ -27,13 +26,12 @@ getLoggedIn = async (req, res) => {
             }
         })
     } catch (err) {
-        console.log("err: " + err);
+        console.error(err);
         res.json(false);
     }
 }
 
 loginUser = async (req, res) => {
-    console.log("loginUser");
     try {
         const { email, password } = req.body;
 
@@ -44,7 +42,6 @@ loginUser = async (req, res) => {
         }
 
         const existingUser = await dbManager.getUserByEmail(email);
-        console.log("existingUser: " + existingUser);
         if (!existingUser) {
             return res
                 .status(401)
@@ -53,19 +50,16 @@ loginUser = async (req, res) => {
                 })
         }
 
-        console.log("provided password: " + password);
         const passwordCorrect = await bcrypt.compare(password, existingUser.passwordHash);
         if (!passwordCorrect) {
-            console.log("Incorrect password");
             return res
                 .status(401)
                 .json({
                     errorMessage: "Wrong email or password provided."
-                })  
+                })
         }
 
         const token = auth.signToken(existingUser.id || existingUser._id);
-        console.log(token);
 
         res.cookie("token", token, {
             httpOnly: true,
@@ -76,7 +70,7 @@ loginUser = async (req, res) => {
             user: {
                 firstName: existingUser.firstName,
                 lastName: existingUser.lastName,
-                username: existingUser.username,  
+                username: existingUser.username,
                 email: existingUser.email,
                 avatar: existingUser.avatar
             }
@@ -98,16 +92,13 @@ logoutUser = async (req, res) => {
 }
 
 registerUser = async (req, res) => {
-    console.log("REGISTERING USER IN BACKEND");
     try {
         const { firstName, lastName, username, email, password, passwordVerify, avatar } = req.body;
-        console.log("create user: " + firstName + " " + lastName + " " + email + " " + password + " " + passwordVerify);
         if (!firstName || !lastName || !email || !username|| !password || !passwordVerify) {
             return res
                 .status(400)
                 .json({ errorMessage: "Please enter all required fields." });
         }
-        console.log("all fields provided");
 
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if (!emailRegex.test(email)) {
@@ -123,7 +114,6 @@ registerUser = async (req, res) => {
                     errorMessage: "Please enter a password of at least 8 characters."
                 });
         }
-        console.log("password long enough");
         if (password !== passwordVerify) {
             return res
                 .status(400)
@@ -131,9 +121,7 @@ registerUser = async (req, res) => {
                     errorMessage: "Please enter the same password twice."
                 })
         }
-        console.log("password and password verify match");
         const existingUser = await dbManager.getUserByEmail(email);
-        console.log("existingUser: " + existingUser);
         if (existingUser) {
             return res
                 .status(400)
@@ -156,10 +144,8 @@ registerUser = async (req, res) => {
         const saltRounds = 10;
         const salt = await bcrypt.genSalt(saltRounds);
         const passwordHash = await bcrypt.hash(password, salt);
-        console.log("passwordHash: " + passwordHash);
 
-        const savedUser = await dbManager.createUser({firstName, lastName, username, email, passwordHash, avatar});
-        console.log("new user saved: " + (savedUser.id || savedUser._id));
+        await dbManager.createUser({firstName, lastName, username, email, passwordHash, avatar});
 
         return res.status(200).json({
             success: true
@@ -172,7 +158,6 @@ registerUser = async (req, res) => {
 }
 
 editUser = async (req, res) => {
-    console.log("EDITING USER IN BACKEND");
     try {
         const userId = auth.verifyUser(req);
         if (!userId) {
@@ -234,7 +219,6 @@ editUser = async (req, res) => {
         }
 
         const savedUser = await user.save();
-        console.log("user updated: " + (savedUser.id || savedUser._id));
 
         return res.status(200).json({
             success: true,

@@ -12,7 +12,6 @@ import songApi from './SongRequests'
 
 // THIS IS THE CONTEXT WE'LL USE TO SHARE OUR STORE
 export const GlobalStoreContext = createContext({});
-console.log("create GlobalStoreContext");
 
 // THESE ARE ALL THE TYPES OF UPDATES TO OUR GLOBAL
 // DATA STORE STATE THAT CAN BE PROCESSED
@@ -79,11 +78,9 @@ function GlobalStoreContextProvider(props) {
     });
     const history = useHistory();
 
-    console.log("inside useGlobalStore");
 
     // SINCE WE'VE WRAPPED THE STORE IN THE AUTH CONTEXT WE CAN ACCESS THE USER HERE
     const { auth } = useContext(AuthContext);
-    console.log("auth: " + auth);
 
     // HERE'S THE DATA STORE'S REDUCER, IT MUST
     // HANDLE EVERY TYPE OF STATE CHANGE
@@ -412,7 +409,6 @@ function GlobalStoreContextProvider(props) {
 store.createNewList = async function () {
     let newListName = "Untitled" + store.newListCounter;
     const response = await storeRequestSender.createPlaylist(newListName, [], auth.user.email);
-    console.log("createNewList response: " + response);
     if (response.status === 201) {
         tps.clearAllTransactions();
         let newList = response.data.playlist;
@@ -423,7 +419,6 @@ store.createNewList = async function () {
         });
     }
     else {
-        console.log("FAILED TO CREATE A NEW LIST");
     }
 }
     // Expose the pagination ref so components can read totalPages after re-render
@@ -464,7 +459,6 @@ store.createNewList = async function () {
                         // ignore storage quota issues
                     }
                 } else {
-                    console.log("FAILED TO GET PUBLISHED PLAYLISTS");
                 }
             } catch (e) {
                 console.error("FAILED TO GET PUBLISHED PLAYLISTS", e);
@@ -485,7 +479,6 @@ store.createNewList = async function () {
                 const pairsArray = response.data.idNamePairs || response.data.data;
                 storeReducer({ type: GlobalStoreActionType.LOAD_ID_NAME_PAIRS, payload: pairsArray });
             } else {
-                console.log("FAILED TO GET THE LIST PAIRS");
             }
         }
         asyncLoadIdNamePairs();
@@ -750,12 +743,9 @@ store.createNewList = async function () {
 
    store.searchPlaylists = function (searchParams) {
     async function asyncSearchPlaylists(searchParams) {
-        console.log('SEARCH: Calling API with params:', searchParams);
         let response = await storeRequestSender.searchPlaylists(searchParams);
-        console.log('SEARCH: API response:', response.data);
         if (response.data.success) {
             let pairsArray = response.data.data;
-            console.log('SEARCH: Setting pairs:', pairsArray);
             storeReducer({
                 type: GlobalStoreActionType.LOAD_ID_NAME_PAIRS,
                 payload: pairsArray

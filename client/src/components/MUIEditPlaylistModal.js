@@ -1,5 +1,5 @@
 import { useContext, useState, useEffect } from 'react'
-import GlobalStoreContext from '../store';
+import { GlobalStoreContext } from '../store';
 import Box from '@mui/material/Box';
 import Modal from '@mui/material/Modal';
 import Typography from '@mui/material/Typography';
@@ -15,6 +15,7 @@ import UndoIcon from '@mui/icons-material/Undo';
 import RedoIcon from '@mui/icons-material/Redo';
 import MusicNoteIcon from '@mui/icons-material/MusicNote';
 import AddIcon from '@mui/icons-material/Add';
+import DragIndicatorIcon from '@mui/icons-material/DragIndicator';
 
 export default function MUIEditPlaylistModal() {
     const { store } = useContext(GlobalStoreContext);
@@ -41,7 +42,7 @@ export default function MUIEditPlaylistModal() {
         setPlaylistName(event.target.value);
     }
 
-    function handleNameKeyPress(event) {
+    function handleNameKeyDown(event) {
         if (event.code === "Enter" && playlistName.trim() !== '') {
             event.stopPropagation();
             store.currentList.name = playlistName;
@@ -58,13 +59,7 @@ export default function MUIEditPlaylistModal() {
         event.stopPropagation();
         event.preventDefault();
         let song = store.currentList.songs[index];
-        store.addCreateSongTransaction(
-            index + 1,
-            song.title,
-            song.artist,
-            song.year,
-            song.youTubeId
-        );
+        store.addCreateSongTransaction(index + 1, song.title, song.artist, song.year, song.youTubeId);
     }
 
     function handleRemoveSong(index, event) {
@@ -110,87 +105,101 @@ export default function MUIEditPlaylistModal() {
             open={store.isEditPlaylistModalOpen()}
             onClose={(e) => e.stopPropagation()}
         >
-            <Box 
+            <Box
                 onClick={(e) => e.stopPropagation()}
                 sx={{
                     position: 'absolute',
                     top: '50%',
                     left: '50%',
                     transform: 'translate(-50%, -50%)',
-                    width: '600px',
-                    bgcolor: '#90EE90',
-                    boxShadow: 24,
+                    width: { xs: '95vw', sm: 600 },
+                    bgcolor: '#181818',
+                    border: '1px solid rgba(255,255,255,0.08)',
+                    boxShadow: '0 24px 80px rgba(0,0,0,0.8)',
                     borderRadius: 2,
-                    outline: 'none'
+                    outline: 'none',
+                    overflow: 'hidden',
                 }}
             >
+                {/* Header */}
                 <Box sx={{
-                    bgcolor: '#228B22',
-                    color: 'white',
+                    bgcolor: '#282828',
                     px: 2,
-                    py: 1,
-                    borderTopLeftRadius: 8,
-                    borderTopRightRadius: 8
+                    py: 1.5,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    borderBottom: '1px solid rgba(255,255,255,0.06)',
                 }}>
-                    <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>
+                    <Typography variant="subtitle1" sx={{ fontWeight: 700, color: '#fff' }}>
                         Edit Playlist
                     </Typography>
+                    <IconButton size="small" onClick={handleClose} sx={{ color: '#B3B3B3', '&:hover': { color: '#fff' } }}>
+                        <CloseIcon fontSize="small" />
+                    </IconButton>
                 </Box>
 
                 <Box sx={{ p: 2 }}>
-                    <Box sx={{ 
-                        display: 'flex', 
-                        alignItems: 'center', 
-                        gap: 1,
-                        mb: 2
-                    }}>
+                    {/* Playlist name + add song */}
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
                         <TextField
                             value={playlistName}
                             onChange={handleNameChange}
-                            onKeyPress={handleNameKeyPress}
+                            onKeyDown={handleNameKeyDown}
                             variant="standard"
+                            placeholder="Playlist name"
                             sx={{
                                 flexGrow: 1,
                                 '& .MuiInput-root': {
-                                    fontSize: '1.5rem',
-                                    fontWeight: 'bold'
-                                }
+                                    fontSize: '1.3rem',
+                                    fontWeight: 700,
+                                    color: '#fff',
+                                },
+                                '& .MuiInput-underline:before': { borderBottomColor: 'rgba(255,255,255,0.1)' },
+                                '& .MuiInput-underline:hover:before': { borderBottomColor: 'primary.main' },
+                                '& .MuiInput-underline:after': { borderBottomColor: 'primary.main' },
+                                input: { color: '#fff' },
                             }}
-                            InputProps={{
-                                disableUnderline: true
-                            }}
+                            InputProps={{ disableUnderline: false }}
                         />
-                        <IconButton 
+                        <IconButton
                             onClick={handleClearName}
                             size="small"
-                            sx={{ color: '#666' }}
+                            sx={{ color: '#B3B3B3', '&:hover': { color: '#fff' } }}
                         >
                             <ClearIcon fontSize="small" />
                         </IconButton>
                         <Button
                             variant="contained"
                             onClick={handleAddSong}
-                            sx={{
-                                bgcolor: '#6B238E',
-                                color: 'white',
-                                minWidth: '50px',
-                                '&:hover': { bgcolor: '#5B1E7E' }
-                            }}
+                            color="primary"
+                            size="small"
+                            startIcon={<AddIcon />}
+                            sx={{ minWidth: 'auto', whiteSpace: 'nowrap' }}
                         >
-                            <AddIcon fontSize="small" />
                             <MusicNoteIcon fontSize="small" />
                         </Button>
                     </Box>
 
+                    {/* Song list */}
                     <Box sx={{
-                        bgcolor: '#FFF8DC',
+                        bgcolor: '#121212',
                         borderRadius: 1,
-                        minHeight: '300px',
-                        maxHeight: '400px',
+                        minHeight: 200,
+                        maxHeight: 360,
                         overflow: 'auto',
-                        p: 1
+                        border: '1px solid rgba(255,255,255,0.06)',
+                        p: 0.5,
                     }}>
                         <List sx={{ p: 0 }}>
+                            {songs.length === 0 && (
+                                <Box sx={{ textAlign: 'center', py: 6 }}>
+                                    <MusicNoteIcon sx={{ fontSize: 40, color: '#535353', mb: 1 }} />
+                                    <Typography variant="body2" color="text.disabled">
+                                        No songs yet — click the + button to add one
+                                    </Typography>
+                                </Box>
+                            )}
                             {songs.map((song, index) => (
                                 <ListItem
                                     key={index}
@@ -199,34 +208,41 @@ export default function MUIEditPlaylistModal() {
                                     onDragOver={handleDragOver}
                                     onDrop={(e) => handleDrop(e, index)}
                                     sx={{
-                                        bgcolor: 'white',
-                                        border: '2px solid #333',
+                                        bgcolor: '#282828',
+                                        border: '1px solid rgba(255,255,255,0.06)',
                                         borderRadius: 1,
-                                        mb: 1,
-                                        py: 1.5,
-                                        px: 2,
+                                        mb: 0.5,
+                                        py: 1,
+                                        px: 1.5,
                                         display: 'flex',
                                         justifyContent: 'space-between',
-                                        alignItems: 'center'
+                                        alignItems: 'center',
+                                        cursor: 'grab',
+                                        transition: 'background 0.12s',
+                                        '&:hover': { bgcolor: '#333' },
+                                        '&:active': { cursor: 'grabbing' },
                                     }}
                                 >
-                                    <Typography sx={{ fontWeight: 500 }}>
-                                        {index + 1}. {song.title} by {song.artist} ({song.year})
-                                    </Typography>
-                                    <Box sx={{ display: 'flex', gap: 1 }}>
-                                        <IconButton 
+                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minWidth: 0 }}>
+                                        <DragIndicatorIcon sx={{ fontSize: 18, color: '#535353', flexShrink: 0 }} />
+                                        <Typography sx={{ fontWeight: 500, fontSize: '0.9rem', color: '#fff' }} noWrap>
+                                            {index + 1}. {song.title} by {song.artist} ({song.year})
+                                        </Typography>
+                                    </Box>
+                                    <Box sx={{ display: 'flex', gap: 0.5, flexShrink: 0 }}>
+                                        <IconButton
                                             onClick={(e) => handleDuplicateSong(index, e)}
                                             size="small"
-                                            sx={{ color: '#333' }}
+                                            sx={{ color: '#B3B3B3', '&:hover': { color: '#1DB954' } }}
                                         >
-                                            <ContentCopyIcon />
+                                            <ContentCopyIcon fontSize="small" />
                                         </IconButton>
-                                        <IconButton 
+                                        <IconButton
                                             onClick={(e) => handleRemoveSong(index, e)}
                                             size="small"
-                                            sx={{ color: '#333' }}
+                                            sx={{ color: '#B3B3B3', '&:hover': { color: '#f44336' } }}
                                         >
-                                            <CloseIcon />
+                                            <CloseIcon fontSize="small" />
                                         </IconButton>
                                     </Box>
                                 </ListItem>
@@ -234,39 +250,40 @@ export default function MUIEditPlaylistModal() {
                         </List>
                     </Box>
 
-                    <Box sx={{ 
-                        display: 'flex', 
+                    {/* Footer: undo/redo + close */}
+                    <Box sx={{
+                        display: 'flex',
                         justifyContent: 'space-between',
                         alignItems: 'center',
-                        mt: 2 
+                        mt: 2,
                     }}>
                         <Box sx={{ display: 'flex', gap: 1 }}>
                             <Button
-                                variant="contained"
+                                variant="outlined"
                                 startIcon={<UndoIcon />}
                                 onClick={handleUndo}
                                 disabled={!store.canUndo()}
+                                size="small"
                                 sx={{
-                                    bgcolor: '#6B238E',
-                                    color: 'white',
-                                    textTransform: 'none',
-                                    '&:hover': { bgcolor: '#5B1E7E' },
-                                    '&:disabled': { bgcolor: '#9B69B0', color: '#ddd' }
+                                    borderColor: 'rgba(255,255,255,0.2)',
+                                    color: '#B3B3B3',
+                                    '&:hover': { borderColor: '#1DB954', color: '#1DB954' },
+                                    '&:disabled': { borderColor: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.2)' },
                                 }}
                             >
                                 Undo
                             </Button>
                             <Button
-                                variant="contained"
+                                variant="outlined"
                                 startIcon={<RedoIcon />}
                                 onClick={handleRedo}
                                 disabled={!store.canRedo()}
+                                size="small"
                                 sx={{
-                                    bgcolor: '#6B238E',
-                                    color: 'white',
-                                    textTransform: 'none',
-                                    '&:hover': { bgcolor: '#5B1E7E' },
-                                    '&:disabled': { bgcolor: '#9B69B0', color: '#ddd' }
+                                    borderColor: 'rgba(255,255,255,0.2)',
+                                    color: '#B3B3B3',
+                                    '&:hover': { borderColor: '#1DB954', color: '#1DB954' },
+                                    '&:disabled': { borderColor: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.2)' },
                                 }}
                             >
                                 Redo
@@ -275,13 +292,9 @@ export default function MUIEditPlaylistModal() {
                         <Button
                             variant="contained"
                             onClick={handleClose}
-                            sx={{
-                                bgcolor: '#6B238E',
-                                color: 'white',
-                                textTransform: 'none',
-                                px: 4,
-                                '&:hover': { bgcolor: '#5B1E7E' }
-                            }}
+                            color="primary"
+                            size="small"
+                            sx={{ px: 3 }}
                         >
                             Close
                         </Button>

@@ -47,11 +47,9 @@ export default function RegisterScreen() {
     };
 
     let modalJSX = ""
-    console.log(auth);
     if (auth.errorMessage !== null){
         modalJSX = <MUIErrorModal />;
     }
-    console.log(modalJSX);
 
     return (
         <Box sx={{ minHeight: '100vh', bgcolor: 'background.default', py: 6, px: 2 }}>

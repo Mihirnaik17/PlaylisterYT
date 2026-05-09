@@ -6,6 +6,8 @@ import Button from '@mui/material/Button';
 import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
 import Avatar from '@mui/material/Avatar';
+import Snackbar from '@mui/material/Snackbar';
+import MuiAlert from '@mui/material/Alert';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import IconButton from '@mui/material/IconButton';
@@ -20,7 +22,11 @@ function PlaylistCard(props) {
     const [expanded, setExpanded] = useState(false);
     const [text, setText] = useState("");
     const [commentText, setCommentText] = useState("");
+    const [snack, setSnack] = useState({ open: false, msg: '', severity: 'info' });
     const { idNamePair } = props;
+
+    const notify = (msg, severity = 'info') => setSnack({ open: true, msg, severity });
+    const closeSnack = () => setSnack(s => ({ ...s, open: false }));
 
     function handleToggleEdit(event) {
         event.stopPropagation();
@@ -44,14 +50,14 @@ function PlaylistCard(props) {
     async function handleCopyPlaylist(event) {
         event.stopPropagation();
         if (auth.isGuest) {
-            alert('Please log in to copy playlists');
+            notify('Login to copy playlists.', 'warning');
             return;
         }
         const result = await store.copyPlaylist(idNamePair._id);
         if (result && result.success) {
-            alert('Playlist copied successfully!');
+            notify('Playlist copied!', 'success');
         } else {
-            alert('Failed to copy playlist');
+            notify('Failed to copy playlist.', 'error');
         }
     }
 
@@ -79,7 +85,7 @@ function PlaylistCard(props) {
     async function handleLike(event) {
         event.stopPropagation();
         if (auth.isGuest) {
-            alert('Please log in to like playlists');
+            notify('Login to like playlists.', 'warning');
             return;
         }
         await store.likePlaylist(idNamePair._id);
@@ -88,7 +94,7 @@ function PlaylistCard(props) {
     async function handleDislike(event) {
         event.stopPropagation();
         if (auth.isGuest) {
-            alert('Please log in to dislike playlists');
+            notify('Login to dislike playlists.', 'warning');
             return;
         }
         await store.dislikePlaylist(idNamePair._id);
@@ -97,7 +103,7 @@ function PlaylistCard(props) {
     async function handleAddComment(event) {
         event.stopPropagation();
         if (!commentText.trim()) {
-            alert('Comment cannot be empty');
+            notify('Comment cannot be empty.', 'warning');
             return;
         }
         await store.addComment(idNamePair._id, commentText);
@@ -144,12 +150,8 @@ function PlaylistCard(props) {
                                 variant="contained"
                                 size="small"
                                 onClick={handleDeleteList}
-                                sx={{
-                                    bgcolor: '#f44336',
-                                    color: 'white',
-                                    minWidth: '70px',
-                                    '&:hover': { bgcolor: '#d32f2f' }
-                                }}
+                                color="error"
+                                sx={{ minWidth: '70px' }}
                             >
                                 DELETE
                             </Button>
@@ -157,12 +159,8 @@ function PlaylistCard(props) {
                                 variant="contained"
                                 size="small"
                                 onClick={handleToggleEdit}
-                                sx={{
-                                    bgcolor: '#1976d2',
-                                    color: 'white',
-                                    minWidth: '60px',
-                                    '&:hover': { bgcolor: '#1565c0' }
-                                }}
+                                color="primary"
+                                sx={{ minWidth: '60px' }}
                             >
                                 EDIT
                             </Button>
@@ -173,12 +171,8 @@ function PlaylistCard(props) {
                             variant="contained"
                             size="small"
                             onClick={handleCopyPlaylist}
-                            sx={{
-                                bgcolor: '#4caf50',
-                                color: 'white',
-                                minWidth: '60px',
-                                '&:hover': { bgcolor: '#45a049' }
-                            }}
+                            color="secondary"
+                            sx={{ minWidth: '60px' }}
                         >
                             COPY
                         </Button>
@@ -187,12 +181,8 @@ function PlaylistCard(props) {
                         variant="contained"
                         size="small"
                         onClick={handlePlayPlaylist}
-                        sx={{
-                            bgcolor: '#e91e63',
-                            color: 'white',
-                            minWidth: '60px',
-                            '&:hover': { bgcolor: '#c2185b' }
-                        }}
+                        color="primary"
+                        sx={{ minWidth: '60px' }}
                     >
                         PLAY
                     </Button>
@@ -224,14 +214,8 @@ function PlaylistCard(props) {
                                         store.publishPlaylist(idNamePair._id);
                                     }
                                 }}
-                                sx={{
-                                    bgcolor: idNamePair.published ? '#ff9800' : '#4caf50',
-                                    color: 'white',
-                                    minWidth: '100px',
-                                    '&:hover': { 
-                                        bgcolor: idNamePair.published ? '#f57c00' : '#45a049' 
-                                    }
-                                }}
+                                color={idNamePair.published ? 'warning' : 'success'}
+                                sx={{ minWidth: '100px' }}
                             >
                                 {idNamePair.published ? 'UNPUBLISH' : 'PUBLISH'}
                             </Button>
@@ -245,18 +229,7 @@ function PlaylistCard(props) {
                             startIcon={<ThumbUpIcon />}
                             onClick={handleLike}
                             disabled={auth.isGuest}
-                            sx={{
-                                borderColor: '#4caf50',
-                                color: '#4caf50',
-                                '&:hover': {
-                                    borderColor: '#45a049',
-                                    bgcolor: '#f1f8f4'
-                                },
-                                '&:disabled': {
-                                    borderColor: '#ccc',
-                                    color: '#999'
-                                }
-                            }}
+                            color="primary"
                         >
                             Like ({idNamePair.likes || 0})
                         </Button>
@@ -265,18 +238,7 @@ function PlaylistCard(props) {
                             startIcon={<ThumbDownIcon />}
                             onClick={handleDislike}
                             disabled={auth.isGuest}
-                            sx={{
-                                borderColor: '#f44336',
-                                color: '#f44336',
-                                '&:hover': {
-                                    borderColor: '#d32f2f',
-                                    bgcolor: '#fef1f0'
-                                },
-                                '&:disabled': {
-                                    borderColor: '#ccc',
-                                    color: '#999'
-                                }
-                            }}
+                            color="error"
                         >
                             Dislike ({idNamePair.dislikes || 0})
                         </Button>
@@ -288,7 +250,6 @@ function PlaylistCard(props) {
                             Comments ({idNamePair.comments ? idNamePair.comments.length : 0})
                         </Typography>
 
-                        {/* Display Comments */}
                         <Box sx={{ mb: 2, maxHeight: '200px', overflowY: 'auto' }}>
                             {idNamePair.comments && idNamePair.comments.length > 0 ? (
                                 idNamePair.comments.map((comment, idx) => (
@@ -316,10 +277,7 @@ function PlaylistCard(props) {
                                                 <IconButton
                                                     size="small"
                                                     onClick={(e) => handleDeleteComment(e, idx)}
-                                                    sx={{
-                                                        color: '#f44336',
-                                                        '&:hover': { bgcolor: '#ffebee' }
-                                                    }}
+                                                    color="error"
                                                 >
                                                     <DeleteIcon fontSize="small" />
                                                 </IconButton>
@@ -328,13 +286,12 @@ function PlaylistCard(props) {
                                     </Box>
                                 ))
                             ) : (
-                                <Typography variant="body2" sx={{ color: '#999', fontStyle: 'italic' }}>
+                                <Typography variant="body2" color="text.disabled" sx={{ fontStyle: 'italic' }}>
                                     No comments yet. Be the first to comment!
                                 </Typography>
                             )}
                         </Box>
 
-                        {/* Add Comment Input */}
                         {!auth.isGuest && (
                             <Box sx={{ display: 'flex', gap: 1, mt: 2 }}>
                                 <TextField
@@ -343,41 +300,36 @@ function PlaylistCard(props) {
                                     placeholder="Add a comment..."
                                     value={commentText}
                                     onChange={(e) => setCommentText(e.target.value)}
-                                    onKeyPress={(e) => {
-                                        if (e.key === 'Enter') {
-                                            handleAddComment(e);
-                                        }
-                                    }}
-                                    sx={{
-                                        '& .MuiOutlinedInput-root': {
-                                            '&:hover fieldset': {
-                                                borderColor: 'primary.main',
-                                            },
-                                        },
+                                    onKeyDown={(e) => {
+                                        if (e.key === 'Enter') handleAddComment(e);
                                     }}
                                 />
                                 <Button
                                     variant="contained"
                                     onClick={handleAddComment}
                                     disabled={!commentText.trim()}
-                                    sx={{
-                                        bgcolor: '#1976d2',
-                                        '&:hover': { bgcolor: '#1565c0' },
-                                        minWidth: '80px'
-                                    }}
+                                    color="primary"
+                                    sx={{ minWidth: '80px' }}
                                 >
                                     Post
                                 </Button>
                             </Box>
                         )}
                         {auth.isGuest && (
-                            <Typography variant="caption" sx={{ color: '#999', fontStyle: 'italic', display: 'block', mt: 2 }}>
+                            <Typography variant="caption" color="text.disabled" sx={{ fontStyle: 'italic', display: 'block', mt: 2 }}>
                                 Log in to add comments
                             </Typography>
                         )}
                     </Box>
                 </Box>
             )}
+
+            <Snackbar open={snack.open} autoHideDuration={3000} onClose={closeSnack}
+                anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}>
+                <MuiAlert onClose={closeSnack} severity={snack.severity} variant="filled" sx={{ width: '100%' }}>
+                    {snack.msg}
+                </MuiAlert>
+            </Snackbar>
         </Box>
 
     if (editActive) {
@@ -391,7 +343,7 @@ function PlaylistCard(props) {
                 name="name"
                 autoComplete="Playlist Name"
                 className='list-card'
-                onKeyPress={handleKeyPress}
+                onKeyDown={handleKeyPress}
                 onChange={handleUpdateText}
                 defaultValue={idNamePair.name}
                 inputProps={{style: {fontSize: 18}}}

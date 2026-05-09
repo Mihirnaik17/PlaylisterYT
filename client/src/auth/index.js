@@ -3,7 +3,6 @@ import { useHistory } from 'react-router-dom'
 import authRequestSender from './requests'
 
 const AuthContext = createContext();
-console.log("create AuthContext: " + AuthContext);
 
 export const AuthActionType = {
     GET_LOGGED_IN: "GET_LOGGED_IN",
@@ -96,11 +95,9 @@ function AuthContextProvider(props) {
     auth.getLoggedIn = getLoggedIn;
 
     auth.registerUser = async function(firstName, lastName, username, email, password, passwordVerify, avatar) {
-        console.log("REGISTERING USER");
         try{   
             const response = await authRequestSender.registerUser(firstName, lastName, username, email, password, passwordVerify, avatar);   
             if (response.status === 200) {
-                console.log("Registered Sucessfully");
                 authReducer({
                     type: AuthActionType.REGISTER_USER,
                     payload: {
@@ -173,7 +170,6 @@ function AuthContextProvider(props) {
                 initials += auth.user.lastName.charAt(0);
             }
         }
-        console.log("user initials: " + initials);
         return initials;
     }
 

@@ -13,7 +13,6 @@ createPlaylist = async (req, res) => {
         })
     }
     const body = req.body;
-    console.log("createPlaylist body: " + JSON.stringify(body));
     if (!body) {
         return res.status(400).json({
             success: false,
@@ -43,7 +42,6 @@ createPlaylist = async (req, res) => {
     };
     
     const playlist = await dbManager.createPlaylist(playlistData);
-    console.log("playlist created: " + JSON.stringify(playlist));
 
     await dbManager.addPlaylistToUser(req.userId, playlist.id || playlist._id);
         
@@ -69,7 +67,6 @@ deletePlaylist = async (req, res) => {
     }
     try{
     const playlist = await dbManager.getPlaylistById(req.params.id);
-    console.log("playlist is found: "+ JSON.stringify(playlist));
 
     if(!playlist){
         return res.status(404).json({
@@ -77,15 +74,11 @@ deletePlaylist = async (req, res) => {
         })
     }
     const user = await dbManager.getUserByEmail(playlist.ownerEmail);
-    console.log("user.id: " + (user.id || user._id));
-    console.log("req.userId: " + req.userId);
 
     if ((user.id || user._id) == req.userId) {
-        console.log("correct user!");
         await dbManager.deletePlaylist(req.params.id);
         return res.status(200).json({ success: true });
     } else {
-        console.log("incorrect user!");
         return res.status(403).json({ 
             errorMessage: "You don't have permission to delete this playlist" 
         });
@@ -101,10 +94,8 @@ getPlaylistById = async (req, res) => {
         if (!list) {
             return res.status(404).json({ success: false, error: 'Playlist not found' });
         }
-        console.log("Found list: " + JSON.stringify(list));
         
         if (list.published) {
-            console.log("Published playlist - allowing view");
             await dbManager.updatePlaylist(req.params.id, { lastAccessed: new Date() });
             return res.status(200).json({ success: true, playlist: list })
         }
@@ -124,16 +115,11 @@ getPlaylistById = async (req, res) => {
             })
         }
         
-        console.log("user._id: " + (user.id || user._id));
-        console.log("list.ownerEmail: " + list.ownerEmail);
-        console.log("user.email: " + user.email);
         
         if (list.ownerEmail === user.email) {
-            console.log("correct user!");
             await dbManager.updatePlaylist(req.params.id, { lastAccessed: new Date() });
             return res.status(200).json({ success: true, playlist: list })
         } else {
-            console.log("incorrect user - unpublished playlist!");
             return res.status(403).json({ 
                 success: false, 
                 errorMessage: "You don't have permission to view this unpublished playlist" 
@@ -152,26 +138,20 @@ getPlaylistPairs = async (req, res) => {
             errorMessage: 'UNAUTHORIZED'
         })
     }
-    console.log("getPlaylistPairs");
 
     try {
         const user = await dbManager.getUserById(req.userId);
-        console.log("find user with id " + req.userId);
         
         if (!user) {
             return res.status(404).json({ success: false, error: 'User not found' })
         }
         
-        console.log("find all Playlists owned by " + user.email);
         const playlists = await dbManager.getPlaylistsByOwnerEmail(user.email);
-        console.log("found Playlists: " + JSON.stringify(playlists));
         
         if (!playlists || playlists.length === 0) {
-            console.log("No playlists found - returning empty array");
             return res.status(200).json({ success: true, idNamePairs: [] })
         }
         
-        console.log("Send the Playlist pairs");
         let pairs = [];
         for (let key in playlists) {
             let list = playlists[key];
@@ -195,7 +175,6 @@ getPlaylistPairs = async (req, res) => {
         return res.status(200).json({ success: true, idNamePairs: pairs })
         
     } catch (err) {
-        console.log(err);
         return res.status(400).json({ success: false, error: err.message })
     }
 }
@@ -226,8 +205,6 @@ updatePlaylist = async (req, res) => {
         })
     }
     const body = req.body
-    console.log("updatePlaylist: " + JSON.stringify(body));
-    console.log("req.body.name: " + req.body.name);
 
     if (!body) {
         return res.status(400).json({
@@ -238,7 +215,6 @@ updatePlaylist = async (req, res) => {
 
     try {
         const playlist = await dbManager.getPlaylistById(req.params.id);
-        console.log("playlist found: " + JSON.stringify(playlist));
         
         if (!playlist) {
             return res.status(404).json({
@@ -247,12 +223,8 @@ updatePlaylist = async (req, res) => {
         }
 
         const user = await dbManager.getUserByEmail(playlist.ownerEmail);
-        console.log("user._id: " + (user.id || user._id));
-        console.log("req.userId: " + req.userId);
         
         if ((user.id || user._id) == req.userId) {
-            console.log("correct user!");
-            console.log("req.body.name: " + req.body.name);
 
             const updateData = {
                 name: body.name,
@@ -262,7 +234,6 @@ updatePlaylist = async (req, res) => {
             
             const updatedPlaylist = await dbManager.updatePlaylist(req.params.id, updateData);
             
-            console.log("SUCCESS!!!");
             return res.status(200).json({
                 success: true,
                 playlist: updatedPlaylist,
@@ -270,14 +241,12 @@ updatePlaylist = async (req, res) => {
             })
         }
         else {
-            console.log("incorrect user!");
             return res.status(403).json({ 
                 success: false, 
                 errorMessage: "You don't have permission to update this playlist" 
             });
         }
     } catch (error) {
-        console.log("FAILURE: " + JSON.stringify(error));
         return res.status(404).json({
             error: error.message,
             message: 'Playlist not updated!',
@@ -354,22 +323,14 @@ likePlaylist = async (req, res) => {
         const likedBy = Array.isArray(playlist.likedBy) ? playlist.likedBy : [];
         const dislikedBy = Array.isArray(playlist.dislikedBy) ? playlist.dislikedBy : [];
 
-        console.log('==== LIKE DEBUG ====');
-        console.log('User email:', userEmail);
-        console.log('Current likedBy:', likedBy);
-        console.log('Current dislikedBy:', dislikedBy);
-        console.log('Already liked?', likedBy.includes(userEmail));
-        console.log('====================');
 
         let updateData = {};
 
         if (likedBy.includes(userEmail)) {
-            console.log('UNLIKE - Removing like');
             updateData.likes = Math.max(0, (playlist.likes || 0) - 1);
             updateData.likedBy = likedBy.filter(email => email !== userEmail);
 
         } else {
-            console.log('LIKE - Adding like');
             updateData.likes = (playlist.likes || 0) + 1;
             updateData.likedBy = [...likedBy, userEmail];
 

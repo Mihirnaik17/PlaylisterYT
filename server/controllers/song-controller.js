@@ -6,16 +6,18 @@ const auth = require('../auth');
 
 
 
+const escapeRegex = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
 getAllSongs = async (req, res) => {
     try {
         const { title, artist, year, sortBy, sortOrder, limit = 100, skip = 0 } = req.query;
 
         let query = {};
         if (title) {
-            query.title = { $regex: title, $options: 'i' }; 
+            query.title = { $regex: escapeRegex(title), $options: 'i' };
         }
         if (artist) {
-            query.artist = { $regex: artist, $options: 'i' };
+            query.artist = { $regex: escapeRegex(artist), $options: 'i' };
         }
         if (year) {
             query.year = parseInt(year);

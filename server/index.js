@@ -14,9 +14,13 @@ const app = express()
 
 // SETUP THE MIDDLEWARE
 // CORS must be FIRST to handle preflight OPTIONS requests
+const ALLOWED_ORIGIN = process.env.CLIENT_URL || 'http://localhost:3000';
 app.use(cors({
-    // Reflect the request Origin (required when credentials: true)
-    origin: true,
+    origin: (origin, cb) => {
+        // Allow server-to-server calls (no Origin header) and the configured client origin
+        if (!origin || origin === ALLOWED_ORIGIN) return cb(null, true);
+        cb(new Error(`CORS: origin ${origin} not allowed`));
+    },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
@@ -56,5 +60,9 @@ db.initialize()
 
 // PUT THE SERVER IN LISTENING MODE
 app.listen(PORT, () => console.log(`Playlister Server running on port ${PORT}`))
+
+process.on('unhandledRejection', (reason) => {
+    console.error('[unhandledRejection]', reason);
+});
 
 
