@@ -1,12 +1,5 @@
-const Anthropic = require('@anthropic-ai/sdk');
-
-const getAnthropicClient = () => {
-    const key = process.env.ANTHROPIC_API_KEY;
-    if (!key) {
-        return null;
-    }
-    return new Anthropic({ apiKey: key });
-};
+const HF_API_URL = 'https://api-inference.huggingface.co/v1/chat/completions';
+const HF_MODEL = 'meta-llama/Llama-3.1-8B-Instruct';
 
 const getTimeOfDayLabel = (hour) => {
     if (hour >= 5 && hour < 12) return 'morning';
@@ -15,21 +8,16 @@ const getTimeOfDayLabel = (hour) => {
     return 'night';
 };
 
-const extractTextFromMessage = (message) => {
-    const block = message.content.find((b) => b.type === 'text');
-    return (block && block.text ? block.text : '').trim();
-};
-
 const recommendSongs = async (req, res) => {
-    try {
-        const client = getAnthropicClient();
-        if (!client) {
-            return res.status(503).json({
-                success: false,
-                errorMessage: 'AI recommendations are not configured. Set ANTHROPIC_API_KEY on the server.',
-            });
-        }
+    const token = process.env.HF_TOKEN;
+    if (!token) {
+        return res.status(503).json({
+            success: false,
+            errorMessage: 'AI recommendations are not configured. Set HF_TOKEN on the server.',
+        });
+    }
 
+    try {
         const { mood, genre, timeOfDay, playlistContext } = req.body;
 
         if (!mood || typeof mood !== 'string' || !mood.trim()) {
@@ -38,49 +26,66 @@ const recommendSongs = async (req, res) => {
 
         const hour = new Date().getHours();
         const detectedTime = timeOfDay || getTimeOfDayLabel(hour);
-
+        const genreLine = genre ? `Preferred genre: ${genre}.` : '';
         const contextLine =
             Array.isArray(playlistContext) && playlistContext.length > 0
-                ? `The user already has these songs: ${playlistContext
-                      .map((s) => `"${s.title}" by ${s.artist}`)
-                      .join(', ')}. Avoid recommending the same ones.`
+                ? `The user already has: ${playlistContext.map((s) => `"${s.title}" by ${s.artist}`).join(', ')}. Do not repeat these.`
                 : '';
 
-        const genreLine = genre ? `Preferred genre: ${genre}.` : '';
-
-        const prompt = `You are a world-class music curator. Recommend exactly 6 songs for the following situation:
+        const userPrompt = `Recommend exactly 6 real, well-known songs for:
 - Mood: ${mood.trim()}
 - Time of day: ${detectedTime}
 ${genreLine}
 ${contextLine}
 
-Rules:
-- Include a diverse mix across eras (classics + modern hits)
-- Each song must be real and well-known
-- Reason should be 1 short sentence explaining why it fits the mood/time
-- Respond ONLY with a valid JSON array, no other text
+Include a diverse mix of eras. For each song output ONLY this JSON (no markdown, no extra text):
+[{"title":"...","artist":"...","year":2020,"genre":"...","reason":"one sentence why it fits"}]`;
 
-JSON format:
-[
-  {
-    "title": "Song Title",
-    "artist": "Artist Name",
-    "year": 2020,
-    "genre": "Pop",
-    "reason": "Why this fits perfectly"
-  }
-]`;
-
-        const message = await client.messages.create({
-            model: 'claude-haiku-4-5-20251001',
-            max_tokens: 1024,
-            messages: [{ role: 'user', content: prompt }],
+        const hfRes = await fetch(HF_API_URL, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                model: HF_MODEL,
+                messages: [
+                    {
+                        role: 'system',
+                        content: 'You are a music recommendation API. Respond ONLY with a valid JSON array. No markdown, no code fences, no explanation — raw JSON only.',
+                    },
+                    { role: 'user', content: userPrompt },
+                ],
+                max_tokens: 1024,
+                temperature: 0.7,
+            }),
         });
 
-        const rawText = extractTextFromMessage(message);
+        if (!hfRes.ok) {
+            const errBody = await hfRes.text();
+            if (hfRes.status === 401) {
+                return res.status(500).json({
+                    success: false,
+                    errorMessage: 'Invalid HF_TOKEN. Check your Hugging Face API token.',
+                });
+            }
+            if (hfRes.status === 503) {
+                return res.status(503).json({
+                    success: false,
+                    errorMessage: 'AI model is loading, please try again in a moment.',
+                });
+            }
+            console.error('HF API error:', hfRes.status, errBody);
+            throw new Error(`HF API returned ${hfRes.status}`);
+        }
+
+        const data = await hfRes.json();
+        const rawText = (data?.choices?.[0]?.message?.content || '').trim();
+
         const jsonMatch = rawText.match(/\[[\s\S]*\]/);
         if (!jsonMatch) {
-            throw new Error('AI did not return valid JSON');
+            console.error('HF response missing JSON array:', rawText);
+            throw new Error('Model did not return a valid JSON array');
         }
 
         const recommendations = JSON.parse(jsonMatch[0]);
@@ -92,14 +97,6 @@ JSON format:
         });
     } catch (error) {
         console.error('AI recommendation error:', error);
-
-        if (error.status === 401) {
-            return res.status(500).json({
-                success: false,
-                errorMessage: 'AI service not configured. Please add your ANTHROPIC_API_KEY.',
-            });
-        }
-
         return res.status(500).json({
             success: false,
             errorMessage: 'Failed to get AI recommendations. Please try again.',

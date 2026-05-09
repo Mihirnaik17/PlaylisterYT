@@ -3,11 +3,11 @@
   "version": "4.0.0",
   "main": "index.js",
   "scripts": {
+    "start": "node index.js",
     "test": "vitest"
   },
   "license": "MIT",
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.90.0",
     "bcryptjs": "^2.4.3",
     "body-parser": "^1.19.0",
     "compression": "^1.8.1",
