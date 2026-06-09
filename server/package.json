@@ -4,7 +4,9 @@
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
-    "test": "vitest"
+    "test": "vitest",
+    "test:ci": "vitest run",
+    "test:db": "RUN_DB_TESTS=true vitest run"
   },
   "license": "MIT",
   "dependencies": {

@@ -1,0 +1,19 @@
+{
+  "name": "playlister-yt",
+  "private": true,
+  "scripts": {
+    "install:all": "npm ci --prefix server && npm ci --prefix client",
+    "dev": "concurrently -n server,client -c blue,green \"npm run dev:server\" \"npm run dev:client\"",
+    "dev:server": "npm start --prefix server",
+    "dev:client": "npm start --prefix client",
+    "test": "npm run test:ci --prefix server && npm run test:ci --prefix client",
+    "test:server": "npm run test:ci --prefix server",
+    "test:client": "npm run test:ci --prefix client",
+    "test:db": "npm run test:db --prefix server",
+    "build": "npm run build --prefix client",
+    "build:docker": "docker compose up --build"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  }
+}

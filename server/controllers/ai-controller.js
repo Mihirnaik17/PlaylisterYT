@@ -1,12 +1,7 @@
+const { getTimeOfDayLabel } = require('../utils/time-of-day');
+
 const HF_API_URL = 'https://api-inference.huggingface.co/v1/chat/completions';
 const HF_MODEL = 'meta-llama/Llama-3.1-8B-Instruct';
-
-const getTimeOfDayLabel = (hour) => {
-    if (hour >= 5 && hour < 12) return 'morning';
-    if (hour >= 12 && hour < 17) return 'afternoon';
-    if (hour >= 17 && hour < 21) return 'evening';
-    return 'night';
-};
 
 const recommendSongs = async (req, res) => {
     const token = process.env.HF_TOKEN;
