@@ -48,6 +48,8 @@ const HomeScreen = () => {
         // Always show the global published feed on the Playlists page
         // (guests and logged-in users).
         store.loadPublishedPage(1);
+        // store is stable from context; omitting it avoids redundant reloads.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [auth.isGuest, auth.loggedIn]);
 
     useEffect(() => {

@@ -58,6 +58,7 @@ export default function MUIPlayPlaylistModal() {
         if (store.idNamePairs === null || (Array.isArray(store.idNamePairs) && store.idNamePairs.length === 0)) {
             store.loadIdNamePairs();
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [auth.isGuest, store.idNamePairs]);
 
     const userPlaylists = useMemo(() => {

@@ -26,6 +26,7 @@ export default function MyMusicScreen() {
         } else {
             setLoading(false);
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [auth.isGuest, auth.loggedIn]);
 
     const playlists = Array.isArray(store.idNamePairs) ? store.idNamePairs : [];
