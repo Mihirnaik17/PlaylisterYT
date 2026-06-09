@@ -15,20 +15,30 @@ jobs:
       github.event.workflow_run.event == 'push'
 
     steps:
-      - name: Deploy server
-        if: ${{ secrets.RENDER_SERVER_DEPLOY_HOOK != '' }}
+      - name: Deploy to Render
         env:
           RENDER_SERVER_DEPLOY_HOOK: ${{ secrets.RENDER_SERVER_DEPLOY_HOOK }}
-        run: curl -fsS -X POST "$RENDER_SERVER_DEPLOY_HOOK"
-
-      - name: Deploy client
-        if: ${{ secrets.RENDER_CLIENT_DEPLOY_HOOK != '' }}
-        env:
           RENDER_CLIENT_DEPLOY_HOOK: ${{ secrets.RENDER_CLIENT_DEPLOY_HOOK }}
-        run: curl -fsS -X POST "$RENDER_CLIENT_DEPLOY_HOOK"
-
-      - name: Remind to configure deploy hooks
-        if: ${{ secrets.RENDER_SERVER_DEPLOY_HOOK == '' && secrets.RENDER_CLIENT_DEPLOY_HOOK == '' }}
         run: |
-          echo "::warning::No Render deploy hooks configured."
-          echo "Add RENDER_SERVER_DEPLOY_HOOK and/or RENDER_CLIENT_DEPLOY_HOOK in GitHub → Settings → Secrets."
+          deployed=0
+
+          if [ -n "$RENDER_SERVER_DEPLOY_HOOK" ]; then
+            echo "Deploying server..."
+            curl -fsS -X POST "$RENDER_SERVER_DEPLOY_HOOK"
+            deployed=1
+          else
+            echo "RENDER_SERVER_DEPLOY_HOOK not set — skipping server deploy."
+          fi
+
+          if [ -n "$RENDER_CLIENT_DEPLOY_HOOK" ]; then
+            echo "Deploying client..."
+            curl -fsS -X POST "$RENDER_CLIENT_DEPLOY_HOOK"
+            deployed=1
+          else
+            echo "RENDER_CLIENT_DEPLOY_HOOK not set — skipping client deploy."
+          fi
+
+          if [ "$deployed" -eq 0 ]; then
+            echo "::warning::No Render deploy hooks configured."
+            echo "Add RENDER_SERVER_DEPLOY_HOOK and/or RENDER_CLIENT_DEPLOY_HOOK in GitHub → Settings → Secrets."
+          fi
