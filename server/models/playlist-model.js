@@ -17,7 +17,7 @@ const playlistSchema = new Schema(
             default: []
         },
         lastAccessed: { type: Date, default: Date.now },
-        published: { type: Boolean, required: true, default: true },
+        published: { type: Boolean, required: true, default: false },
         likes: { type: Number, required: true, default: 0 },
         dislikes: { type: Number, required: true, default: 0 },
         likedBy: { type: [String], default: [] },    //added for likes    
@@ -25,10 +25,8 @@ const playlistSchema = new Schema(
         listens: { type: Number, required: true, default: 0 },
         comments: {
             type: [{
-                User: { type: String, required: false },      
-                text: { type: String, required: false },      
-                username: { type: String, required: false },  
-                comment: { type: String, required: false },   
+                user: { type: String, required: false },
+                text: { type: String, required: false },
                 createdAt: { type: Date, default: Date.now }
             }],
             default: []

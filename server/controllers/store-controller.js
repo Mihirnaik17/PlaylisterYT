@@ -75,7 +75,7 @@ deletePlaylist = async (req, res) => {
     }
     const user = await dbManager.getUserByEmail(playlist.ownerEmail);
 
-    if ((user.id || user._id) == req.userId) {
+    if ((user.id || user._id).toString() === req.userId) {
         await dbManager.deletePlaylist(req.params.id);
         return res.status(200).json({ success: true });
     } else {
@@ -224,7 +224,7 @@ updatePlaylist = async (req, res) => {
 
         const user = await dbManager.getUserByEmail(playlist.ownerEmail);
         
-        if ((user.id || user._id) == req.userId) {
+        if ((user.id || user._id).toString() === req.userId) {
 
             const updateData = {
                 name: body.name,
@@ -272,7 +272,7 @@ publishPlaylist = async (req, res) => {
 
         const user = await dbManager.getUserByEmail(playlist.ownerEmail);
         
-        if ((user.id || user._id) != req.userId) {
+        if ((user.id || user._id).toString() !== req.userId) {
             return res.status(403).json({ 
                 errorMessage: "You don't have permission to publish this playlist" 
             });
@@ -488,9 +488,14 @@ deleteComment = async (req, res) => {
         }
 
         const user = await dbManager.getUserById(req.userId);
-        const commentIndex = parseInt(req.params.commentIndex);
+        const commentIndex = parseInt(req.params.commentIndex, 10);
 
-        if (!playlist.comments || commentIndex >= playlist.comments.length) {
+        if (
+            isNaN(commentIndex) ||
+            commentIndex < 0 ||
+            !playlist.comments ||
+            commentIndex >= playlist.comments.length
+        ) {
             return res.status(404).json({
                 errorMessage: 'Comment not found',
             })

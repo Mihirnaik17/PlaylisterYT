@@ -183,6 +183,16 @@ editUser = async (req, res) => {
             });
         }
 
+        if (username !== user.username) {
+            const existingUsername = await dbManager.getUserByUsername(username);
+            if (existingUsername) {
+                return res.status(400).json({
+                    success: false,
+                    errorMessage: "This username is already taken. Please choose another."
+                });
+            }
+        }
+
         user.username = username;
 
         if (avatar !== undefined) {

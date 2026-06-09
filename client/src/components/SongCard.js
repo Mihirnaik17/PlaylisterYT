@@ -31,7 +31,9 @@ function SongCard(props) {
         event.preventDefault();
         let targetIndex = index;
         let sourceIndex = Number(event.dataTransfer.getData("song"));
-        store.addMoveSongTransaction(sourceIndex, targetIndex);
+        if (!isNaN(sourceIndex) && sourceIndex !== targetIndex) {
+            store.addMoveSongTransaction(sourceIndex, targetIndex);
+        }
     }
     function handleRemoveSong(event) {
         if (readOnly) return;

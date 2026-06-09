@@ -343,22 +343,6 @@ function GlobalStoreContextProvider(props) {
         }
     }
 
-    store.tryAcessingOtherAccountPlaylist = function(){
-        let id = "635f203d2e072037af2e6284";
-        async function asyncSetCurrentList(id) {
-            let response = await storeRequestSender.getPlaylistById(id);
-            if (response.data.success) {
-                let playlist = response.data.playlist;
-                storeReducer({
-                    type: GlobalStoreActionType.SET_CURRENT_LIST,
-                    payload: playlist
-                });
-            }
-        }
-        asyncSetCurrentList(id);
-        history.push("/playlist/635f203d2e072037af2e6284");
-    }
-
     // THESE ARE THE FUNCTIONS THAT WILL UPDATE OUR STORE AND
     // DRIVE THE STATE OF THE APPLICATION. WE'LL CALL THESE IN 
     // RESPONSE TO EVENTS INSIDE OUR COMPONENTS.
@@ -784,7 +768,7 @@ store.createNewList = async function () {
     }
 
     store.getPlaylistSize = function() {
-        return store.currentList.songs.length;
+        return store.currentList ? store.currentList.songs.length : 0;
     }
     // THIS FUNCTION ADDS A NEW SONG TO THE CURRENT PLAYLIST
     store.addNewSong = () => {
@@ -885,12 +869,14 @@ store.createNewList = async function () {
         tps.processTransaction(transaction);
     }
     store.updateCurrentList = function() {
+        if (!store.currentList) return;
+        const listSnapshot = store.currentList;
         async function asyncUpdateCurrentList() {
-            const response = await storeRequestSender.updatePlaylistById(store.currentList.id || store.currentList._id, store.currentList);
+            const response = await storeRequestSender.updatePlaylistById(listSnapshot.id || listSnapshot._id, listSnapshot);
             if (response.data.success) {
                 storeReducer({
                     type: GlobalStoreActionType.OPEN_EDIT_PLAYLIST_MODAL,
-                    payload: store.currentList
+                    payload: listSnapshot
                 });
             }
         }
@@ -1043,10 +1029,10 @@ store.createNewList = async function () {
     };
 
     function KeyPress(event) {
-        if (!store.modalOpen && event.ctrlKey){
+        if (store.currentModal === CurrentModal.NONE && event.ctrlKey){
             if(event.key === 'z'){
                 store.undo();
-            } 
+            }
             if(event.key === 'y'){
                 store.redo();
             }
