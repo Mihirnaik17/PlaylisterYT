@@ -3,6 +3,7 @@ import { useHistory } from 'react-router-dom'
 import { GlobalStoreContext } from '../store/index.js'
 import AuthContext from '../auth'
 import NavigationBar from './NavigationBar'
+import Sidebar from './Sidebar'
 import AIRecommendationsDialog from './AIRecommendationsDialog'
 import SongCard from './SongCard.js'
 import MUIEditSongModal from './MUIEditSongModal.js'
@@ -47,15 +48,9 @@ function WorkspaceScreen() {
     }
 
     return (
-        <Box
-            sx={{
-                height: '100vh',
-                display: 'flex',
-                flexDirection: 'column',
-                overflow: 'hidden',
-                bgcolor: 'background.default',
-            }}
-        >
+        <Box sx={{ height: '100vh', display: 'flex', overflow: 'hidden', bgcolor: 'background.default' }}>
+            <Sidebar />
+            <Box sx={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
             <NavigationBar />
             <Box
                 sx={{
@@ -232,6 +227,7 @@ function WorkspaceScreen() {
             </Box>
             <AIRecommendationsDialog open={aiOpen} onClose={() => setAiOpen(false)} playlistContext={playlistContext} />
             {modalJSX}
+            </Box>
         </Box>
     )
 }

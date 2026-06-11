@@ -128,9 +128,10 @@ export const registerUser = async (firstName, lastName, username, email, passwor
     
 }
 
-export const editUser = async (username, password, passwordVerify, avatar) => {
+export const editUser = async (username, email, password, passwordVerify, avatar) => {
         const payload = {
         username : username,
+        email : email,
         password : password,
         passwordVerify : passwordVerify,
         avatar : avatar

@@ -6,6 +6,7 @@ import MUIDeleteModal from './MUIDeleteModal'
 import MUIEditPlaylistModal from './MUIEditPlaylistModal'
 import MUIPlayPlaylistModal from './MUIPlayPlaylistModal'
 import NavigationBar from './NavigationBar'
+import Sidebar from './Sidebar'
 import AIRecommendationsDialog from './AIRecommendationsDialog'
 
 import AddIcon from '@mui/icons-material/Add';
@@ -147,15 +148,9 @@ const HomeScreen = () => {
     }
 
     return (
-        <Box
-            sx={{
-                height: '100vh',
-                display: 'flex',
-                flexDirection: 'column',
-                overflow: 'hidden',
-                bgcolor: 'background.default',
-            }}
-        >
+        <Box sx={{ height: '100vh', display: 'flex', overflow: 'hidden', bgcolor: 'background.default' }}>
+            <Sidebar />
+            <Box sx={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
             <NavigationBar />
             <Box
                 sx={{
@@ -445,6 +440,7 @@ const HomeScreen = () => {
             <MUIDeleteModal />
             <MUIEditPlaylistModal />
             <MUIPlayPlaylistModal />
+            </Box>
         </Box>
     );
 }

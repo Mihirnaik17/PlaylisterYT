@@ -4,6 +4,7 @@ import { GlobalStoreContext } from '../store'
 import AuthContext from '../auth'
 import CatalogSongCard from './CatalogSongCard'
 import NavigationBar from './NavigationBar'
+import Sidebar from './Sidebar'
 import AIRecommendationsDialog from './AIRecommendationsDialog'
 import MUIRemoveSongModal from './MUIRemoveSongModal'
 import MUICreateSongModal from './MUICreateSongModal'
@@ -140,15 +141,9 @@ export default function SongsCatalogScreen() {
     }
     
     return (
-        <Box
-            sx={{
-                height: '100vh',
-                display: 'flex',
-                flexDirection: 'column',
-                overflow: 'hidden',
-                bgcolor: 'background.default',
-            }}
-        >
+        <Box sx={{ height: '100vh', display: 'flex', overflow: 'hidden', bgcolor: 'background.default' }}>
+            <Sidebar />
+            <Box sx={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
             <NavigationBar />
             <Box
                 sx={{
@@ -344,6 +339,7 @@ export default function SongsCatalogScreen() {
             <MUIRemoveSongModal />
             <MUICreateSongModal />
             <MUIEditSongModal />
-        </Box> 
+            </Box>
+        </Box>
     )
 }

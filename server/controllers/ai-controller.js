@@ -1,14 +1,12 @@
 const { getTimeOfDayLabel } = require('../utils/time-of-day');
-
-const HF_API_URL = 'https://api-inference.huggingface.co/v1/chat/completions';
-const HF_MODEL = 'meta-llama/Llama-3.1-8B-Instruct';
+const OpenAI = require('openai');
 
 const recommendSongs = async (req, res) => {
-    const token = process.env.HF_TOKEN;
-    if (!token) {
+    const apiKey = process.env.OPENAI_API_KEY;
+    if (!apiKey) {
         return res.status(503).json({
             success: false,
-            errorMessage: 'AI recommendations are not configured. Set HF_TOKEN on the server.',
+            errorMessage: 'AI recommendations are not configured. Set OPENAI_API_KEY on the server.',
         });
     }
 
@@ -36,54 +34,36 @@ ${contextLine}
 Include a diverse mix of eras. For each song output ONLY this JSON (no markdown, no extra text):
 [{"title":"...","artist":"...","year":2020,"genre":"...","reason":"one sentence why it fits"}]`;
 
-        const hfRes = await fetch(HF_API_URL, {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                model: HF_MODEL,
-                messages: [
-                    {
-                        role: 'system',
-                        content: 'You are a music recommendation API. Respond ONLY with a valid JSON array. No markdown, no code fences, no explanation — raw JSON only.',
-                    },
-                    { role: 'user', content: userPrompt },
-                ],
-                max_tokens: 1024,
-                temperature: 0.7,
-            }),
+        const client = new OpenAI({ apiKey });
+
+        const response = await client.chat.completions.create({
+            model: 'gpt-4o-mini',
+            messages: [
+                {
+                    role: 'system',
+                    content: 'You are a music recommendation API. Respond ONLY with a valid JSON array. No markdown, no code fences, no explanation — raw JSON only.',
+                },
+                { role: 'user', content: userPrompt },
+            ],
+            temperature: 0.7,
+            max_tokens: 1024,
         });
 
-        if (!hfRes.ok) {
-            const errBody = await hfRes.text();
-            if (hfRes.status === 401) {
-                return res.status(500).json({
-                    success: false,
-                    errorMessage: 'Invalid HF_TOKEN. Check your Hugging Face API token.',
-                });
-            }
-            if (hfRes.status === 503) {
-                return res.status(503).json({
-                    success: false,
-                    errorMessage: 'AI model is loading, please try again in a moment.',
-                });
-            }
-            console.error('HF API error:', hfRes.status, errBody);
-            throw new Error(`HF API returned ${hfRes.status}`);
-        }
-
-        const data = await hfRes.json();
-        const rawText = (data?.choices?.[0]?.message?.content || '').trim();
+        const rawText = (response.choices[0]?.message?.content || '').trim();
 
         const jsonMatch = rawText.match(/\[[\s\S]*\]/);
         if (!jsonMatch) {
-            console.error('HF response missing JSON array:', rawText);
+            console.error('OpenAI response missing JSON array:', rawText);
             throw new Error('Model did not return a valid JSON array');
         }
 
-        const recommendations = JSON.parse(jsonMatch[0]);
+        let recommendations;
+        try {
+            recommendations = JSON.parse(jsonMatch[0]);
+        } catch (parseErr) {
+            console.error('Failed to parse OpenAI JSON response:', rawText);
+            throw new Error('Model returned malformed JSON');
+        }
 
         return res.status(200).json({
             success: true,

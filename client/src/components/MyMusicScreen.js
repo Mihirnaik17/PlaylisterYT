@@ -8,6 +8,7 @@ import Skeleton from '@mui/material/Skeleton';
 import { GlobalStoreContext } from '../store';
 import AuthContext from '../auth';
 import NavigationBar from './NavigationBar';
+import Sidebar from './Sidebar';
 import PlaylistCard from './PlaylistCard';
 import MUIPlayPlaylistModal from './MUIPlayPlaylistModal';
 import MUIEditPlaylistModal from './MUIEditPlaylistModal';
@@ -32,15 +33,9 @@ export default function MyMusicScreen() {
     const playlists = Array.isArray(store.idNamePairs) ? store.idNamePairs : [];
 
     return (
-        <Box
-            sx={{
-                height: '100vh',
-                display: 'flex',
-                flexDirection: 'column',
-                overflow: 'hidden',
-                bgcolor: 'background.default',
-            }}
-        >
+        <Box sx={{ height: '100vh', display: 'flex', overflow: 'hidden', bgcolor: 'background.default' }}>
+            <Sidebar />
+            <Box sx={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
             <NavigationBar />
 
             <Box sx={{ flex: 1, minHeight: 0, overflow: 'auto', p: 3 }}>
@@ -99,6 +94,7 @@ export default function MyMusicScreen() {
             <MUIDeleteModal />
             <MUIEditPlaylistModal />
             <MUIPlayPlaylistModal />
+            </Box>
         </Box>
     );
 }

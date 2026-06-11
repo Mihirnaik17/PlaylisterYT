@@ -1,7 +1,7 @@
 const jwt = require("jsonwebtoken")
 
 function authManager() {
-    const verify = (req, res, next) => {
+    this.verify = (req, res, next) => {
         // Skip auth for OPTIONS preflight requests
         if (req.method === 'OPTIONS') {
             return next();
@@ -31,7 +31,7 @@ function authManager() {
         }
     }
 
-    const verifyUser = (req) => {
+    this.verifyUser = (req) => {
         try {
             const token = req.cookies.token;
             if (!token) {
@@ -45,7 +45,7 @@ function authManager() {
         }
     }
 
-    const signToken = (userId) => {
+    this.signToken = (userId) => {
         return jwt.sign({
             userId: userId
         }, process.env.JWT_SECRET);
@@ -54,5 +54,5 @@ function authManager() {
     return this;
 }
 
-const auth = authManager();
+const auth = new authManager();
 module.exports = auth;

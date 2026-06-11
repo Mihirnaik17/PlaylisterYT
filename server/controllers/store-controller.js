@@ -90,6 +90,12 @@ deletePlaylist = async (req, res) => {
 }
 getPlaylistById = async (req, res) => {
     try{
+        // Route has no auth.verify middleware so req.userId may not be set yet.
+        // Resolve it optionally so owners can access their own unpublished playlists.
+        if (!req.userId) {
+            req.userId = auth.verifyUser(req) || undefined;
+        }
+
         const list = await dbManager.getPlaylistById(req.params.id);
         if (!list) {
             return res.status(404).json({ success: false, error: 'Playlist not found' });

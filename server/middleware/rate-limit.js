@@ -11,10 +11,6 @@ module.exports = function createRateLimiter() {
     standardHeaders: true,
     legacyHeaders: false,
     message: { success: false, error: 'Too many requests, please slow down.' },
-    keyGenerator: (req) => {
-      // If behind a proxy, ensure `app.set('trust proxy', 1)` is configured.
-      return req.ip;
-    },
   });
 };
 

@@ -40,9 +40,16 @@ jobs:
         working-directory: client
         run: npm ci
 
-      - name: Run client unit tests
+      # Legacy CRA/Jest suite — kept for backward compatibility.
+      - name: Run client unit tests (Jest / react-scripts)
         working-directory: client
         run: npm run test:ci
+
+      # Modern Vitest suite — component & behaviour tests.
+      # This is the suite you'll grow with new feature tests.
+      - name: Run client unit tests (Vitest)
+        working-directory: client
+        run: npm run test:vitest
 
       - name: Build client
         working-directory: client

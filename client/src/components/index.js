@@ -22,6 +22,8 @@ import MUIRemoveSongModal from './MUIRemoveSongModal'
 
 import MUICreateSongModal from './MUICreateSongModal'
 export { default as EditAccountScreen } from './EditAccountScreen';
+export { default as Sidebar } from './Sidebar';
+export { default as SettingsModal } from './SettingsModal';
 
 
 export { 

@@ -167,7 +167,7 @@ editUser = async (req, res) => {
             });
         }
 
-        const { username, password, passwordVerify, avatar } = req.body;
+        const { username, email, password, passwordVerify, avatar } = req.body;
 
         if (!username) {
             return res
@@ -194,6 +194,18 @@ editUser = async (req, res) => {
         }
 
         user.username = username;
+
+        if (email && email !== user.email) {
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(email)) {
+                return res.status(400).json({ errorMessage: "Please enter a valid email address." });
+            }
+            const existingEmail = await dbManager.getUserByEmail(email);
+            if (existingEmail) {
+                return res.status(400).json({ errorMessage: "An account with this email address already exists." });
+            }
+            user.email = email;
+        }
 
         if (avatar !== undefined) {
             user.avatar = avatar;

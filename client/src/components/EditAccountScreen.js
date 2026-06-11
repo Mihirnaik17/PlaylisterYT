@@ -18,7 +18,7 @@ export default function EditAccountScreen() {
     const history = useHistory();
 
     const [username, setUsername] = useState(auth.user?.username || '');
-    const [email] = useState(auth.user?.email || '');
+    const [email, setEmail] = useState(auth.user?.email || '');
     const [password, setPassword] = useState('');
     const [passwordVerify, setPasswordVerify] = useState('');
     const [avatarImage, setAvatarImage] = useState(undefined);
@@ -40,7 +40,7 @@ export default function EditAccountScreen() {
 
     const handleSubmit = async (event) => {
         event.preventDefault();
-        await auth.editUser(username, password, passwordVerify, avatarImage);
+        await auth.editUser(username, email, password, passwordVerify, avatarImage);
     };
 
     const handleCancel = () => {
@@ -154,8 +154,9 @@ export default function EditAccountScreen() {
                                 id="email"
                                 label="Email"
                                 name="email"
+                                type="email"
                                 value={email}
-                                disabled
+                                onChange={(e) => setEmail(e.target.value)}
                             />
                             <TextField
                                 margin="normal"

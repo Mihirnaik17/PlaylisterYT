@@ -189,9 +189,9 @@ function AuthContextProvider(props) {
         history.push("/home");
     }
 
-        auth.editUser = async function(username, password, passwordVerify, avatar) {
+        auth.editUser = async function(username, email, password, passwordVerify, avatar) {
         try{
-            const response = await authRequestSender.editUser(username, password, passwordVerify, avatar);
+            const response = await authRequestSender.editUser(username, email, password, passwordVerify, avatar);
             if (response.status === 200) {
                 authReducer({
                     type: AuthActionType.LOGIN_USER,
