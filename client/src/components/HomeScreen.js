@@ -166,7 +166,7 @@ const HomeScreen = () => {
                         width: { xs: '100%', md: '36%' },
                         flexShrink: { md: 0 },
                         minHeight: 0,
-                        maxHeight: { xs: '44vh', md: '100%' },
+                        maxHeight: { xs: '42vh', md: '100%' },
                         overflowY: 'auto',
                         bgcolor: 'background.paper',
                         p: 3,
@@ -341,7 +341,7 @@ const HomeScreen = () => {
                         </Typography>
                     </Box>
 
-                    <Box sx={{ flex: 1, minHeight: 0, overflowY: 'auto', pb: 2 }}>
+                    <Box sx={{ flex: 1, minHeight: 0, overflowY: 'auto', pb: { xs: '160px', md: 2 } }}>
                         {loading ? (
                             <Box sx={{ mt: 1 }}>
                                 {[...Array(5)].map((_, idx) => (
@@ -409,8 +409,8 @@ const HomeScreen = () => {
                             onClick={handleCreateNewList}
                             sx={{
                                 position: 'fixed',
-                                bottom: 24,
-                                right: 24,
+                                bottom: { xs: 152, md: 24 },
+                                right: { xs: 16, md: 24 },
                                 zIndex: 2,
                                 boxShadow: 6,
                             }}
@@ -426,8 +426,8 @@ const HomeScreen = () => {
                             onClick={() => setAiOpen(true)}
                             sx={{
                                 position: 'fixed',
-                                bottom: 24,
-                                left: 24,
+                                bottom: { xs: 152, md: 24 },
+                                left: { xs: 16, md: 24 },
                                 zIndex: 2,
                             }}
                         >

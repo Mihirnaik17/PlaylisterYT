@@ -18,6 +18,7 @@ import {
     MyMusicScreen
 } from './components'
 import MiniPlayer from './components/MiniPlayer';
+import BottomNav from './components/BottomNav';
 
 export const spotifyTheme = createTheme({
     palette: {
@@ -129,6 +130,7 @@ const App = () => {
                             <Route path="/home" exact component={Statusbar} />
                             <Route path="/playlist/:id" exact component={Statusbar} />
                             <MiniPlayer />
+                            <BottomNav />
                         </PlayerContextProvider>
                     </GlobalStoreContextProvider>
                 </AuthContextProvider>

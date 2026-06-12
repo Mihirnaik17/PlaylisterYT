@@ -116,7 +116,7 @@ function WorkspaceScreen() {
                             </Box>
                         </Box>
 
-                        <List sx={{ flex: 1, minHeight: 0, overflowY: 'auto', bgcolor: 'transparent' }}>
+                        <List sx={{ flex: 1, minHeight: 0, overflowY: 'auto', bgcolor: 'transparent', pb: { xs: '160px', md: 0 } }}>
                             {store.currentList.songs.length > 0 ? (
                                 store.currentList.songs.map((song, index) => (
                                     <SongCard
@@ -205,8 +205,8 @@ function WorkspaceScreen() {
                     onClick={() => store.history.push('/home')}
                     sx={{
                         position: 'fixed',
-                        bottom: 24,
-                        right: 24,
+                        bottom: { xs: 152, md: 24 },
+                        right: { xs: 16, md: 24 },
                         zIndex: 2,
                     }}
                 >
@@ -219,7 +219,7 @@ function WorkspaceScreen() {
                         size="medium"
                         aria-label="ai recommendations"
                         onClick={() => setAiOpen(true)}
-                        sx={{ position: 'fixed', bottom: 24, left: 24, zIndex: 2 }}
+                        sx={{ position: 'fixed', bottom: { xs: 152, md: 24 }, left: { xs: 16, md: 24 }, zIndex: 2 }}
                     >
                         <AutoAwesomeIcon />
                     </Fab>

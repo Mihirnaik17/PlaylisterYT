@@ -30,7 +30,7 @@ export default function Sidebar() {
                 width: SIDEBAR_WIDTH,
                 flexShrink: 0,
                 height: '100vh',
-                display: 'flex',
+                display: { xs: 'none', md: 'flex' },
                 flexDirection: 'column',
                 bgcolor: '#0d0d0d',
                 borderRight: '1px solid rgba(255,255,255,0.07)',

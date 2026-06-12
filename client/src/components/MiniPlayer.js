@@ -117,11 +117,11 @@ export default function MiniPlayer() {
                 }}
             />
 
-            {/* Mini player bar */}
+            {/* Mini player bar — sits above the bottom nav on mobile */}
             <Box
                 sx={{
                     position: 'fixed',
-                    bottom: 0,
+                    bottom: { xs: '56px', md: 0 },
                     left: 0,
                     right: 0,
                     height: 80,

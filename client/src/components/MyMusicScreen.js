@@ -38,7 +38,7 @@ export default function MyMusicScreen() {
             <Box sx={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
             <NavigationBar />
 
-            <Box sx={{ flex: 1, minHeight: 0, overflow: 'auto', p: 3 }}>
+            <Box sx={{ flex: 1, minHeight: 0, overflow: 'auto', p: 3, pb: { xs: '160px', md: 3 } }}>
                 <Typography variant="h5" sx={{ fontWeight: 800, mb: 0.75 }}>
                     My Music
                 </Typography>

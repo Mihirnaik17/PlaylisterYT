@@ -299,7 +299,7 @@ export default function SongsCatalogScreen() {
                         </Typography>
                     )}
                     
-                    <Box sx={{ flex: 1, minHeight: 0, overflowY: 'auto', pb: 2 }}>
+                    <Box sx={{ flex: 1, minHeight: 0, overflowY: 'auto', pb: { xs: '160px', md: 2 } }}>
                         {loading ? (
                             <Box sx={{ mt: 1 }}>
                                 {[...Array(6)].map((_, idx) => (
@@ -330,7 +330,7 @@ export default function SongsCatalogScreen() {
                     color="secondary"
                     aria-label="ai recommendations"
                     onClick={() => setAiOpen(true)}
-                    sx={{ position: 'fixed', bottom: 24, left: 24, zIndex: 2 }}
+                    sx={{ position: 'fixed', bottom: { xs: 152, md: 24 }, left: { xs: 16, md: 24 }, zIndex: 2 }}
                 >
                     <AutoAwesomeIcon />
                 </Fab>
