@@ -7,6 +7,7 @@ export function usePlaylistPlayer(playlist) {
 
   const repeatRef = useRef(repeat);
   const playlistRef = useRef(null);
+  const prevPlaylistIdRef = useRef(null);
 
   const songsLength = playlist?.songs?.length ?? 0;
 
@@ -16,12 +17,29 @@ export function usePlaylistPlayer(playlist) {
 
   useEffect(() => {
     playlistRef.current = playlist || null;
+    const id = playlist?._id || null;
     const len = playlist?.songs?.length ?? 0;
-    setCurrentSongIndex((prev) => (len === 0 ? 0 : Math.min(prev, len - 1)));
-    if (len === 0) setIsPlaying(false);
+
+    if (id !== prevPlaylistIdRef.current) {
+      prevPlaylistIdRef.current = id;
+      setCurrentSongIndex(0);
+      setIsPlaying(false);
+      setRepeat(false);
+    } else {
+      setCurrentSongIndex((prev) => (len === 0 ? 0 : Math.min(prev, len - 1)));
+      if (len === 0) setIsPlaying(false);
+    }
   }, [playlist]);
 
-  const currentSong = useMemo(() => playlist?.songs?.[currentSongIndex] || null, [playlist, currentSongIndex]);
+  const currentSong = useMemo(
+    () => playlist?.songs?.[currentSongIndex] || null,
+    [playlist, currentSongIndex]
+  );
+
+  const jumpTo = useCallback((index, playing = false) => {
+    setCurrentSongIndex(index);
+    setIsPlaying(playing);
+  }, []);
 
   const handleVideoEnd = useCallback(() => {
     const pl = playlistRef.current;
@@ -66,6 +84,7 @@ export function usePlaylistPlayer(playlist) {
     setCurrentSongIndex(0);
     setIsPlaying(false);
     setRepeat(false);
+    prevPlaylistIdRef.current = null;
   }, []);
 
   return {
@@ -78,10 +97,10 @@ export function usePlaylistPlayer(playlist) {
     setRepeat,
     handleVideoEnd,
     playPause,
+    jumpTo,
     previous,
     next,
     selectSong,
     reset,
   };
 }
-

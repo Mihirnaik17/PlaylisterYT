@@ -17,10 +17,12 @@ import { useYouTubePlayer } from '../hooks/useYouTubePlayer';
 import { PlaylistQueue } from './player/PlaylistQueue';
 import { PlayerSurface } from './player/PlayerSurface';
 import { SongActionsMenu } from './player/SongActionsMenu';
+import { usePlayerContext } from '../store/PlayerContext';
 
 export default function MUIPlayPlaylistModal() {
     const { store } = useContext(GlobalStoreContext);
     const { auth } = useContext(AuthContext);
+    const playerCtx = usePlayerContext();
     const [songMenuAnchor, setSongMenuAnchor] = useState(null);
     const [playlistMenuAnchor, setPlaylistMenuAnchor] = useState(null);
     const [infoDialogOpen, setInfoDialogOpen] = useState(false);
@@ -38,6 +40,7 @@ export default function MUIPlayPlaylistModal() {
         repeat,
         setRepeat,
         handleVideoEnd,
+        jumpTo,
         previous,
         next,
         selectSong,
@@ -51,6 +54,20 @@ export default function MUIPlayPlaylistModal() {
         onPlayingChange: setIsPlaying,
         shouldPlay: isPlaying,
     });
+
+    // Sync modal open state with PlayerContext so MiniPlayer knows when to defer.
+    useEffect(() => {
+        playerCtx.setModalOpen(isOpen);
+    }, [isOpen, playerCtx]);
+
+    // When modal opens, restore position from PlayerContext if it's the same playlist.
+    useEffect(() => {
+        if (isOpen && playerCtx.session?.playlist?._id === playlist?._id) {
+            jumpTo(playerCtx.session.currentSongIndex, playerCtx.session.isPlaying);
+        }
+        // Only run when the modal transitions to open state.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [isOpen]);
 
     // Cache playlists early (instead of on every menu-open).
     useEffect(() => {
@@ -74,9 +91,16 @@ export default function MUIPlayPlaylistModal() {
     const idNamePairsLoading = store.idNamePairs === null;
 
     function handleClose() {
+        // Save current playback position so MiniPlayer can pick up from here.
+        playerCtx.setSession({
+            playlist,
+            currentSongIndex,
+            isPlaying,
+            repeat,
+        });
         destroy();
         store.hideModals();
-        reset();
+        // Do not call reset() — hook state is intentionally preserved for seamless resume.
     }
 
     const handlePlayPause = useCallback(() => {
@@ -120,7 +144,7 @@ export default function MUIPlayPlaylistModal() {
         });
         if (!lookup.success) {
             setInfoDialogTitle('Not in catalog');
-            setInfoDialogMessage('This song is not in the catalog yet, so it can’t be liked or added to other playlists.');
+            setInfoDialogMessage('This song is not in the catalog yet, so it can\'t be liked or added to other playlists.');
             setInfoDialogOpen(true);
             return null;
         }

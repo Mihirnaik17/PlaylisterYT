@@ -3,6 +3,7 @@ import { React } from 'react'
 import { BrowserRouter, Route, Switch } from 'react-router-dom'
 import { AuthContextProvider } from './auth';
 import { GlobalStoreContextProvider } from './store'
+import { PlayerContextProvider } from './store/PlayerContext';
 import { createTheme, ThemeProvider } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import {
@@ -16,6 +17,7 @@ import {
     EditAccountScreen,
     MyMusicScreen
 } from './components'
+import MiniPlayer from './components/MiniPlayer';
 
 export const spotifyTheme = createTheme({
     palette: {
@@ -113,18 +115,21 @@ const App = () => {
             <BrowserRouter>
                 <AuthContextProvider>
                     <GlobalStoreContextProvider>
-                        <Switch>
-                            <Route path="/" exact component={SplashScreen} />
-                            <Route path="/home" exact component={HomeWrapper} />
-                            <Route path="/login/" exact component={LoginScreen} />
-                            <Route path="/register/" exact component={RegisterScreen} />
-                            <Route path="/playlist/:id" exact component={WorkspaceScreen} />
-                            <Route path="/songs" exact component={SongsCatalogScreen} />
-                            <Route path="/my-music" exact component={MyMusicScreen} />
-                            <Route path="/edit-account" exact component={EditAccountScreen} />
-                        </Switch>
-                        <Route path="/home" exact component={Statusbar} />
-                        <Route path="/playlist/:id" exact component={Statusbar} />
+                        <PlayerContextProvider>
+                            <Switch>
+                                <Route path="/" exact component={SplashScreen} />
+                                <Route path="/home" exact component={HomeWrapper} />
+                                <Route path="/login/" exact component={LoginScreen} />
+                                <Route path="/register/" exact component={RegisterScreen} />
+                                <Route path="/playlist/:id" exact component={WorkspaceScreen} />
+                                <Route path="/songs" exact component={SongsCatalogScreen} />
+                                <Route path="/my-music" exact component={MyMusicScreen} />
+                                <Route path="/edit-account" exact component={EditAccountScreen} />
+                            </Switch>
+                            <Route path="/home" exact component={Statusbar} />
+                            <Route path="/playlist/:id" exact component={Statusbar} />
+                            <MiniPlayer />
+                        </PlayerContextProvider>
                     </GlobalStoreContextProvider>
                 </AuthContextProvider>
             </BrowserRouter>

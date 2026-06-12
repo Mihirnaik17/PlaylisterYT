@@ -1,0 +1,777 @@
+================================================================================
+  CI/CD IN PLAYLISTERYT — A COMPLETE GUIDE FOR BEGINNERS
+  Written for: Mihir Nethavath
+  Project: PlaylisterYT (React + Node.js + MongoDB)
+================================================================================
+
+TABLE OF CONTENTS
+-----------------
+1. What is CI/CD and why does it matter?
+2. The big picture — how it works in this project
+3. File-by-file breakdown
+4. How a push flows through the whole pipeline
+5. Key concepts to know for interviews
+6. Common questions you might get asked
+
+
+================================================================================
+SECTION 1 — WHAT IS CI/CD AND WHY DOES IT MATTER?
+================================================================================
+
+CI = Continuous Integration
+CD = Continuous Deployment (or Continuous Delivery)
+
+Think of it like this:
+
+  WITHOUT CI/CD:
+    You code for a week → you try to merge → things break → you spend hours
+    figuring out what went wrong → you fix it manually → you deploy by hand
+    by copying files to a server → you hope nothing breaks in production.
+
+  WITH CI/CD:
+    You push to GitHub → an automated robot (GitHub Actions) instantly:
+      1. Installs all your dependencies
+      2. Runs all your tests
+      3. Builds your app
+      4. If everything passed, deploys to your live server automatically
+    If anything fails, you get an email within 2 minutes and the bad code
+    NEVER reaches production.
+
+The core value: you can't forget to run tests or deploy — the machine does it
+every single time, no exceptions.
+
+In this project:
+  CI  = GitHub Actions running tests and the build on every push
+  CD  = GitHub Actions triggering Render (the hosting service) to re-deploy
+        automatically only when CI passes
+
+
+================================================================================
+SECTION 2 — THE BIG PICTURE
+================================================================================
+
+Here is the folder structure for all CI/CD related files:
+
+  PlaylisterYT/
+  ├── .github/
+  │   └── workflows/
+  │       ├── ci.yml          ← Runs tests & build on every push/PR
+  │       └── deploy.yml      ← Deploys to Render after CI passes
+  ├── client/
+  │   ├── .npmrc              ← Tells npm how to install packages
+  │   ├── vitest.config.js    ← Configures the Vitest test runner
+  │   ├── package.json        ← Defines test scripts that CI calls
+  │   └── src/
+  │       └── tests/
+  │           ├── setup.js              ← Global test setup (runs before every file)
+  │           ├── helpers.jsx           ← Shared utilities for all tests
+  │           ├── auth.test.jsx         ← Tests for login screen
+  │           ├── sidebar.test.jsx      ← Tests for navigation sidebar
+  │           ├── settings.test.jsx     ← Tests for settings modal
+  │           ├── playlist.test.jsx     ← Tests for home/playlist screen
+  │           └── aiRecommendations.test.jsx  ← Tests for AI dialog
+  └── server/
+      └── package.json        ← Defines server-side test scripts
+
+The flow every time you run "git push":
+
+  git push
+      │
+      ▼
+  GitHub receives the push
+      │
+      ▼
+  ci.yml triggers automatically
+      │
+      ├── Install server deps (npm ci)
+      ├── Run server tests
+      ├── Install client deps (npm ci)
+      ├── Run client tests (Vitest — 53 tests)
+      └── Build the React app
+      │
+      ▼ (only if ALL above passed)
+  deploy.yml triggers automatically
+      │
+      ├── Hit Render's server deploy webhook (URL)
+      └── Hit Render's client deploy webhook (URL)
+      │
+      ▼
+  Your live site is updated
+
+
+================================================================================
+SECTION 3 — FILE-BY-FILE BREAKDOWN
+================================================================================
+
+────────────────────────────────────────────────────────────────────────────────
+FILE: .github/workflows/ci.yml
+PURPOSE: The main CI pipeline — runs on every push and pull request
+────────────────────────────────────────────────────────────────────────────────
+
+Full file:
+
+  name: CI
+
+  on:
+    push:
+      branches: [main]
+    pull_request:
+      branches: [main]
+
+  concurrency:
+    group: ci-${{ github.workflow }}-${{ github.ref }}
+    cancel-in-progress: true
+
+  jobs:
+    test:
+      name: Test & build
+      runs-on: ubuntu-latest
+
+      steps:
+        - name: Checkout
+          uses: actions/checkout@v4
+
+        - name: Setup Node.js
+          uses: actions/setup-node@v4
+          with:
+            node-version: 20
+            cache: npm
+            cache-dependency-path: |
+              server/package-lock.json
+              client/package-lock.json
+
+        - name: Install server dependencies
+          working-directory: server
+          run: npm ci
+
+        - name: Run server unit tests
+          working-directory: server
+          run: npm run test:ci
+
+        - name: Install client dependencies
+          working-directory: client
+          run: npm ci
+
+        - name: Run client unit tests (Vitest)
+          working-directory: client
+          run: npm run test:ci
+
+        - name: Build client
+          working-directory: client
+          env:
+            REACT_APP_API_URL: http://localhost:4000
+          run: npm run build
+
+LINE BY LINE EXPLANATION:
+
+  name: CI
+    The name shown in the GitHub Actions tab. Just a label.
+
+  on:
+    push:
+      branches: [main]
+    pull_request:
+      branches: [main]
+
+    This is the TRIGGER. The workflow runs in two situations:
+      1. When you push a commit directly to main
+      2. When someone opens a pull request targeting main
+    Note: pushes to other branches (like "feature/my-thing") do NOT trigger this.
+    This protects main but lets devs work freely on other branches.
+
+  concurrency:
+    group: ci-${{ github.workflow }}-${{ github.ref }}
+    cancel-in-progress: true
+
+    If you push 3 commits in quick succession, you don't want 3 simultaneous
+    CI runs — only the latest one matters. This cancels older in-progress runs
+    when a newer one starts. "${{ ... }}" is GitHub Actions' template syntax.
+
+  runs-on: ubuntu-latest
+    The CI job runs inside a fresh Ubuntu Linux virtual machine that GitHub
+    spins up for you. Every run starts from a clean slate — no leftover files
+    from previous runs. This is important: it means "works on my machine" bugs
+    are caught because CI uses a clean environment.
+
+  steps:
+    Steps run in order, top to bottom. If ANY step fails (non-zero exit code),
+    all following steps are skipped and the job is marked FAILED.
+
+  - uses: actions/checkout@v4
+    "uses" means "run a pre-built Action from GitHub's marketplace".
+    checkout@v4 is maintained by GitHub itself. It clones your repo into the
+    virtual machine so the rest of the steps can read your files.
+    Without this, the machine has no code to work with.
+
+  - uses: actions/setup-node@v4
+    with:
+      node-version: 20
+      cache: npm
+      cache-dependency-path: |
+        server/package-lock.json
+        client/package-lock.json
+
+    Installs Node.js 20 on the machine. The "cache: npm" part is a speed
+    optimization — it saves the node_modules from the last run in GitHub's
+    cache. If package-lock.json didn't change, it reuses the cache instead of
+    re-downloading thousands of packages. This typically cuts install time from
+    60s to 5s.
+
+    "cache-dependency-path" tells GitHub WHICH lock files to watch. If either
+    lock file changes, the cache is invalidated and packages re-download fresh.
+
+  - working-directory: server
+    run: npm ci
+
+    Changes into the server/ folder, then runs "npm ci".
+    "npm ci" (clean install) is different from "npm install":
+      • npm install: reads package.json, resolves versions, may change lock file
+      • npm ci: reads package-lock.json EXACTLY, refuses to proceed if it
+                doesn't match package.json, never modifies the lock file
+    CI uses npm ci because it's deterministic — you get exactly the same
+    dependency versions every single time, forever.
+
+  - working-directory: server
+    run: npm run test:ci
+
+    Runs the server tests. "npm run test:ci" maps to "vitest run" in the
+    server's package.json. "vitest run" means "run all tests once and exit"
+    (as opposed to watch mode which keeps running).
+
+  - working-directory: client
+    run: npm ci
+
+    Same clean install, but for the React client. Reads client/package-lock.json
+    exactly. The client/.npmrc file (explained below) ensures "legacy-peer-deps"
+    is active so this works despite React 17's peer dependency quirks.
+
+  - working-directory: client
+    run: npm run test:ci
+
+    Runs all 53 client tests via Vitest. This is the heart of CI — if any
+    test fails, this step fails, the job fails, and deploy.yml never runs.
+
+  - working-directory: client
+    env:
+      REACT_APP_API_URL: http://localhost:4000
+    run: npm run build
+
+    Builds the production React bundle (minified JS/CSS). This catches a
+    category of bugs that tests can't: import errors, TypeScript type errors
+    caught by the compiler, and environment variable issues. The REACT_APP_API_URL
+    env var is set here to a placeholder — in real Render deploys, Render's
+    dashboard provides the real URL.
+
+
+────────────────────────────────────────────────────────────────────────────────
+FILE: .github/workflows/deploy.yml
+PURPOSE: Automatically deploys to Render after CI passes
+────────────────────────────────────────────────────────────────────────────────
+
+Full file:
+
+  name: Deploy
+
+  on:
+    workflow_run:
+      workflows: [CI]
+      types: [completed]
+      branches: [main]
+
+  jobs:
+    deploy:
+      name: Deploy to Render
+      runs-on: ubuntu-latest
+      if: >
+        github.event.workflow_run.conclusion == 'success' &&
+        github.event.workflow_run.event == 'push'
+
+      steps:
+        - name: Deploy to Render
+          env:
+            RENDER_SERVER_DEPLOY_HOOK: ${{ secrets.RENDER_SERVER_DEPLOY_HOOK }}
+            RENDER_CLIENT_DEPLOY_HOOK: ${{ secrets.RENDER_CLIENT_DEPLOY_HOOK }}
+          run: |
+            if [ -n "$RENDER_SERVER_DEPLOY_HOOK" ]; then
+              curl -fsS -X POST "$RENDER_SERVER_DEPLOY_HOOK"
+            fi
+            if [ -n "$RENDER_CLIENT_DEPLOY_HOOK" ]; then
+              curl -fsS -X POST "$RENDER_CLIENT_DEPLOY_HOOK"
+            fi
+
+LINE BY LINE EXPLANATION:
+
+  on:
+    workflow_run:
+      workflows: [CI]
+      types: [completed]
+      branches: [main]
+
+    This is a special trigger — it fires when ANOTHER workflow finishes.
+    Specifically, it fires when the "CI" workflow completes on main.
+    This creates the pipeline chain: CI runs first, deploy runs second.
+
+  if: >
+    github.event.workflow_run.conclusion == 'success' &&
+    github.event.workflow_run.event == 'push'
+
+    Two conditions must both be true:
+    1. CI must have SUCCEEDED (not failed, cancelled, or timed out)
+    2. The trigger must be a push (not a pull_request)
+
+    This means: pull requests run CI (to check if the code is good) but
+    do NOT deploy. Only merged pushes to main actually deploy. This is
+    a standard and important safety pattern.
+
+  ${{ secrets.RENDER_SERVER_DEPLOY_HOOK }}
+    "secrets" is GitHub's encrypted secret store. You add these values in:
+      GitHub repo → Settings → Secrets and variables → Actions → New secret
+
+    The values are NEVER visible in logs — GitHub redacts them. This is how
+    you safely use API keys, tokens, and URLs in CI without committing them
+    to your code.
+
+  curl -fsS -X POST "$RENDER_SERVER_DEPLOY_HOOK"
+    curl is a command-line HTTP tool. This sends a POST request to Render's
+    "deploy hook" URL. Render's deploy hook is just a URL that, when called,
+    tells Render "please re-deploy this service with the latest code".
+
+    Flags explained:
+      -f  fail silently on server errors (exits with error code instead of
+          printing HTML error page)
+      -s  silent mode (no progress bar)
+      -S  show errors even in silent mode
+      -X POST  send a POST request (not GET)
+
+
+────────────────────────────────────────────────────────────────────────────────
+FILE: client/.npmrc
+PURPOSE: Configure npm's behavior for the client directory
+────────────────────────────────────────────────────────────────────────────────
+
+Full file:
+
+  legacy-peer-deps=true
+
+EXPLANATION:
+
+  When you install packages, npm checks "peer dependencies" — packages that
+  a library expects YOU to also have installed. React 17 is old enough that
+  some libraries (react-scripts, @testing-library/*) have peer dep declarations
+  that conflict with each other under npm's strict modern resolver.
+
+  "legacy-peer-deps=true" tells npm to use the older, more permissive resolver
+  that ignores peer dep conflicts. This is safe for this project.
+
+  Why this file matters for CI:
+    Before this file existed, the CI ran "npm ci" without this flag and would
+    fail with version conflict errors. The .npmrc file sits in the client/
+    folder, so any npm command run inside that folder automatically reads it.
+    This means "npm ci" in CI and "npm install" on your laptop both use the
+    same settings — no more "works locally, fails in CI" mystery.
+
+
+────────────────────────────────────────────────────────────────────────────────
+FILE: client/vitest.config.js
+PURPOSE: Configure the Vitest test runner for the client
+────────────────────────────────────────────────────────────────────────────────
+
+Key parts:
+
+  export default defineConfig({
+      esbuild: {
+          jsx: 'automatic',      // React 17 new JSX transform (no import React needed)
+          jsxImportSource: 'react',
+          loader: 'jsx',         // Treat .js files as JSX (most of this project is .js)
+          include: /src\/.*\.[jt]sx?$/,
+      },
+      test: {
+          environment: 'jsdom',  // Simulate a browser DOM in Node.js
+          globals: true,         // describe/it/expect available without importing
+          setupFiles: ['./src/tests/setup.js'],
+          include: ['src/**/*.test.{js,jsx}'],
+      },
+  });
+
+EXPLANATION:
+
+  Vitest runs in Node.js, but React components need a browser environment
+  (they need document, window, DOM elements). "jsdom" is a JavaScript
+  implementation of the browser APIs that runs in Node. It's not a real
+  browser, but it's good enough to test React components.
+
+  "globals: true" means you can write:
+    describe('...', () => { it('...', () => { expect(...) }) })
+  without importing describe/it/expect at the top of every file.
+
+  "setupFiles" points to a file that runs before every test file — a good
+  place to put global mocks and matchers.
+
+  The esbuild section handles JSX transformation. Vite/Vitest uses esbuild
+  (not Babel) to transform .jsx files into plain JavaScript that Node can run.
+  Because this project uses .js extension for files that contain JSX, we have
+  to explicitly tell esbuild "treat all .js files in src/ as JSX".
+
+
+────────────────────────────────────────────────────────────────────────────────
+FILE: client/src/tests/setup.js
+PURPOSE: Code that runs once before every single test file
+────────────────────────────────────────────────────────────────────────────────
+
+Full file (simplified):
+
+  import '@testing-library/jest-dom';     // adds toBeInTheDocument() etc.
+  import { vi, beforeEach } from 'vitest';
+
+  // Replace browser's fetch() with a fake so tests don't hit the real API
+  global.fetch = vi.fn(() =>
+      Promise.resolve({ ok: true, status: 200, json: async () => ({ success: true }) })
+  );
+
+  // jsdom doesn't have ResizeObserver (MUI needs it), so stub it
+  global.ResizeObserver = class ResizeObserver {
+      observe() {}
+      unobserve() {}
+      disconnect() {}
+  };
+
+  // Reset all mocks between tests so test A can't affect test B
+  beforeEach(() => {
+      vi.clearAllMocks();
+  });
+
+EXPLANATION:
+
+  "@testing-library/jest-dom" adds matchers like:
+    expect(element).toBeInTheDocument()
+    expect(button).toBeDisabled()
+    expect(div).toHaveTextContent('hello')
+  Without this import, those matchers don't exist.
+
+  "global.fetch = vi.fn()" — vi.fn() creates a "mock function". A mock
+  function records every time it was called and what arguments it received,
+  but does nothing real by default. Since our tests don't have a running
+  server, we replace the real fetch with a fake that returns a successful
+  response. Individual tests can override this:
+    global.fetch.mockResolvedValueOnce({ ok: false })
+
+  "vi.clearAllMocks()" in beforeEach — if test 1 calls loginUser() once and
+  test 2 checks how many times loginUser() was called, without clearing mocks
+  test 2 would see 1 call even though it didn't make any. clearAllMocks()
+  resets call counts between tests.
+
+
+────────────────────────────────────────────────────────────────────────────────
+FILE: client/src/tests/helpers.jsx
+PURPOSE: Shared test utilities — mock objects and the renderWithProviders function
+────────────────────────────────────────────────────────────────────────────────
+
+Key parts:
+
+  // A fake "logged in user" auth context
+  export const mockAuthLoggedIn = {
+      user: { username: 'testuser', email: 'test@example.com' },
+      loggedIn: true,
+      isGuest: false,
+      loginUser: vi.fn(),
+      logoutUser: vi.fn(),
+      editUser: vi.fn(),
+      // ...
+  };
+
+  // Factory function — returns a fresh store mock for each test
+  export function createMockStore(overrides = {}) {
+      return {
+          idNamePairs: [],
+          currentList: null,
+          listMarkedForDeletion: null,
+          loadPublishedPage: vi.fn().mockResolvedValue(undefined),
+          createNewList: vi.fn(),
+          searchPlaylists: vi.fn(),
+          // ...
+          ...overrides,
+      };
+  }
+
+  // Wraps a component in all the React context providers it needs
+  export function renderWithProviders(ui, { auth, store, route } = {}) {
+      return render(
+          <ThemeProvider theme={testTheme}>
+              <MemoryRouter initialEntries={[route ?? '/home']}>
+                  <AuthContext.Provider value={{ auth }}>
+                      <GlobalStoreContext.Provider value={{ store }}>
+                          {ui}
+                      </GlobalStoreContext.Provider>
+                  </AuthContext.Provider>
+              </MemoryRouter>
+          </ThemeProvider>
+      );
+  }
+
+EXPLANATION:
+
+  Every component in this app reads from React Context providers (AuthContext,
+  GlobalStoreContext). If you render a component without those providers, React
+  throws "Cannot read properties of undefined" because useContext() returns
+  nothing.
+
+  Instead of repeating the same 4 wrappers in every test, renderWithProviders
+  does it once. Every test file imports this helper.
+
+  WHY FACTORY FUNCTION FOR STORE:
+    createMockStore() is a function, not a plain object. If it were a plain
+    object, every test would share the same mock functions, and call counts
+    from test 1 would carry into test 2. By calling createMockStore() in each
+    test, every test gets its own fresh vi.fn() instances.
+
+  WHY MOCK THE STORE AT ALL:
+    The real store calls MongoDB and the Express server. Tests run with no
+    server. Mocking replaces real API calls with functions you control —
+    you decide what they return and you can verify they were called.
+
+
+────────────────────────────────────────────────────────────────────────────────
+FILES: client/src/tests/*.test.jsx
+PURPOSE: The actual tests that CI runs
+────────────────────────────────────────────────────────────────────────────────
+
+You have 5 test files covering:
+
+  auth.test.jsx          (7 tests)   — LoginScreen component
+  sidebar.test.jsx       (10 tests)  — Sidebar navigation
+  settings.test.jsx      (12 tests)  — Settings modal
+  playlist.test.jsx      (10 tests)  — HomeScreen / playlist listing
+  aiRecommendations.test.jsx (14 tests) — AI recommendations dialog
+
+  TOTAL: 53 tests
+
+Each test file follows the same pattern:
+
+  describe('ComponentName', () => {
+      it('does something specific', async () => {
+          // ARRANGE — set up the component
+          const store = createMockStore();
+          renderWithProviders(<MyComponent />, { auth: mockAuthLoggedIn, store });
+
+          // ACT — simulate user interaction
+          fireEvent.click(screen.getByRole('button', { name: /save/i }));
+
+          // ASSERT — check the result
+          expect(store.createNewList).toHaveBeenCalledTimes(1);
+      });
+  });
+
+The "AAA" pattern (Arrange, Act, Assert) is a standard testing pattern.
+Every test follows it:
+  Arrange  = set up your component and mocks
+  Act      = do something (click, type, etc.)
+  Assert   = verify the outcome
+
+
+────────────────────────────────────────────────────────────────────────────────
+FILE: client/package.json (scripts section)
+PURPOSE: Define the commands that CI calls
+────────────────────────────────────────────────────────────────────────────────
+
+  "scripts": {
+    "test:ci":          "vitest run",    ← used by CI (npm run test:ci)
+    "test:vitest":      "vitest run",    ← same thing, alternate name
+    "test:vitest:watch": "vitest",       ← watch mode for local development
+    "build":            "cross-env NODE_OPTIONS=--openssl-legacy-provider react-scripts build"
+  }
+
+  "vitest run"   = run all tests once, exit with 0 (pass) or 1 (fail)
+  "vitest"       = run tests and keep watching for file changes (local dev)
+
+  The exit code is critical for CI. When vitest exits with code 1, GitHub
+  Actions marks the step as failed. No special configuration needed — the
+  shell exit code is how CI systems know if a command succeeded.
+
+
+────────────────────────────────────────────────────────────────────────────────
+FILE: server/package.json (scripts section)
+PURPOSE: Server-side test scripts
+────────────────────────────────────────────────────────────────────────────────
+
+  "scripts": {
+    "test:ci": "vitest run",
+    "test:db": "RUN_DB_TESTS=true vitest run"
+  }
+
+  The server also uses Vitest. It has two test files:
+    • time-of-day.test.js  — pure unit tests (always run, 4 tests)
+    • mongo.test.js        — database integration tests (skipped in CI because
+                             CI has no MongoDB connection; run locally with
+                             "npm run test:db" when you have a DB running)
+
+  "test:db" sets an environment variable RUN_DB_TESTS=true which the test
+  file checks before deciding whether to actually run the DB tests.
+
+
+================================================================================
+SECTION 4 — HOW A PUSH FLOWS THROUGH THE WHOLE PIPELINE
+================================================================================
+
+Let's trace exactly what happens when you run "git push origin main":
+
+  SECOND 0: You push
+
+  SECOND 1-5: GitHub receives the push, reads .github/workflows/ci.yml,
+              and queues a new CI job
+
+  SECOND 6: GitHub provisions a fresh Ubuntu VM. Nothing is installed on it.
+
+  SECOND 7-15: actions/checkout@v4 clones your repo into the VM.
+               Now the VM has all your files.
+
+  SECOND 16-20: actions/setup-node@v4 installs Node.js 20.
+                If the npm cache is warm (lock files unchanged), it restores
+                node_modules from cache — skips the slow download.
+
+  SECOND 21-40: "npm ci" in server/ installs server dependencies.
+
+  SECOND 41-45: "npm run test:ci" in server/ — Vitest runs 4 server tests.
+                Server mongo tests are skipped (no DB in CI).
+
+  SECOND 46-70: "npm ci" in client/ installs ~1,400 packages.
+                Reads .npmrc, uses legacy-peer-deps=true.
+
+  SECOND 71-90: "npm run test:ci" in client/ — Vitest runs all 53 tests.
+                React components are rendered in jsdom.
+                If any test fails → the job fails → CI is RED → no deploy.
+
+  SECOND 91-120: "npm run build" builds the production React app.
+                 Creates client/build/ with minified HTML/JS/CSS.
+
+  SECOND 121: CI job completes with SUCCESS.
+
+  SECOND 122: deploy.yml is triggered by the CI success event.
+
+  SECOND 123: A fresh Ubuntu VM is provisioned for deploy.
+
+  SECOND 124: Two curl commands fire:
+                curl -X POST "$RENDER_SERVER_DEPLOY_HOOK"
+                curl -X POST "$RENDER_CLIENT_DEPLOY_HOOK"
+
+  SECOND 125-180: Render receives the webhook calls, pulls the latest code
+                  from GitHub, rebuilds and restarts your server and client.
+
+  MINUTE 3: Your live site at render.com is running the new code.
+
+Total time from "git push" to live: ~3 minutes, fully automated.
+
+
+================================================================================
+SECTION 5 — KEY CONCEPTS FOR INTERVIEWS
+================================================================================
+
+Q: What is CI and what problem does it solve?
+A: Continuous Integration is the practice of automatically building and testing
+   every code change. The problem it solves is "integration hell" — when
+   developers work in isolation for days/weeks and then try to combine their
+   code, everything breaks. With CI, integration happens constantly (every push)
+   so problems surface immediately when they're small and easy to fix.
+
+Q: What is CD and how does it differ from CI?
+A: Continuous Deployment (CD) automatically deploys code to production after CI
+   passes. CI checks the code is correct; CD ships it to users. In this project:
+   CI = GitHub Actions running tests; CD = GitHub Actions calling Render's
+   deploy hook to push the new version live.
+
+Q: What is a GitHub Actions workflow?
+A: A YAML file in .github/workflows/ that defines automated jobs. Each job runs
+   on a virtual machine (runner). Jobs have steps — each step either runs a
+   shell command or uses a pre-built Action. Workflows are triggered by events:
+   push, pull_request, workflow_run, schedule, etc.
+
+Q: What is the difference between "npm install" and "npm ci"?
+A: "npm install" reads package.json, resolves the best matching versions, and
+   MAY update package-lock.json. "npm ci" reads package-lock.json exactly and
+   FAILS if it doesn't match package.json. CI uses npm ci to ensure identical
+   dependency versions every run. "ci" stands for "clean install" — it also
+   deletes node_modules first.
+
+Q: Why do we mock things in tests?
+A: Because our tests run without a real server or database. If LoginScreen
+   calls the real loginUser() API function, it would make an HTTP request to
+   localhost:4000 — which doesn't exist in CI. Mocking replaces real functions
+   with vi.fn() stubs that: (a) don't make real calls, (b) return values you
+   control, (c) record whether they were called and with what arguments.
+
+Q: What is jsdom?
+A: A JavaScript implementation of the browser's DOM APIs (document, window,
+   createElement, etc.) that runs in Node.js. React needs a DOM to render
+   components. Since Vitest runs in Node (not a real browser), jsdom fakes
+   the browser environment. It's not perfect — it doesn't have a real layout
+   engine — but it's good enough for testing UI logic and user interactions.
+
+Q: What is the AAA testing pattern?
+A: Arrange, Act, Assert. Every test: (1) Arrange — set up components and mocks,
+   (2) Act — simulate user interaction (click, type, etc.), (3) Assert — verify
+   the expected outcome. This structure makes tests readable and maintainable.
+
+Q: What are GitHub Secrets and why are we using them?
+A: Secrets are encrypted values stored in your GitHub repo settings. They're
+   available in workflows as ${{ secrets.MY_SECRET }} but are NEVER visible in
+   logs — GitHub redacts them. We use them to store Render's deploy hook URLs
+   because those URLs grant the ability to trigger deployments — you don't
+   want them in your public code.
+
+Q: What is a deploy hook?
+A: A unique URL that, when you send a POST request to it, tells the hosting
+   service (Render in this case) to re-deploy your application. It's like a
+   button on a website, but a URL you can call programmatically. The "secret"
+   part is the URL itself — only you should know it.
+
+Q: What does "runs-on: ubuntu-latest" mean?
+A: It tells GitHub to run the job on a fresh Ubuntu Linux virtual machine
+   maintained by GitHub. GitHub provides Windows, macOS, and Ubuntu runners.
+   Ubuntu is the standard choice — it's free, fast, and matches most server
+   environments.
+
+Q: Why do we need concurrency control in ci.yml?
+A: If you push 3 commits fast, GitHub would queue 3 separate CI runs. The
+   first two are wasted — only the latest matters. "cancel-in-progress: true"
+   cancels the older runs when a new one starts. This saves CI minutes and
+   makes feedback faster.
+
+Q: What is "working-directory" in a GitHub Actions step?
+A: It sets the current directory before running the command. This project has
+   separate server/ and client/ folders, each with their own package.json.
+   "working-directory: client" is equivalent to running "cd client" before
+   the command.
+
+
+================================================================================
+SECTION 6 — HOW TO EXPLAIN THIS ON YOUR RESUME
+================================================================================
+
+RESUME BULLET (be specific, use numbers):
+  "Built a CI/CD pipeline using GitHub Actions that automatically runs 53
+   Vitest unit tests across 5 test files on every push to main, and deploys
+   to Render via webhooks only when all tests pass."
+
+WHAT TO SAY IN AN INTERVIEW:
+  "I set up a two-workflow GitHub Actions pipeline for my full-stack project.
+   The first workflow, ci.yml, triggers on every push to main. It installs
+   dependencies using npm ci for reproducibility, runs 53 Vitest tests for
+   the React frontend and 4 tests for the Node.js backend, then builds the
+   production bundle. The second workflow, deploy.yml, only triggers if the
+   CI workflow succeeded — it uses curl to hit Render's deploy hooks, which
+   trigger a live deployment. This means bad code can never reach production
+   automatically. The tests mock the database and API layer so CI runs without
+   needing a live server."
+
+TECHNOLOGIES TO LIST:
+  • GitHub Actions
+  • CI/CD pipelines
+  • Vitest (unit testing)
+  • @testing-library/react (component testing)
+  • jsdom (browser simulation)
+  • Render (cloud deployment)
+  • npm ci (reproducible builds)
+
+
+================================================================================
+END OF DOCUMENT
+================================================================================

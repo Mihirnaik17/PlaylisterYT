@@ -1,0 +1,900 @@
+================================================================================
+  PLAYLISTERYT — COMPLETE PROJECT NOTES
+  What it is, how it's built, what we used, and why
+  Written for: Mihir Nethavath
+================================================================================
+
+TABLE OF CONTENTS
+-----------------
+1. What is PlaylisterYT?
+2. High-level architecture
+3. The folder structure
+4. The backend (server/)
+5. The frontend (client/)
+6. How the two sides talk to each other
+7. Authentication — how login/logout works end to end
+8. State management — how the frontend stores and shares data
+9. The undo/redo system
+10. The AI recommendations feature
+11. The YouTube player
+12. The database — MongoDB & Mongoose
+13. Key design decisions and why we made them
+14. Technologies reference card
+
+
+================================================================================
+SECTION 1 — WHAT IS PLAYLISTERYT?
+================================================================================
+
+PlaylisterYT is a full-stack web application that lets users:
+
+  • Create and manage YouTube-based music playlists
+  • Add songs by YouTube ID (so the actual video plays inside the app)
+  • Publish playlists publicly so other users can browse, play, like, dislike,
+    and comment on them
+  • Browse a public song catalog shared across all users
+  • Get AI-powered song recommendations based on mood, genre, and time of day
+  • Search published playlists by name, user, song title, artist, or year
+
+It is essentially a lightweight Spotify-like playlist manager, but instead of
+streaming audio files, it embeds and plays YouTube videos.
+
+The app has two user modes:
+  • Logged-in user — can create, edit, publish, copy playlists; like/comment
+  • Guest — can browse and play published playlists without an account
+
+
+================================================================================
+SECTION 2 — HIGH-LEVEL ARCHITECTURE
+================================================================================
+
+PlaylisterYT is a classic "three-tier" web application:
+
+  ┌─────────────────────────────────┐
+  │  CLIENT (React, port 3000)      │  ← What the user sees in the browser
+  │  Single-Page Application (SPA)  │
+  └──────────────┬──────────────────┘
+                 │  HTTP requests (fetch / axios)
+                 │  JSON back and forth
+  ┌──────────────▼──────────────────┐
+  │  SERVER (Node.js/Express, 4000) │  ← Business logic, auth, API
+  │  REST API                       │
+  └──────────────┬──────────────────┘
+                 │  Mongoose queries
+  ┌──────────────▼──────────────────┐
+  │  DATABASE (MongoDB Atlas)       │  ← Stores users, playlists, songs
+  │  Cloud-hosted NoSQL             │
+  └─────────────────────────────────┘
+
+Plus two external services:
+  • YouTube IFrame API — embedded in the browser, plays videos inside the app
+  • OpenAI API (GPT-4o-mini) — called by the server to generate song recommendations
+
+The client and server are deployed separately on Render (a cloud hosting platform).
+They communicate entirely through HTTP. The server never imports anything from
+the client, and the client never reads from MongoDB directly.
+
+
+================================================================================
+SECTION 3 — THE FOLDER STRUCTURE
+================================================================================
+
+PlaylisterYT/
+├── .github/
+│   └── workflows/
+│       ├── ci.yml              ← GitHub Actions: runs tests on every push
+│       └── deploy.yml          ← GitHub Actions: deploys to Render after CI passes
+│
+├── client/                     ← React frontend (Create React App)
+│   ├── .npmrc                  ← npm config (legacy-peer-deps=true)
+│   ├── package.json            ← frontend dependencies and scripts
+│   ├── vitest.config.js        ← test runner configuration
+│   └── src/
+│       ├── App.js              ← root component: routing and providers
+│       ├── theme.js            ← MUI dark theme (Spotify-like colours)
+│       ├── config/
+│       │   └── apiBase.js      ← builds the API URL from env variables
+│       ├── auth/               ← frontend auth context (login/logout state)
+│       ├── store/              ← global state for playlists and songs
+│       ├── transactions/       ← undo/redo transaction classes
+│       ├── hooks/
+│       │   └── usePlaylistPlayer.js  ← custom hook for YouTube player logic
+│       ├── components/         ← all the screen and UI components
+│       └── tests/              ← Vitest test files
+│
+├── server/                     ← Node.js/Express backend
+│   ├── index.js                ← server entry point: sets up Express
+│   ├── Dockerfile              ← containerise the server for deployment
+│   ├── auth/
+│   │   └── index.js            ← JWT middleware: verify/sign tokens
+│   ├── controllers/            ← business logic for each route
+│   │   ├── auth-controller.js
+│   │   ├── store-controller.js
+│   │   ├── song-controller.js
+│   │   └── ai-controller.js
+│   ├── routes/                 ← Express routers that map URLs to controllers
+│   │   ├── auth-router.js
+│   │   ├── store-router.js
+│   │   ├── song-router.js
+│   │   └── ai-router.js
+│   ├── models/                 ← Mongoose schemas (shape of database documents)
+│   │   ├── user-model.js
+│   │   ├── playlist-model.js
+│   │   └── song-model.js
+│   ├── db/                     ← database connection layer
+│   │   ├── index.js            ← picks MongoDB or PostgreSQL based on env var
+│   │   ├── mongodb/            ← MongoDB implementation
+│   │   └── postgresql/         ← PostgreSQL implementation (alternate)
+│   ├── middleware/
+│   │   ├── request-logger.js   ← logs every request with timing
+│   │   └── rate-limit.js       ← limits 300 requests/min per IP
+│   └── utils/
+│       └── time-of-day.js      ← returns "morning/afternoon/evening/night"
+
+CICD_EXPLAINED.txt              ← CI/CD documentation (see that file)
+PROJECT_NOTES.txt               ← this file
+
+
+================================================================================
+SECTION 4 — THE BACKEND (server/)
+================================================================================
+
+The backend is a Node.js application using the Express framework. It serves
+as a REST API — meaning it accepts HTTP requests and returns JSON responses.
+It has no HTML pages of its own; that's all the React client's job.
+
+────────────────────────────────────────────────────────────────────────────────
+server/index.js — The Entry Point
+────────────────────────────────────────────────────────────────────────────────
+
+This is the file that runs when you start the server ("node index.js").
+It does five things:
+
+  1. Creates the Express app
+  2. Configures middleware (CORS, compression, rate limiting, logging, JSON parsing)
+  3. Registers routers (maps URL prefixes to router files)
+  4. Connects to the database
+  5. Starts listening on port 4000
+
+CORS (Cross-Origin Resource Sharing):
+  Browsers block JavaScript from making HTTP requests to a different domain
+  unless the server explicitly allows it. The React app runs on localhost:3000
+  but talks to the API on localhost:4000 — different ports, different "origin".
+  The cors() middleware adds the right HTTP headers to allow this.
+  In production, CLIENT_URL is set to the Render domain for the React app.
+
+Compression:
+  The compression() middleware gzip-compresses responses before sending them.
+  Large JSON payloads (playlist lists) compress down to ~10% of their size.
+  The browser decompresses transparently. This makes the app faster.
+
+Rate Limiting:
+  express-rate-limit limits each IP address to 300 requests per minute.
+  Without this, anyone could hammer the server with thousands of requests
+  per second and take it down (a DoS attack). The limit is high enough to
+  not bother real users.
+
+Request Logger:
+  Every request logs a JSON line to stdout:
+    {"ts":"2026-06-12T...","method":"GET","path":"/api/playlists","status":200,"ms":43}
+  Render captures this output and shows it in the service logs dashboard.
+  This is how you debug production issues.
+
+────────────────────────────────────────────────────────────────────────────────
+The Router → Controller Pattern
+────────────────────────────────────────────────────────────────────────────────
+
+The server uses a two-layer pattern:
+
+  routes/ (routers)  →  controllers/ (business logic)
+
+This is the standard Express pattern. The router's only job is to map
+a URL + HTTP method to a function. The controller's job is to implement
+the logic.
+
+Example — creating a playlist:
+
+  ROUTER (store-router.js):
+    router.post('/playlist', auth.verify, StoreController.createPlaylist)
+    │                        │             └─ the function that does the work
+    │                        └─ middleware: checks JWT token first
+    └─ POST /api/playlist
+
+  CONTROLLER (store-controller.js):
+    createPlaylist = async (req, res) => {
+        // read the user's ID from the JWT (set by auth.verify)
+        // create a new Playlist document in MongoDB
+        // add the playlist's ID to the user's playlists array
+        // return the new playlist as JSON
+    }
+
+  WHY SPLIT INTO TWO FILES?
+    Separation of concerns. Routers only know about HTTP (which verb, which URL,
+    which middleware). Controllers only know about business logic. If you want
+    to change a URL, you only touch the router. If you want to change what
+    "create playlist" does, you only touch the controller.
+
+────────────────────────────────────────────────────────────────────────────────
+All the API Routes
+────────────────────────────────────────────────────────────────────────────────
+
+Auth routes (prefix: /auth):
+  POST /auth/register          ← create a new account
+  POST /auth/login             ← log in, server sets a JWT cookie
+  GET  /auth/logout            ← clears the cookie
+  GET  /auth/loggedIn          ← check if the current cookie is valid
+  PUT  /auth/edit              ← update username, email, or password
+
+Playlist routes (prefix: /api):
+  POST   /api/playlist                       ← create a new playlist
+  DELETE /api/playlist/:id                   ← delete a playlist
+  GET    /api/playlist/:id                   ← get one playlist by ID
+  PUT    /api/playlist/:id                   ← update a playlist (rename, edit songs)
+  PUT    /api/playlist/:id/publish           ← make it public
+  PUT    /api/playlist/:id/like              ← like it
+  PUT    /api/playlist/:id/dislike           ← dislike it
+  POST   /api/playlist/:id/comment          ← add a comment
+  DELETE /api/playlist/:id/comment/:index   ← delete a comment
+  PUT    /api/playlist/:id/listen           ← increment play count
+  POST   /api/playlist/:id/add-song        ← add a song to the playlist
+  GET    /api/playlists/published           ← browse all public playlists (paginated)
+  GET    /api/playlists/search             ← search public playlists
+  GET    /api/playlists/user/:username     ← get playlists by a specific user
+  GET    /api/playlistpairs                ← get the logged-in user's playlist names+IDs
+  GET    /api/playlists                    ← get the logged-in user's full playlists
+
+Song routes (prefix: /api):
+  GET    /api/songs             ← get all songs in the catalog
+  POST   /api/song              ← add a song to the catalog
+  GET    /api/song/:id          ← get one song
+  PUT    /api/song/:id          ← update a song
+  DELETE /api/song/:id          ← delete a song
+
+AI route (prefix: /api):
+  POST   /api/ai/recommend-songs  ← get AI song recommendations
+
+Note: routes marked with "auth.verify" in the router require a valid JWT
+cookie. If you call them without logging in, you get HTTP 401.
+
+────────────────────────────────────────────────────────────────────────────────
+server/Dockerfile — Containerisation
+────────────────────────────────────────────────────────────────────────────────
+
+  FROM node:20-alpine AS base
+  WORKDIR /app
+  COPY package.json package-lock.json ./
+  RUN npm ci --omit=dev
+  COPY . .
+  ENV NODE_ENV=production
+  ENV PORT=4000
+  EXPOSE 4000
+  CMD ["node", "index.js"]
+
+A Dockerfile defines how to package the server into a Docker container —
+a self-contained environment that includes Node.js, the code, and all
+dependencies. Anyone with Docker can run the server with:
+  docker build -t playlister-server .
+  docker run -p 4000:4000 playlister-server
+
+"node:20-alpine" is the base image — a tiny Linux (Alpine) with Node 20.
+"--omit=dev" skips devDependencies, keeping the image smaller.
+Render can deploy directly from a Dockerfile.
+
+
+================================================================================
+SECTION 5 — THE FRONTEND (client/)
+================================================================================
+
+The frontend is a React application bootstrapped with Create React App (CRA).
+It is a Single-Page Application (SPA) — the browser loads one HTML file once,
+and React dynamically updates the page content without full page reloads.
+
+────────────────────────────────────────────────────────────────────────────────
+client/src/App.js — Root Component
+────────────────────────────────────────────────────────────────────────────────
+
+App.js is the top of the React tree. It does three things:
+
+  1. Sets up routing: maps URL paths to screen components
+  2. Wraps everything in context providers (AuthContext, GlobalStoreContext)
+  3. Applies the MUI theme
+
+  Routes defined:
+    /                 → SplashScreen (landing page)
+    /home             → HomeWrapper (public playlists feed)
+    /login            → LoginScreen
+    /register         → RegisterScreen
+    /playlist/:id     → WorkspaceScreen (edit a specific playlist)
+    /songs            → SongsCatalogScreen (browse the song catalog)
+    /my-music         → MyMusicScreen (the logged-in user's playlists)
+    /edit-account     → EditAccountScreen
+
+────────────────────────────────────────────────────────────────────────────────
+The Screens (Pages)
+────────────────────────────────────────────────────────────────────────────────
+
+Every main screen has the same outer layout:
+  - Left sidebar (Sidebar.js) with navigation links
+  - Top header (NavigationBar.js) with username, avatar, and settings icon
+  - Main content area (different for each screen)
+
+  SplashScreen.js
+    The landing page. Shows the app name and two buttons:
+    "Log In" and "Continue as Guest".
+
+  HomeScreen.js (shown via HomeWrapper.js)
+    The public playlists feed. Shows all published playlists.
+    Has a search panel with 5 fields (name, username, song title, artist, year).
+    Logged-in users see a "New playlist" button.
+    Has a sort dropdown (by listens, by name, by user).
+    Has pagination (fetches one page of results at a time from the server).
+    Has an AI recommendations button (the floating purple star icon).
+
+  WorkspaceScreen.js
+    The playlist editor. Shows when you click into a specific playlist.
+    Lets the owner add, remove, move, and edit songs.
+    Has an undo/redo toolbar.
+    Shows the YouTube player on the right side.
+
+  MyMusicScreen.js
+    Shows only the logged-in user's own playlists (published and unpublished).
+    Like HomeScreen but scoped to the current user.
+
+  SongsCatalogScreen.js
+    A catalog of all songs across all playlists in the system.
+    Can be searched and filtered.
+
+  LoginScreen.js / RegisterScreen.js
+    Standard forms. On submit, they call the auth API.
+
+  EditAccountScreen.js
+    Form to update username, email, and password.
+
+  SettingsModal.js (not a page, a popup)
+    Opens from the gear icon in the top header. Same as EditAccountScreen
+    but in a dialog overlay without leaving the current page.
+
+────────────────────────────────────────────────────────────────────────────────
+The Layout Components
+────────────────────────────────────────────────────────────────────────────────
+
+  Sidebar.js
+    Always visible on the left. Contains navigation links:
+      - Playlists (→ /home)
+      - My Music (→ /my-music)
+      - Song Catalog (→ /songs)
+      - Logout (or Login/Create Account for guests)
+    The active link is highlighted in Spotify green (#1DB954).
+
+  NavigationBar.js
+    Always visible at the top. Shows:
+      - Username and email (for logged-in users)
+      - Avatar (initials if no photo)
+      - Gear icon that opens SettingsModal
+      - "Listening as guest" text (for guests)
+
+────────────────────────────────────────────────────────────────────────────────
+The Spotify-Inspired Theme
+────────────────────────────────────────────────────────────────────────────────
+
+The app uses MUI (Material UI) with a custom dark theme defined in App.js.
+The colour palette is deliberately Spotify-like:
+
+  Background:     #121212 (very dark grey, almost black)
+  Surface/cards:  #181818 (slightly lighter dark grey)
+  Primary/accent: #1DB954 (Spotify green)
+  Text:           #FFFFFF primary, #B3B3B3 secondary
+
+All buttons have border-radius: 500px (fully rounded, pill shape — Spotify style).
+The custom scrollbar is styled to match (thin, green on hover).
+Fonts: tries "Circular" first (Spotify's font), falls back to Helvetica/Arial.
+
+
+================================================================================
+SECTION 6 — HOW THE TWO SIDES TALK TO EACH OTHER
+================================================================================
+
+The client and server communicate via HTTP using the browser's built-in
+fetch() API. All data is sent and received as JSON.
+
+client/src/config/apiBase.js builds the correct URL:
+
+  getApiBaseUrl()  → "http://localhost:4000/api"   (local dev)
+                  → "https://your-app.onrender.com/api"  (production)
+  getAuthBaseUrl() → "http://localhost:4000/auth"  (local dev)
+
+The URL is controlled by the REACT_APP_API_URL environment variable.
+In Render's dashboard you set this to the production server URL.
+CRA reads variables prefixed with REACT_APP_ at build time and bakes
+them into the JavaScript bundle.
+
+EXAMPLE REQUEST FLOW — loading published playlists:
+
+  1. HomeScreen component mounts
+  2. useEffect fires: store.loadPublishedPage(1) is called
+  3. store/index.js calls storeRequestSender.getPublishedPlaylists(1)
+  4. store/requests/index.js sends:
+       GET http://localhost:4000/api/playlists/published?page=1
+  5. Express receives the request, calls StoreController.getPublishedPlaylists
+  6. Controller queries MongoDB: Playlist.find({ published: true }).limit(10)
+  7. Controller returns JSON: { success: true, playlists: [...], total: 47 }
+  8. fetch() resolves with the response
+  9. store updates its state: idNamePairs = [...]
+  10. React re-renders HomeScreen with the new playlist data
+
+
+================================================================================
+SECTION 7 — AUTHENTICATION — HOW LOGIN/LOGOUT WORKS END TO END
+================================================================================
+
+Authentication answers the question: "who is making this request, and do
+they have permission to do it?"
+
+This app uses JWT (JSON Web Token) authentication stored in HTTP-only cookies.
+
+WHAT IS A JWT?
+  A JWT is a signed string that encodes a user's ID. It looks like:
+    eyJhbGciOiJIUzI1NiJ9.eyJ1c2VySWQiOiI2NTQifQ.XYZ...
+  It has three parts separated by dots: header, payload, signature.
+  The server signs it with a secret key (JWT_SECRET env variable).
+  Anyone can decode it and read the payload, but only the server can
+  VERIFY it (check that the signature is valid).
+
+WHAT IS AN HTTP-ONLY COOKIE?
+  A cookie that JavaScript cannot read (document.cookie doesn't see it).
+  This prevents XSS attacks from stealing the token. The browser sends it
+  automatically with every request to the same domain.
+
+LOGIN FLOW:
+  1. User types email + password, clicks Login
+  2. React client: POST /auth/login with { email, password }
+  3. Server's auth-controller.loginUser:
+     a. Looks up the user in MongoDB by email
+     b. bcrypt.compare(password, user.passwordHash) — checks the hash
+     c. If correct: jwt.sign({ userId: user._id }, JWT_SECRET)
+     d. Sets the JWT as an HTTP-only cookie in the response
+     e. Returns { loggedIn: true, user: { username, email, ... } }
+  4. Client's AuthContext updates state: { loggedIn: true, user: {...} }
+  5. React re-renders: user sees the authenticated UI
+
+WHAT IS bcrypt?
+  bcrypt is a password hashing library. When a user registers, we NEVER
+  store their plain password. Instead:
+    hash = bcrypt.hash("mypassword", 12)   → stores this
+  On login:
+    bcrypt.compare("mypassword", storedHash)  → returns true or false
+  Even if the database is stolen, the attacker gets hashes, not passwords.
+  bcrypt is deliberately slow (the "12" is the "cost factor") to make
+  brute-force attacks impractical.
+
+PROTECTED ROUTE FLOW:
+  1. Client sends: POST /api/playlist  (to create a playlist)
+     Browser automatically includes the JWT cookie in the request header
+  2. auth.verify middleware runs BEFORE the controller
+  3. middleware reads req.cookies.token, calls jwt.verify(token, JWT_SECRET)
+  4. If valid: sets req.userId = decoded.userId, calls next() (pass to controller)
+     If invalid: returns HTTP 401 immediately, controller never runs
+  5. Controller can now trust req.userId is the real logged-in user
+
+LOGOUT:
+  GET /auth/logout → server clears the cookie → client resets auth state
+
+CLIENT-SIDE STATE (client/src/auth/index.js):
+  The frontend has its own AuthContext that stores:
+    { user, loggedIn, isGuest, errorMessage }
+  This is React state — it exists only in memory. When you refresh the page,
+  it resets. That's why getLoggedIn() is called on app load — it hits
+  GET /auth/loggedIn, which reads the cookie and re-establishes the state.
+
+  The auth context exposes functions to all child components:
+    auth.loginUser(email, password)
+    auth.logoutUser()
+    auth.registerUser(...)
+    auth.editUser(...)
+    auth.continueAsGuest()
+
+
+================================================================================
+SECTION 8 — STATE MANAGEMENT — HOW THE FRONTEND STORES AND SHARES DATA
+================================================================================
+
+React components need data (playlists, songs, current user). The question is:
+where does that data live and how do components share it?
+
+This app uses REACT CONTEXT, not a library like Redux.
+
+React Context is a built-in React feature that lets you share data across
+the component tree without passing props down through every level.
+
+The app has two contexts:
+
+  AuthContext (client/src/auth/index.js):
+    Who is logged in. Shared everywhere because any component might need
+    to know if the user is logged in.
+
+  GlobalStoreContext (client/src/store/index.js):
+    All playlist and song data. The "store" is a big object that holds:
+      - idNamePairs: list of playlists (ID + name, for the sidebar list)
+      - currentList: the playlist currently being edited
+      - songs: songs in the catalog
+      - currentModal: which popup dialog is open
+      - _pagination: current page info for the public feed
+      - many action functions: createNewList, loadPublishedPage, etc.
+
+HOW IT WORKS:
+  App.js wraps everything in both providers:
+    <AuthContextProvider>
+      <GlobalStoreContextProvider>
+        {all your screens}
+      </GlobalStoreContextProvider>
+    </AuthContextProvider>
+
+  Any component that needs playlist data does:
+    const { store } = useContext(GlobalStoreContext);
+    store.loadPublishedPage(1)
+    store.idNamePairs   // the data
+
+  Any component that needs auth data does:
+    const { auth } = useContext(AuthContext);
+    auth.loggedIn
+    auth.loginUser(email, password)
+
+WHY NOT REDUX?
+  Redux is a popular state management library, but it requires a lot of
+  boilerplate code (actions, reducers, selectors). For a project this size,
+  React Context is simpler and sufficient. The tradeoff is that Context
+  re-renders all consumers when state changes, while Redux only re-renders
+  components subscribed to the changed slice. This matters at large scale
+  but not here.
+
+HOW STATE UPDATES WORK:
+  Both contexts use a "reducer" pattern internally. The store has a
+  storeReducer function that takes an action type and payload:
+
+    storeReducer({ type: 'LOAD_ID_NAME_PAIRS', payload: { idNamePairs: [...] } })
+
+  This updates the React state, which triggers a re-render of every component
+  that uses that context. It's similar to Redux but without the library.
+
+
+================================================================================
+SECTION 9 — THE UNDO/REDO SYSTEM
+================================================================================
+
+In the playlist editor (WorkspaceScreen), users can add, remove, move, and
+edit songs. Every one of these actions can be undone (Ctrl+Z) and redone
+(Ctrl+Y).
+
+This is implemented using the TRANSACTION PATTERN with a library called jsTPS.
+
+WHAT IS THE TRANSACTION PATTERN?
+  Every user action is wrapped in a "transaction" object that knows how to
+  DO and UNDO itself. jsTPS maintains a stack of past transactions.
+
+  Undo pops the last transaction from the stack and calls executeUndo().
+  Redo re-applies the transaction by calling executeDo().
+
+THE FOUR TRANSACTION CLASSES (client/src/transactions/):
+
+  CreateSong_Transaction.js
+    executeDo()   → store.createSong(index, song)
+    executeUndo() → store.removeSong(index)
+
+  RemoveSong_Transaction.js
+    executeDo()   → store.removeSong(index)
+    executeUndo() → store.createSong(index, song)
+
+  MoveSong_Transaction.js
+    executeDo()   → store.moveSong(start, end)
+    executeUndo() → store.moveSong(end, start)   ← moves it back
+
+  UpdateSong_Transaction.js
+    executeDo()   → store.updateSong(index, newSong)
+    executeUndo() → store.updateSong(index, oldSong)  ← restores old values
+
+HOW IT FITS TOGETHER:
+  When the user clicks "Add Song":
+    1. The component creates a new CreateSong_Transaction
+    2. tps.addTransaction(transaction) is called
+    3. tps immediately calls transaction.executeDo() — the song is added
+    4. The transaction sits on the stack
+
+  When the user presses Ctrl+Z:
+    1. store.undo() is called
+    2. tps.undoTransaction() calls the last transaction's executeUndo()
+    3. The song is removed
+
+  The EditToolbar component shows Undo/Redo buttons that are disabled
+  when there's nothing to undo/redo (store.canUndo(), store.canRedo()).
+
+
+================================================================================
+SECTION 10 — THE AI RECOMMENDATIONS FEATURE
+================================================================================
+
+The AI feature recommends songs based on mood, genre, and time of day.
+It uses OpenAI's GPT-4o-mini model.
+
+HOW IT WORKS END TO END:
+
+  CLIENT SIDE (AIRecommendationsDialog.js):
+    1. User opens the dialog (floating star button on HomeScreen)
+    2. User types a mood ("chill", "focus", "sad", etc.)
+    3. Optionally picks a preset mood chip or types a genre
+    4. Clicks "Get Recommendations"
+    5. The dialog calls: POST /api/ai/recommend-songs
+       with { mood, genre, playlistContext }
+    6. Shows a loading spinner while waiting
+    7. Renders song cards for each recommendation
+    8. Each card has a "Find in catalog" link to search the song
+
+  SERVER SIDE (ai-controller.js):
+    1. Validates mood is present
+    2. Gets the current time of day (morning/afternoon/evening/night)
+       from utils/time-of-day.js
+    3. Builds a detailed prompt for GPT-4o-mini:
+       "Recommend exactly 6 real, well-known songs for mood: X, time: Y..."
+    4. Tells GPT to respond in pure JSON (no markdown, no explanation)
+    5. Calls OpenAI API: client.chat.completions.create(...)
+    6. Parses the JSON from the response
+    7. Returns: { success: true, recommendations: [...] }
+
+WHAT THE AI RETURNS (one item per song):
+  {
+    "title": "Bohemian Rhapsody",
+    "artist": "Queen",
+    "year": 1975,
+    "genre": "Rock",
+    "reason": "Epic and emotionally complex, perfect for a melancholy mood."
+  }
+
+WHY GPT-4o-mini?
+  It's OpenAI's cheapest and fastest model that's still good at following
+  structured output instructions. A song recommendation doesn't need the
+  reasoning power of GPT-4o. At ~$0.00015 per 1K input tokens, 6 recommendations
+  cost less than a fraction of a cent.
+
+SAFETY: The AI route requires auth.verify — guests can't use it.
+The OPENAI_API_KEY is stored in an environment variable on the server,
+never in the client code (that would be visible in the browser).
+
+
+================================================================================
+SECTION 11 — THE YOUTUBE PLAYER
+================================================================================
+
+Each song in a playlist has a youTubeId (e.g., "dQw4w9WgXcQ").
+The app embeds YouTube videos using the YouTube IFrame Player API.
+
+WHERE IT LIVES:
+  client/src/hooks/usePlaylistPlayer.js — the logic
+  client/src/components/player/         — the UI components
+    PlayerSurface.js   ← play/pause/next/prev/repeat controls UI
+    PlaylistQueue.js   ← scrollable list of songs in the playlist
+    SongActionsMenu.js ← right-click/options menu on a song
+
+HOW usePlaylistPlayer WORKS:
+  It's a custom React hook — a reusable piece of logic that any component
+  can import. It manages:
+    - currentSongIndex: which song is playing (0, 1, 2...)
+    - isPlaying: true/false
+    - repeat: whether to loop the current song
+
+  The actual YouTube video is embedded via the YouTube IFrame API (a script
+  loaded from YouTube's CDN). The hook controls it via the YT.Player JavaScript
+  object (play(), stopVideo(), loadVideoById()).
+
+  When a song ends (video's onStateChange fires with YT.PlayerState.ENDED):
+    - If repeat: restart the same song
+    - Otherwise: advance to next song
+
+  The listen count is incremented server-side every time a song starts playing.
+
+WHY A CUSTOM HOOK?
+  The player logic is complex (state machine with play/pause/next/repeat/end).
+  Putting it in a custom hook separates it from the UI. MUIPlayPlaylistModal
+  just calls usePlaylistPlayer(playlist) and gets back all the state and
+  functions it needs, without containing any timing/state logic itself.
+
+
+================================================================================
+SECTION 12 — THE DATABASE — MONGODB & MONGOOSE
+================================================================================
+
+The database is MongoDB, a NoSQL document database. Data is stored as JSON-like
+documents (called BSON — Binary JSON) rather than rows and columns like SQL.
+
+It runs on MongoDB Atlas — MongoDB's cloud service. You don't run a MongoDB
+server yourself; Atlas manages it for you.
+
+The connection string (MONGODB_URI) is stored in a .env file locally and
+as an environment variable on Render.
+
+MONGOOSE:
+  Mongoose is a library that sits on top of MongoDB and adds:
+    - Schema validation (enforce required fields, types)
+    - Models (JavaScript classes for each collection)
+    - Query helper methods
+
+THE THREE COLLECTIONS (models/):
+
+  User:
+    firstName, lastName, username (unique), email (unique), passwordHash,
+    avatar (URL), playlists (array of ObjectId references to Playlist)
+    timestamps: createdAt, updatedAt (automatic)
+
+  Playlist:
+    name, ownerEmail, ownerUsername
+    songs: array of { title, artist, year, youTubeId }
+    published (boolean), likes, dislikes, likedBy (array), dislikedBy (array),
+    listens, comments (array of { user, text, createdAt })
+    lastAccessed
+    Indexes: (ownerEmail + lastAccessed), (published + likes),
+             (published + listens), (name)
+
+  Song:
+    title, artist, year, youTubeId
+    ownerEmail, ownerUsername
+    listens, playlists (references back to Playlist documents)
+
+WHY NoSQL (MongoDB) INSTEAD OF SQL (PostgreSQL)?
+  MongoDB suits this data well because playlists have a variable-length
+  "songs" array embedded inside them. In SQL, songs and playlists would be
+  in separate tables joined by a foreign key — you'd need a JOIN query
+  every time you want a playlist with its songs. In MongoDB, the songs live
+  inside the playlist document, so one query gets everything.
+
+  The app actually supports PostgreSQL too (there's a db/postgresql/ folder).
+  The db/index.js picks the implementation based on the DATABASE_TYPE env var.
+  This is the "strategy pattern" — the code is the same above the db layer;
+  only the implementation swaps out.
+
+THE INDEXES ON PLAYLIST:
+  Without indexes, a query like "find all published playlists sorted by likes"
+  scans every document in the collection. With an index on (published, likes),
+  MongoDB can jump directly to the answer. The four indexes on Playlist match
+  the four most common queries: sort by listens, sort by likes, search by name,
+  and get one user's playlists.
+
+
+================================================================================
+SECTION 13 — KEY DESIGN DECISIONS AND WHY WE MADE THEM
+================================================================================
+
+1. WHY SEPARATE client/ AND server/ FOLDERS?
+   The frontend (React) and backend (Express) are completely independent
+   applications. They're deployed on different Render services and talk only
+   via HTTP. This is the "decoupled" or "headless" architecture.
+   Benefit: you could swap out the frontend for a mobile app without touching
+   the server. You could swap the server for a different language without
+   touching the React code.
+
+2. WHY CONTEXT OVER REDUX FOR STATE?
+   Redux adds significant boilerplate (action creators, reducers, selectors,
+   store configuration). For a project with one developer and a handful of
+   data types, React Context is simpler and sufficient. Redux would be worth
+   it at scale (many developers, complex shared state with performance
+   requirements).
+
+3. WHY MUI (MATERIAL UI)?
+   MUI provides hundreds of pre-built components (Button, Dialog, TextField,
+   Avatar, Tooltip...) that work correctly out of the box — proper keyboard
+   navigation, ARIA attributes, responsive layout. Building these from scratch
+   would take weeks. MUI was chosen over Tailwind CSS because MUI's components
+   handle complex interactions (modal focus trapping, date pickers, etc.)
+   that Tailwind's utility classes don't provide.
+
+4. WHY JWT IN HTTP-ONLY COOKIES OVER LOCALSTORAGE?
+   JWTs in localStorage are vulnerable to XSS attacks — any JavaScript on the
+   page can read localStorage. HTTP-only cookies cannot be read by JavaScript
+   at all. The browser sends them automatically with every request. This is the
+   recommended security practice.
+
+5. WHY VITEST OVER JEST?
+   Vitest is faster (uses esbuild for transforms, not Babel), has an identical
+   API to Jest (so the learning is transferable), and natively supports ES
+   modules. Jest with CRA has significant configuration complexity for modern
+   JS. Vitest "just works" with the project's ES module imports.
+
+6. WHY RATE LIMITING?
+   Without it, your API is vulnerable to: (a) DoS attacks — someone hammers
+   it with requests until the server runs out of memory, (b) brute force
+   attacks — trying millions of passwords on /auth/login. 300 req/min is
+   enough for any real user but stops automated abuse.
+
+7. WHY DOCKER FOR THE SERVER?
+   Docker makes the server environment reproducible. The Dockerfile specifies
+   exactly which Node version, which packages, which environment. This prevents
+   "works on my machine" issues in deployment. Render can deploy directly from
+   a Dockerfile.
+
+8. WHY PAGINATION ON THE PUBLIC PLAYLIST FEED?
+   If the database has 10,000 playlists, returning all of them in one request
+   would: (a) take a long time to query, (b) transfer megabytes of JSON,
+   (c) render thousands of DOM elements, making the browser slow.
+   Pagination fetches 10 at a time — fast to query, small to transfer,
+   easy to render.
+
+
+================================================================================
+SECTION 14 — TECHNOLOGIES REFERENCE CARD
+================================================================================
+
+FRONTEND:
+  React 17            Core UI library. Component-based. Reactive (re-renders
+                      when state changes). Uses JSX (HTML-like syntax in JS).
+
+  react-router-dom 5  Client-side routing. Lets you navigate between /home,
+                      /login etc. without a full page reload. Uses useHistory
+                      and useLocation hooks.
+
+  MUI v5              Component library. Provides Button, Dialog, TextField,
+                      Avatar, Tooltip, etc. with accessibility built in.
+
+  Create React App    Build tool that configured Webpack, Babel, dev server.
+                      Lets you write modern JS and it compiles for browsers.
+
+  jsTPS               Transaction stack library. Powers the undo/redo system.
+
+BACKEND:
+  Node.js 20          JavaScript runtime for the server. Single-threaded,
+                      event-loop based. Good for I/O heavy work (API calls,
+                      DB queries) but not CPU heavy work.
+
+  Express 4           Web framework for Node. Routes HTTP requests to handlers.
+                      Middleware pipeline model.
+
+  Mongoose 5          MongoDB ODM. Defines schemas, validates data, provides
+                      query methods. Sits on top of the raw MongoDB driver.
+
+  bcryptjs            Password hashing. Slow by design to resist brute force.
+
+  jsonwebtoken        Creates and verifies JWTs. Signs with a secret key.
+
+  cors                Express middleware to set CORS headers so browsers
+                      allow cross-origin requests.
+
+  dotenv              Loads .env files into process.env. Keeps secrets out of
+                      code.
+
+  express-rate-limit  Limits requests per IP per time window.
+
+  compression         gzip-compresses HTTP responses.
+
+  openai              Official OpenAI Node.js SDK. Used to call GPT-4o-mini.
+
+DATABASE:
+  MongoDB Atlas       Cloud-hosted MongoDB. Handles replication, backups,
+                      scaling. Free tier available.
+
+  Mongoose            Schema validation and query helpers for MongoDB.
+
+TESTING:
+  Vitest 3            Test runner. Fast, ES module native, Jest-compatible API.
+
+  @testing-library/react  Renders React components in jsdom and provides
+                          queries (getByRole, findByText, etc.).
+
+  jsdom               JavaScript implementation of browser DOM/window APIs.
+                      Vitest runs in Node; jsdom fakes the browser.
+
+  @testing-library/jest-dom  Extra matchers: toBeInTheDocument(),
+                             toBeDisabled(), toHaveTextContent(), etc.
+
+CI/CD:
+  GitHub Actions      Automation platform built into GitHub. Runs workflows
+                      on push/PR. Free for public repos.
+
+  Render              Cloud hosting for both the React app (static site) and
+                      the Express server (web service). Deploy via webhooks.
+
+DEVELOPMENT TOOLS:
+  concurrently        Runs multiple npm scripts at once (server + client dev
+                      servers side by side).
+
+  cross-env           Sets environment variables in a cross-platform way
+                      (works on Windows and Mac/Linux).
+
+================================================================================
+END OF DOCUMENT
+================================================================================
