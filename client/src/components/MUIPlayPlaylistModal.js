@@ -44,7 +44,6 @@ export default function MUIPlayPlaylistModal() {
         previous,
         next,
         selectSong,
-        reset,
     } = usePlaylistPlayer(playlist);
 
     const { play, pause, destroy } = useYouTubePlayer({
