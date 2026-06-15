@@ -1,6 +1,4 @@
-import { useContext } from 'react';
 import { useHistory, useLocation } from 'react-router-dom';
-import AuthContext from '../auth';
 import Box from '@mui/material/Box';
 import BottomNavigation from '@mui/material/BottomNavigation';
 import BottomNavigationAction from '@mui/material/BottomNavigationAction';
