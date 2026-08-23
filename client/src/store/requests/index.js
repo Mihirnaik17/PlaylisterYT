@@ -83,15 +83,17 @@ export const getPlaylistById = async (id) => {
     }
 }
 
-export const getPlaylistPairs = async () => {
+export const getPlaylistPairs = async (signal) => {
     try{
         const response = await fetch(`${baseURL}/playlistpairs/`,{
             credentials: "include",
             cache: 'no-store',
+            signal: signal,
         });
         const data = await handleresponse(response);
         return data;
     } catch (error){
+        if (error.name === 'AbortError') throw error;
         console.error(error);
         throw error;
     }

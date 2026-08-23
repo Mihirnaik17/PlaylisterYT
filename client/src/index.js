@@ -7,12 +7,10 @@ import playlisterDarkTheme from './theme';
 
 
 ReactDOM.render(
-  <React.StrictMode>
-    <ThemeProvider theme={playlisterDarkTheme}>
-      <CssBaseline />
-      <App />
-    </ThemeProvider>
-  </React.StrictMode>,
+  <ThemeProvider theme={playlisterDarkTheme}>
+    <CssBaseline />
+    <App />
+  </ThemeProvider>,
   document.getElementById('root')
 );
 

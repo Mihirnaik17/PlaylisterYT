@@ -2,18 +2,23 @@ const auth = require('../auth')
 const dbManager = require('../db')
 const bcrypt = require('bcryptjs')
 
-getLoggedIn = async (req, res) => {
+const getLoggedIn = async (req, res) => {
     try {
         let userId = auth.verifyUser(req);
         if (!userId) {
             return res.status(200).json({
                 loggedIn: false,
-                user: null,
-                errorMessage: "?"
+                user: null
             })
         }
 
         const loggedInUser = await dbManager.getUserById(userId);
+        if (!loggedInUser) {
+            return res.status(200).json({
+                loggedIn: false,
+                user: null
+            })
+        }
 
         return res.status(200).json({
             loggedIn: true,
@@ -27,11 +32,11 @@ getLoggedIn = async (req, res) => {
         })
     } catch (err) {
         console.error(err);
-        res.json(false);
+        res.status(500).json({ loggedIn: false, user: null });
     }
 }
 
-loginUser = async (req, res) => {
+const loginUser = async (req, res) => {
     try {
         const { email, password } = req.body;
 
@@ -64,7 +69,8 @@ loginUser = async (req, res) => {
         res.cookie("token", token, {
             httpOnly: true,
             secure: true,
-            sameSite: "none"
+            sameSite: "none",
+            maxAge: auth.TOKEN_LIFETIME_MS
         }).status(200).json({
             success: true,
             user: {
@@ -82,7 +88,7 @@ loginUser = async (req, res) => {
     }
 }
 
-logoutUser = async (req, res) => {
+const logoutUser = async (req, res) => {
     res.cookie("token", "", {
         httpOnly: true,
         expires: new Date(0),
@@ -91,7 +97,7 @@ logoutUser = async (req, res) => {
     }).send();
 }
 
-registerUser = async (req, res) => {
+const registerUser = async (req, res) => {
     try {
         const { firstName, lastName, username, email, password, passwordVerify, avatar } = req.body;
         if (!firstName || !lastName || !email || !username|| !password || !passwordVerify) {
@@ -157,15 +163,10 @@ registerUser = async (req, res) => {
     }
 }
 
-editUser = async (req, res) => {
+const editUser = async (req, res) => {
     try {
-        const userId = auth.verifyUser(req);
-        if (!userId) {
-            return res.status(401).json({
-                success: false,
-                errorMessage: "Unauthorized"
-            });
-        }
+        // auth.verify middleware has already validated the token and set req.userId
+        const userId = req.userId;
 
         const { username, email, password, passwordVerify, avatar } = req.body;
 

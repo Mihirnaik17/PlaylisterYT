@@ -1,5 +1,6 @@
 import { useContext, useState, useEffect, useCallback } from 'react'
 import { GlobalStoreContext } from '../store'
+import storeRequestSender from '../store/requests'
 import AuthContext from '../auth'
 import IconButton from '@mui/material/IconButton';
 import Menu from '@mui/material/Menu';
@@ -27,6 +28,7 @@ function CatalogSongCard(props) {
     const [anchorEl, setAnchorEl] = useState(null);
     const [playlistMenuAnchor, setPlaylistMenuAnchor] = useState(null);
     const [userPlaylists, setUserPlaylists] = useState([]);
+    const [playlistsLoading, setPlaylistsLoading] = useState(false);
     const [duplicateDialogOpen, setDuplicateDialogOpen] = useState(false);
     const [duplicateDialogTitle, setDuplicateDialogTitle] = useState('Notice');
     const [duplicateDialogMessage, setDuplicateDialogMessage] = useState('');
@@ -40,19 +42,26 @@ function CatalogSongCard(props) {
     const isActive = store.currentSong && store.currentSong._id === song._id;
     const thumbUrl = YT_THUMB(song.youTubeId);
 
-    const loadUserPlaylists = useCallback(() => {
-        if (!store.idNamePairs || store.idNamePairs.length === 0) {
-            store.loadIdNamePairs();
-        }
-        const sorted = store.idNamePairs && store.idNamePairs.length > 0
-            ? [...store.idNamePairs].sort((a, b) => {
+    // Fetch the user's OWN playlists directly into local state. Reading the
+    // shared store.idNamePairs here showed the wrong list (the Home page's
+    // published feed) and clobbered it via loadIdNamePairs().
+    const loadUserPlaylists = useCallback(async () => {
+        setPlaylistsLoading(true);
+        try {
+            const response = await storeRequestSender.getPlaylistPairs();
+            const pairs = response.data.success ? (response.data.idNamePairs || []) : [];
+            const sorted = [...pairs].sort((a, b) => {
                 const dateA = a.lastAccessed ? new Date(a.lastAccessed) : new Date(0);
                 const dateB = b.lastAccessed ? new Date(b.lastAccessed) : new Date(0);
                 return dateB - dateA;
-            })
-            : [];
-        setUserPlaylists(sorted);
-    }, [store]);
+            });
+            setUserPlaylists(sorted);
+        } catch (e) {
+            setUserPlaylists([]);
+        } finally {
+            setPlaylistsLoading(false);
+        }
+    }, []);
 
     useEffect(() => {
         if (!auth.isGuest && open) {
@@ -330,7 +339,7 @@ function CatalogSongCard(props) {
                             ))
                         ) : (
                             <MenuItem disabled>
-                                {store.idNamePairs === null ? 'Loading...' : 'No playlists available'}
+                                {playlistsLoading ? 'Loading...' : 'No playlists available'}
                             </MenuItem>
                         )}
                     </Menu>

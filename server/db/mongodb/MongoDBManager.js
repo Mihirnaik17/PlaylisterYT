@@ -111,7 +111,10 @@ class MongoDBManager extends DatabaseManager{
     if (updateData.publishedDate !== undefined) {
         playlist.publishedDate = updateData.publishedDate;
     }
-    
+    if (updateData.lastAccessed !== undefined) {
+        playlist.lastAccessed = updateData.lastAccessed;
+    }
+
     return await playlist.save();
 }
 

@@ -1,6 +1,6 @@
 const Song = require('../models/song-model');
 const Playlist = require('../models/playlist-model');
-const auth = require('../auth');
+const User = require('../models/user-model');
 
 
 
@@ -42,8 +42,9 @@ getAllSongs = async (req, res) => {
         }
 
         let songs;
-        const limitNum = parseInt(limit);
-        const skipNum = parseInt(skip);
+        // Clamp pagination: NaN-proof and capped so one request can't pull the whole collection.
+        const limitNum = Math.min(500, Math.max(1, parseInt(limit) || 100));
+        const skipNum = Math.max(0, parseInt(skip) || 0);
         
         if (sortBy === 'playlists') {
             songs = await Song.aggregate([
@@ -154,13 +155,7 @@ createSong = async (req, res) => {
             });
         }
 
-        const userId = auth.verifyUser(req);
-        if (!userId) {
-            return res.status(401).json({
-                success: false,
-                errorMessage: 'Unauthorized'
-            });
-        }
+        const userId = req.userId; // set by auth.verify middleware
 
         const existingSong = await Song.findOne({ title, artist, year });
         if (existingSong) {
@@ -170,7 +165,6 @@ createSong = async (req, res) => {
             });
         }
 
-        const User = require('../models/user-model');
         const user = await User.findById(userId);
         if (!user) {
             return res.status(404).json({
@@ -207,15 +201,8 @@ createSong = async (req, res) => {
 updateSong = async (req, res) => {
     try {
         const { title, artist, year, youTubeId } = req.body;
-        const userId = auth.verifyUser(req);
-        if (!userId) {
-            return res.status(401).json({
-                success: false,
-                errorMessage: 'Unauthorized'
-            });
-        }
+        const userId = req.userId; // set by auth.verify middleware
 
-        const User = require('../models/user-model');
         const user = await User.findById(userId);
 
         const song = await Song.findById(req.params.id);
@@ -231,14 +218,21 @@ updateSong = async (req, res) => {
                 errorMessage: 'You can only edit songs you created'
             });
         }
-        if (title !== song.title || artist !== song.artist || year !== song.year) {
-            const duplicate = await Song.findOne({ 
-                title, 
-                artist, 
-                year,
-                _id: { $ne: req.params.id } 
+        // Compute the effective post-update identity first (fields are optional),
+        // then check duplicates against that — checking raw body values misses
+        // duplicates when a field is omitted.
+        const newTitle = title || song.title;
+        const newArtist = artist || song.artist;
+        const newYear = year || song.year;
+
+        if (newTitle !== song.title || newArtist !== song.artist || newYear !== song.year) {
+            const duplicate = await Song.findOne({
+                title: newTitle,
+                artist: newArtist,
+                year: newYear,
+                _id: { $ne: req.params.id }
             });
-            
+
             if (duplicate) {
                 return res.status(400).json({
                     success: false,
@@ -247,16 +241,14 @@ updateSong = async (req, res) => {
             }
         }
 
-        // here it will update the songs
-
         // save the old identity used in playlists
         const oldTitle = song.title;
         const oldArtist = song.artist;
         const oldYear = song.year;
 
-        song.title = title || song.title;
-        song.artist = artist || song.artist;
-        song.year = year || song.year;
+        song.title = newTitle;
+        song.artist = newArtist;
+        song.year = newYear;
         song.youTubeId = youTubeId || song.youTubeId;
 
         const updatedSong = await song.save();
@@ -299,15 +291,8 @@ updateSong = async (req, res) => {
 
 deleteSong = async (req, res) => {
     try {
-        const userId = auth.verifyUser(req);
-        if (!userId) {
-            return res.status(401).json({
-                success: false,
-                errorMessage: 'Unauthorized'
-            });
-        }
+        const userId = req.userId; // set by auth.verify middleware
 
-        const User = require('../models/user-model');
         const user = await User.findById(userId);
 
         const song = await Song.findById(req.params.id);
@@ -361,15 +346,8 @@ deleteSong = async (req, res) => {
 getUserSongs = async (req, res) => {
     try {
 
-        const userId = auth.verifyUser(req);
-        if (!userId) {
-            return res.status(401).json({
-                success: false,
-                errorMessage: 'Unauthorized'
-            });
-        }
+        const userId = req.userId; // set by auth.verify middleware
 
-        const User =require('../models/user-model');
 
         const user = await User.findById(userId);
 
@@ -390,15 +368,8 @@ getUserSongs = async (req, res) => {
 
 likeSong = async (req, res) => {
     try {
-        const userId = auth.verifyUser(req);
-        if (!userId) {
-            return res.status(401).json({
-                success: false,
-                errorMessage: 'Unauthorized'
-            });
-        }
+        const userId = req.userId; // set by auth.verify middleware
 
-        const User = require('../models/user-model');
         const user = await User.findById(userId);
         if (!user) {
             return res.status(404).json({

@@ -22,8 +22,15 @@ export default function MyMusicScreen() {
 
     useEffect(() => {
         if (!auth.isGuest && auth.loggedIn) {
+            const controller = new AbortController();
+            let isMounted = true;
             setLoading(true);
-            Promise.resolve(store.loadIdNamePairs()).finally(() => setLoading(false));
+            store.loadIdNamePairs(controller.signal)
+                .finally(() => { if (isMounted) setLoading(false); });
+            return () => {
+                isMounted = false;
+                controller.abort();
+            };
         } else {
             setLoading(false);
         }
@@ -46,7 +53,18 @@ export default function MyMusicScreen() {
                     Your playlists, including Liked Songs.
                 </Typography>
 
-                {auth.isGuest || !auth.loggedIn ? (
+                {!auth.authReady || loading ? (
+                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.2 }}>
+                        {[...Array(5)].map((_, idx) => (
+                            <Skeleton
+                                key={`my-music-skeleton-init-${idx}`}
+                                variant="rounded"
+                                height={74}
+                                sx={{ bgcolor: 'rgba(255,255,255,0.08)' }}
+                            />
+                        ))}
+                    </Box>
+                ) : auth.isGuest || !auth.loggedIn ? (
                     <Box sx={{ mt: 6, textAlign: 'center' }}>
                         <Typography variant="h6" color="text.secondary" sx={{ mb: 1 }}>
                             Login required
@@ -57,17 +75,6 @@ export default function MyMusicScreen() {
                         <Button variant="contained" color="primary" onClick={() => history.push('/login')}>
                             Login
                         </Button>
-                    </Box>
-                ) : loading ? (
-                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.2 }}>
-                        {[...Array(5)].map((_, idx) => (
-                            <Skeleton
-                                key={`my-music-skeleton-${idx}`}
-                                variant="rounded"
-                                height={74}
-                                sx={{ bgcolor: 'rgba(255,255,255,0.08)' }}
-                            />
-                        ))}
                     </Box>
                 ) : playlists.length > 0 ? (
                     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.25 }}>

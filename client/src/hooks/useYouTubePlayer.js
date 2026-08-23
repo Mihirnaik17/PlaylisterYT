@@ -11,6 +11,12 @@ export function useYouTubePlayer({
   const playerRef = useRef(null);
   const playerReadyRef = useRef(false);
   const ytReadyPromiseRef = useRef(null);
+  // The container is the React-rendered div (elementId). YT must NEVER be
+  // given that node directly: new YT.Player(el) REPLACES el with an iframe,
+  // which breaks React's DOM bookkeeping and crashes the next commit with
+  // "Failed to execute 'insertBefore'/'removeChild' on 'Node'". Instead we
+  // create a throwaway child div imperatively and hand THAT to YT.
+  const containerRef = useRef(null);
 
   const ensureYouTubeApi = useCallback(() => {
     if (window.YT && window.YT.Player) return Promise.resolve(true);
@@ -37,10 +43,17 @@ export function useYouTubePlayer({
 
   const destroy = useCallback(() => {
     if (playerRef.current && playerRef.current.destroy) {
-      playerRef.current.destroy();
+      try { playerRef.current.destroy(); } catch (e) { /* already gone */ }
     }
     playerRef.current = null;
     playerReadyRef.current = false;
+    // Remove whatever YT left behind (iframe or restored mount div) so the
+    // container is empty for the next player instance.
+    const container = containerRef.current;
+    if (container) {
+      while (container.firstChild) container.removeChild(container.firstChild);
+    }
+    containerRef.current = null;
   }, []);
 
   const play = useCallback(() => {
@@ -69,7 +82,17 @@ export function useYouTubePlayer({
       playerReadyRef.current = false;
       destroy();
 
-      playerRef.current = new window.YT.Player(elementId, {
+      const container = document.getElementById(elementId);
+      if (!container) return;
+      containerRef.current = container;
+
+      // Imperative child div — YT replaces this node, not React's container.
+      const mount = document.createElement('div');
+      mount.style.width = '100%';
+      mount.style.height = '100%';
+      container.appendChild(mount);
+
+      playerRef.current = new window.YT.Player(mount, {
         height: '100%',
         width: '100%',
         videoId,

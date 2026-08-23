@@ -18,7 +18,8 @@ function AuthContextProvider(props) {
         user: null,
         loggedIn: false,
         isGuest: false,
-        errorMessage: null
+        errorMessage: null,
+        authReady: false
     });
     const history = useHistory();
 
@@ -30,7 +31,8 @@ function AuthContextProvider(props) {
                     user: payload.user,
                     loggedIn: payload.loggedIn,
                     isGuest: false,
-                    errorMessage: null
+                    errorMessage: null,
+                    authReady: true
                 });
             }
             case AuthActionType.LOGIN_USER: {
@@ -38,7 +40,8 @@ function AuthContextProvider(props) {
                     user: payload.user,
                     loggedIn: payload.loggedIn,
                     isGuest: false,
-                    errorMessage: payload.errorMessage
+                    errorMessage: payload.errorMessage,
+                    authReady: true
                 })
             }
             case AuthActionType.LOGOUT_USER: {
@@ -46,7 +49,8 @@ function AuthContextProvider(props) {
                     user: null,
                     loggedIn: false,
                     isGuest: false,
-                    errorMessage: null
+                    errorMessage: null,
+                    authReady: true
                 })
             }
             case AuthActionType.REGISTER_USER: {
@@ -54,7 +58,8 @@ function AuthContextProvider(props) {
                     user: payload.user,
                     loggedIn: payload.loggedIn,
                     isGuest: false,
-                    errorMessage: payload.errorMessage
+                    errorMessage: payload.errorMessage,
+                    authReady: true
                 })
             }
             case AuthActionType.GUEST_MODE: {
@@ -62,7 +67,8 @@ function AuthContextProvider(props) {
                     user: null,
                     loggedIn: false,
                     isGuest: true,
-                    errorMessage: null
+                    errorMessage: null,
+                    authReady: true
                 })
             }
             case AuthActionType.CLEAR_ERROR: {
@@ -77,14 +83,20 @@ function AuthContextProvider(props) {
     }
 
     const getLoggedIn = useCallback(async () => {
-        const response = await authRequestSender.getLoggedIn();
-        if (response.status === 200) {
+        try {
+            const response = await authRequestSender.getLoggedIn();
+            const isLoggedIn = response.status === 200 && response.data.loggedIn;
+            const isGuest = !isLoggedIn && sessionStorage.getItem('guestMode') === '1';
             setAuth({
-                user: response.data.user,
-                loggedIn: response.data.loggedIn,
-                isGuest: false,
-                errorMessage: null
-            })
+                user: isLoggedIn ? response.data.user : null,
+                loggedIn: isLoggedIn,
+                isGuest,
+                errorMessage: null,
+                authReady: true
+            });
+        } catch (e) {
+            const isGuest = sessionStorage.getItem('guestMode') === '1';
+            setAuth(prev => ({ ...prev, isGuest, authReady: true }));
         }
     }, []);
 
@@ -122,12 +134,13 @@ function AuthContextProvider(props) {
 
     auth.loginUser = async function(email, password) {
         try{
-            const data = await authRequestSender.loginUser(email, password); 
-            if (data.data && data.data.success) {  
+            const data = await authRequestSender.loginUser(email, password);
+            if (data.data && data.data.success) {
+                sessionStorage.removeItem('guestMode');
                authReducer({
                    type: AuthActionType.LOGIN_USER,
                    payload: {
-                       user: data.data.user,  
+                       user: data.data.user,
                        loggedIn: true,
                         errorMessage: null
                     }
@@ -149,6 +162,7 @@ function AuthContextProvider(props) {
     auth.logoutUser = async function() {
         const response = await authRequestSender.logoutUser();
         if (response.status === 200) {
+            sessionStorage.removeItem('guestMode');
             authReducer( {
                 type: AuthActionType.LOGOUT_USER,
                 payload: null
@@ -182,6 +196,7 @@ function AuthContextProvider(props) {
     }
 
     auth.continueAsGuest = function() {
+        sessionStorage.setItem('guestMode', '1');
         authReducer({
             type: AuthActionType.GUEST_MODE,
             payload: null

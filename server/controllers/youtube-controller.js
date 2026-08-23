@@ -23,13 +23,19 @@ function extractYear(title) {
 function fetchJson(url) {
     return new Promise((resolve, reject) => {
         https.get(url, { timeout: 5000 }, (res) => {
+            if (res.statusCode !== 200) {
+                res.resume(); // drain so the socket is released
+                return reject(new Error(`oEmbed returned status ${res.statusCode}`));
+            }
             let data = '';
             res.on('data', (chunk) => { data += chunk; });
             res.on('end', () => {
                 try { resolve(JSON.parse(data)); }
                 catch (e) { reject(new Error('Invalid JSON from oEmbed')); }
             });
-        }).on('error', reject).on('timeout', () => reject(new Error('Request timed out')));
+        }).on('error', reject).on('timeout', function () {
+            this.destroy(new Error('Request timed out'));
+        });
     });
 }
 

@@ -1,5 +1,6 @@
 import { useContext, useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import { GlobalStoreContext } from '../store';
+import storeRequestSender from '../store/requests';
 import Box from '@mui/material/Box';
 import Modal from '@mui/material/Modal';
 import Button from '@mui/material/Button';
@@ -68,26 +69,34 @@ export default function MUIPlayPlaylistModal() {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [isOpen]);
 
-    // Cache playlists early (instead of on every menu-open).
+    // The user's own playlists for the "Add to playlist" menu, kept in LOCAL
+    // state. Writing them into store.idNamePairs (as before) raced with the
+    // Home page's published feed — the same store field held two different
+    // datasets and whichever response landed last clobbered the other.
+    const [userPairs, setUserPairs] = useState(null);
     useEffect(() => {
-        if (auth.isGuest) return;
-        if (store.idNamePairs === null || (Array.isArray(store.idNamePairs) && store.idNamePairs.length === 0)) {
-            store.loadIdNamePairs();
-        }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [auth.isGuest, store.idNamePairs]);
+        if (!isOpen || auth.isGuest) return;
+        let cancelled = false;
+        storeRequestSender.getPlaylistPairs()
+            .then((response) => {
+                if (!cancelled && response.data.success) {
+                    setUserPairs(response.data.idNamePairs || []);
+                }
+            })
+            .catch(() => { if (!cancelled) setUserPairs([]); });
+        return () => { cancelled = true; };
+    }, [isOpen, auth.isGuest]);
 
     const userPlaylists = useMemo(() => {
-        const pairs = store.idNamePairs;
-        if (!Array.isArray(pairs) || pairs.length === 0) return [];
-        return [...pairs].sort((a, b) => {
+        if (!Array.isArray(userPairs) || userPairs.length === 0) return [];
+        return [...userPairs].sort((a, b) => {
             const dateA = a.lastAccessed ? new Date(a.lastAccessed) : new Date(0);
             const dateB = b.lastAccessed ? new Date(b.lastAccessed) : new Date(0);
             return dateB - dateA;
         });
-    }, [store.idNamePairs]);
+    }, [userPairs]);
 
-    const idNamePairsLoading = store.idNamePairs === null;
+    const idNamePairsLoading = userPairs === null;
 
     function handleClose() {
         // Save current playback position so MiniPlayer can pick up from here.

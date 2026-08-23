@@ -81,11 +81,14 @@ class PostgreSQLManager extends DatabaseManager {
             throw new Error('Playlist not found');
         }
 
-        if (updateData.name !== undefined) {
-            playlist.name = updateData.name;
-        }
-        if (updateData.songs !== undefined) {
-            playlist.songs = updateData.songs;
+        // Apply every supported field (parity with MongoDBManager) — previously
+        // only name/songs were saved, silently dropping publish/like updates.
+        const fields = ['name', 'songs', 'published', 'likes', 'dislikes',
+            'likedBy', 'dislikedBy', 'listens', 'comments', 'publishedDate', 'lastAccessed'];
+        for (const field of fields) {
+            if (updateData[field] !== undefined && field in playlist) {
+                playlist[field] = updateData[field];
+            }
         }
 
         return await playlist.save();

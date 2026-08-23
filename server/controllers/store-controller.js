@@ -1,46 +1,62 @@
-const auth = require('../auth');
 const dbManager = require('../db');
-const jwt = require('jsonwebtoken');
-require('dotenv').config();
+const auth = require('../auth');
 const Song = require('../models/song-model');
 const Playlist = require('../models/playlist-model');
 
+// Loads the authenticated user and confirms they own the playlist.
+// Returns { user, playlist } on success, or sends the error response and returns null.
+async function requireOwnership(req, res, playlistId) {
+    const playlist = await dbManager.getPlaylistById(playlistId);
+    if (!playlist) {
+        res.status(404).json({ errorMessage: 'Playlist not found' });
+        return null;
+    }
+    const user = await dbManager.getUserById(req.userId);
+    if (!user) {
+        res.status(401).json({ errorMessage: 'User not found' });
+        return null;
+    }
+    if (playlist.ownerEmail !== user.email) {
+        res.status(403).json({ errorMessage: "You don't have permission to modify this playlist" });
+        return null;
+    }
+    return { user, playlist };
+}
+
 createPlaylist = async (req, res) => {
     try{
-    if(auth.verifyUser(req) === null){
-        return res.status(401).json({
-            errorMessage: 'UNAUTHORIZED'
-        })
-    }
+    // auth.verify middleware already validated the token and set req.userId
     const body = req.body;
-    if (!body) {
+    if (!body || !body.name) {
         return res.status(400).json({
             success: false,
-            error: 'You must provide a Playlist',
+            error: 'You must provide a Playlist with a name',
         })
     }
-    
+
     const user = await dbManager.getUserById(req.userId);
     if (!user) {
         return res.status(404).json({
             errorMessage: 'User not found'
         })
     }
-    
+
+    // Whitelist client fields — never spread the raw body into the document,
+    // otherwise a client could set likes/listens/published on creation.
     const playlistData = {
-        ...body,
+        name: body.name,
+        songs: Array.isArray(body.songs) ? body.songs : [],
         ownerEmail: user.email,
         ownerUsername: user.username,
         published: false,
         likes: 0,
         dislikes: 0,
-        likedBy: [],          
-        dislikedBy: [],       
+        likedBy: [],
+        dislikedBy: [],
         listens: 0,
-        comments: [],
-        songs: body.songs || []
+        comments: []
     };
-    
+
     const playlist = await dbManager.createPlaylist(playlistData);
 
     await dbManager.addPlaylistToUser(req.userId, playlist.id || playlist._id);
@@ -60,33 +76,16 @@ createPlaylist = async (req, res) => {
     
 }
 deletePlaylist = async (req, res) => {
-    if(auth.verifyUser(req) === null){
-        return res.status(401).json({
-            errorMessage: 'UNAUTHORIZED'
-        })
-    }
-    try{
-    const playlist = await dbManager.getPlaylistById(req.params.id);
+    try {
+        const owned = await requireOwnership(req, res, req.params.id);
+        if (!owned) return;
 
-    if(!playlist){
-        return res.status(404).json({
-            errorMessage: "Playlist not found",
-        })
-    }
-    const user = await dbManager.getUserByEmail(playlist.ownerEmail);
-
-    if ((user.id || user._id).toString() === req.userId) {
         await dbManager.deletePlaylist(req.params.id);
         return res.status(200).json({ success: true });
-    } else {
-        return res.status(403).json({ 
-            errorMessage: "You don't have permission to delete this playlist" 
-        });
-
-    } 
-    }  catch (err) 
-    { console.error(err); return res.status(400).json({ errorMessage: 'Error deleting playlist' })
-}
+    } catch (err) {
+        console.error(err);
+        return res.status(500).json({ errorMessage: 'Error deleting playlist' });
+    }
 }
 getPlaylistById = async (req, res) => {
     try{
@@ -139,12 +138,6 @@ getPlaylistById = async (req, res) => {
     }
 }
 getPlaylistPairs = async (req, res) => {
-    if(auth.verifyUser(req) === null){
-        return res.status(401).json({
-            errorMessage: 'UNAUTHORIZED'
-        })
-    }
-
     try {
         const user = await dbManager.getUserById(req.userId);
         
@@ -185,31 +178,19 @@ getPlaylistPairs = async (req, res) => {
     }
 }
 getPlaylists = async (req, res) => {
-    if(auth.verifyUser(req) === null){
-        return res.status(401).json({
-            errorMessage: 'UNAUTHORIZED'
-        })
-    }
     try{
-        const playlists = await dbManager.getAllPlaylists();
-    
-        if (!playlists || playlists.length === 0) {
-            return res.status(200).json({ success: true, data: [] })
-        }
-        
+        // Only published playlists — returning everything leaked other users'
+        // private (unpublished) playlists to any logged-in caller.
+        const playlists = await Playlist.find({ published: true }).lean();
+
         return res.status(200).json({ success: true, data: playlists })
 
-    }catch (err) { 
+    }catch (err) {
         console.error(err);
-        return res.status(400).json({ success: false, error: err.message }) 
+        return res.status(500).json({ success: false, error: err.message })
     }
 }
 updatePlaylist = async (req, res) => {
-    if(auth.verifyUser(req) === null){
-        return res.status(401).json({
-            errorMessage: 'UNAUTHORIZED'
-        })
-    }
     const body = req.body
 
     if (!body) {
@@ -220,40 +201,25 @@ updatePlaylist = async (req, res) => {
     }
 
     try {
-        const playlist = await dbManager.getPlaylistById(req.params.id);
-        
-        if (!playlist) {
-            return res.status(404).json({
-                message: 'Playlist not found!',
-            })
-        }
+        const owned = await requireOwnership(req, res, req.params.id);
+        if (!owned) return;
 
-        const user = await dbManager.getUserByEmail(playlist.ownerEmail);
-        
-        if ((user.id || user._id).toString() === req.userId) {
+        const updateData = {
+            name: body.name,
+            songs: body.songs,
+            lastAccessed: new Date()
+        };
 
-            const updateData = {
-                name: body.name,
-                songs: body.songs,
-                lastAccessed: new Date()
-            };
-            
-            const updatedPlaylist = await dbManager.updatePlaylist(req.params.id, updateData);
-            
-            return res.status(200).json({
-                success: true,
-                playlist: updatedPlaylist,
-                message: 'Playlist updated!',
-            })
-        }
-        else {
-            return res.status(403).json({ 
-                success: false, 
-                errorMessage: "You don't have permission to update this playlist" 
-            });
-        }
+        const updatedPlaylist = await dbManager.updatePlaylist(req.params.id, updateData);
+
+        return res.status(200).json({
+            success: true,
+            playlist: updatedPlaylist,
+            message: 'Playlist updated!',
+        })
     } catch (error) {
-        return res.status(404).json({
+        console.error(error);
+        return res.status(500).json({
             error: error.message,
             message: 'Playlist not updated!',
         })
@@ -261,28 +227,9 @@ updatePlaylist = async (req, res) => {
 }
 
 publishPlaylist = async (req, res) => {
-    if(auth.verifyUser(req) === null){
-        return res.status(401).json({
-            errorMessage: 'UNAUTHORIZED'
-        })
-    }
-
     try {
-        const playlist = await dbManager.getPlaylistById(req.params.id);
-        
-        if (!playlist) {
-            return res.status(404).json({
-                errorMessage: 'Playlist not found',
-            })
-        }
-
-        const user = await dbManager.getUserByEmail(playlist.ownerEmail);
-        
-        if ((user.id || user._id).toString() !== req.userId) {
-            return res.status(403).json({ 
-                errorMessage: "You don't have permission to publish this playlist" 
-            });
-        }
+        const owned = await requireOwnership(req, res, req.params.id);
+        if (!owned) return;
 
         const updateData = {
             published: req.body.published
@@ -308,12 +255,6 @@ publishPlaylist = async (req, res) => {
 }
 
 likePlaylist = async (req, res) => {
-    if (auth.verifyUser(req) === null) {
-        return res.status(401).json({
-            errorMessage: 'UNAUTHORIZED'
-        });
-    }
-
     try {
         const playlist = await dbManager.getPlaylistById(req.params.id);
 
@@ -366,12 +307,6 @@ likePlaylist = async (req, res) => {
 };
 
 dislikePlaylist = async (req, res) => {
-    if(auth.verifyUser(req) === null){
-        return res.status(401).json({
-            errorMessage: 'UNAUTHORIZED'
-        })
-    }
-
     try {
         const playlist = await dbManager.getPlaylistById(req.params.id);
         
@@ -431,16 +366,16 @@ dislikePlaylist = async (req, res) => {
 }
 
 addComment = async (req, res) => {
-    if(auth.verifyUser(req) === null){
-        return res.status(401).json({
-            errorMessage: 'UNAUTHORIZED'
-        })
-    }
-
     try {
-        if (!req.body.comment) {
+        const commentText = typeof req.body.comment === 'string' ? req.body.comment.trim() : '';
+        if (!commentText) {
             return res.status(400).json({
                 errorMessage: 'Comment text required',
+            })
+        }
+        if (commentText.length > 1000) {
+            return res.status(400).json({
+                errorMessage: 'Comment too long (max 1000 characters)',
             })
         }
 
@@ -455,7 +390,7 @@ addComment = async (req, res) => {
         const user = await dbManager.getUserById(req.userId);
         const newComment = {
             user: user.email,
-            text: req.body.comment,
+            text: commentText,
             createdAt: new Date()
         };
 
@@ -478,12 +413,6 @@ addComment = async (req, res) => {
 }
 
 deleteComment = async (req, res) => {
-    if(auth.verifyUser(req) === null){
-        return res.status(401).json({
-            errorMessage: 'UNAUTHORIZED'
-        })
-    }
-
     try {
         const playlist = await dbManager.getPlaylistById(req.params.id);
         
@@ -532,34 +461,39 @@ deleteComment = async (req, res) => {
 incrementListens = async (req, res) => {
     try {
         const playlistId = req.params.id;
-        const playlist = await dbManager.getPlaylistById(playlistId);
+
+        // Atomic $inc avoids the read-modify-write race where two concurrent
+        // listeners would only count as one.
+        const playlist = await Playlist.findByIdAndUpdate(
+            playlistId,
+            { $inc: { listens: 1 } },
+            { new: true }
+        );
 
         if (!playlist) {
             return res.status(404).json({
                 errorMessage: 'Playlist not found'
             });
         }
-        playlist.listens = (playlist.listens || 0) + 1;
-        await playlist.save();
 
         const songsInPlaylist = playlist.songs || [];
 
-        for (const s of songsInPlaylist) {
-            await Song.updateOne(
-                {
-                    title: s.title,
-                    artist: s.artist,
-                    year: s.year
-                },
-                {
-                    $inc: { listens: 1 }
-                }
+        // One bulk round-trip instead of one query per song.
+        if (songsInPlaylist.length > 0) {
+            await Song.bulkWrite(
+                songsInPlaylist.map(s => ({
+                    updateOne: {
+                        filter: { title: s.title, artist: s.artist, year: s.year },
+                        update: { $inc: { listens: 1 } }
+                    }
+                })),
+                { ordered: false }
             );
         }
 
-        return res.status(200).json({ 
-            success: true, 
-            listens: playlist.listens 
+        return res.status(200).json({
+            success: true,
+            listens: playlist.listens
         });
     } catch (error) {
         console.error(error);
@@ -571,7 +505,6 @@ incrementListens = async (req, res) => {
 
 getPublishedPlaylists = async (req, res) => {
     try {
-        const Playlist = require('../models/playlist-model');
         const page  = Math.max(1, parseInt(req.query.page)  || 1);
         const limit = Math.min(50, Math.max(1, parseInt(req.query.limit) || 15));
         const skip  = (page - 1) * limit;
@@ -605,14 +538,17 @@ getPublishedPlaylists = async (req, res) => {
     }
 }
 
+// Escape user input before embedding it in a $regex so characters like ( or *
+// can't produce invalid/expensive patterns (regex injection).
+const escapeSearchRegex = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
 searchPlaylists = async (req, res) => {
     try {
         const userId = auth.verifyUser(req);
-        
+
         const { name, username, title, artist, year } = req.query;
-        
-        const allPlaylists = await dbManager.getAllPlaylists();
-        
+
+        // Visibility: published playlists for everyone, plus the caller's own.
         let userEmail = null;
         if (userId) {
             const user = await dbManager.getUserById(userId);
@@ -620,65 +556,41 @@ searchPlaylists = async (req, res) => {
                 userEmail = user.email;
             }
         }
-        
-        let results = allPlaylists.filter(p => {
-            if (p.published) {
-                return true;
-            }
-            if (userEmail && p.ownerEmail === userEmail) {
-                return true;
-            }
-            return false;
-        });
-        
+        const visibility = userEmail
+            ? { $or: [{ published: true }, { ownerEmail: userEmail }] }
+            : { published: true };
+
+        // Build the whole search as one indexed DB query instead of loading
+        // every playlist into memory and filtering in JS.
+        const conditions = [visibility];
         if (name) {
-            const nameLower = name.toLowerCase();
-            results = results.filter(p => 
-                p.name.toLowerCase().includes(nameLower)
-            );
+            conditions.push({ name: { $regex: escapeSearchRegex(name), $options: 'i' } });
         }
-        
         if (username) {
-            const usernameLower = username.toLowerCase();
-            results = results.filter(p => 
-                p.ownerUsername && p.ownerUsername.toLowerCase().includes(usernameLower)
-            );
+            conditions.push({ ownerUsername: { $regex: escapeSearchRegex(username), $options: 'i' } });
         }
-        
         if (title) {
-            const titleLower = title.toLowerCase();
-            results = results.filter(p => 
-                p.songs && p.songs.some(song => 
-                    song.title && song.title.toLowerCase().includes(titleLower)
-                )
-            );
+            conditions.push({ 'songs.title': { $regex: escapeSearchRegex(title), $options: 'i' } });
         }
-        
         if (artist) {
-            const artistLower = artist.toLowerCase();
-            results = results.filter(p => 
-                p.songs && p.songs.some(song => 
-                    song.artist && song.artist.toLowerCase().includes(artistLower)
-                )
-            );
+            conditions.push({ 'songs.artist': { $regex: escapeSearchRegex(artist), $options: 'i' } });
         }
-        
         if (year) {
             const yearNum = parseInt(year);
-            results = results.filter(p => 
-                p.songs && p.songs.some(song => 
-                    song.year === yearNum
-                )
-            );
+            if (!Number.isNaN(yearNum)) {
+                conditions.push({ 'songs.year': yearNum });
+            }
         }
-        
-        return res.status(200).json({ 
-            success: true, 
-            data: results 
+
+        const results = await Playlist.find({ $and: conditions }).limit(200).lean();
+
+        return res.status(200).json({
+            success: true,
+            data: results
         })
     } catch (error) {
         console.error(error);
-        return res.status(400).json({
+        return res.status(500).json({
             errorMessage: 'Error searching playlists',
             error: error.message
         })
@@ -688,62 +600,36 @@ searchPlaylists = async (req, res) => {
 
 
 getPlaylistsByUsername = async (req, res) => {
-    if(auth.verifyUser(req) === null){
-        return res.status(401).json({
-            errorMessage: 'UNAUTHORIZED'
-        })
-    }
-
     try {
         const username = req.params.username;
-        
-        const allPlaylists = await dbManager.getAllPlaylists();
-        const userPlaylists = allPlaylists.filter(p => 
-            p.published && p.ownerUsername === username
-        );
-        
-        return res.status(200).json({ 
-            success: true, 
-            data: userPlaylists 
+
+        // Indexed query instead of fetching every playlist and filtering in JS.
+        const userPlaylists = await Playlist
+            .find({ published: true, ownerUsername: username })
+            .lean();
+
+        return res.status(200).json({
+            success: true,
+            data: userPlaylists
         })
     } catch (error) {
         console.error(error);
-        return res.status(400).json({
+        return res.status(500).json({
             errorMessage: 'Error fetching user playlists',
             error: error.message
         })
     }
-} 
+}
 
 addSongToPlaylist = async (req, res) => {
-    if(auth.verifyUser(req) === null){
-        return res.status(401).json({
-            errorMessage: 'UNAUTHORIZED'
-        })
-    }
-    
     try {
         const { id } = req.params;
         const { songId } = req.body;
-        
-        const playlist = await dbManager.getPlaylistById(id);
-        if (!playlist) {
-            return res.status(404).json({
-                success: false,
-                error: 'Playlist not found'
-            });
-        }
-        
-        const user = await dbManager.getUserById(req.userId);
-        
-        if (playlist.ownerEmail !== user.email) {
-            return res.status(403).json({
-                success: false,
-                error: 'Not authorized to edit this playlist'
-            });
-        }
-        
-        const Song = require('../models/song-model');
+
+        const owned = await requireOwnership(req, res, id);
+        if (!owned) return;
+        const { playlist } = owned;
+
         const song = await Song.findById(songId);
         
         if (!song) {

@@ -1,15 +1,18 @@
-import { useContext } from 'react';
+import { useContext, useState } from 'react';
 import { useHistory, useLocation } from 'react-router-dom';
 import AuthContext from '../auth';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import Tooltip from '@mui/material/Tooltip';
+import IconButton from '@mui/material/IconButton';
 import HomeIcon from '@mui/icons-material/Home';
 import LibraryMusicIcon from '@mui/icons-material/LibraryMusic';
 import QueueMusicIcon from '@mui/icons-material/QueueMusic';
 import LogoutIcon from '@mui/icons-material/Logout';
 import LoginIcon from '@mui/icons-material/Login';
 import PersonAddIcon from '@mui/icons-material/PersonAdd';
+import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
+import AIRecommendationsDialog from './AIRecommendationsDialog';
 
 const SIDEBAR_WIDTH = 220;
 
@@ -23,6 +26,7 @@ export default function Sidebar() {
     const { auth } = useContext(AuthContext);
     const history = useHistory();
     const location = useLocation();
+    const [aiOpen, setAiOpen] = useState(false);
 
     return (
         <Box
@@ -89,6 +93,24 @@ export default function Sidebar() {
                         </Box>
                     );
                 })}
+
+                {auth.loggedIn && (
+                    <Box sx={{ mt: 1, px: 1 }}>
+                        <Tooltip title="AI song recommendations" placement="right">
+                            <IconButton
+                                onClick={() => setAiOpen(true)}
+                                sx={{
+                                    color: 'rgba(255,255,255,0.45)',
+                                    borderRadius: 2,
+                                    '&:hover': { color: '#1DB954', bgcolor: 'rgba(29,185,84,0.12)' },
+                                }}
+                            >
+                                <AutoAwesomeIcon fontSize="small" />
+                            </IconButton>
+                        </Tooltip>
+                        <AIRecommendationsDialog open={aiOpen} onClose={() => setAiOpen(false)} playlistContext={[]} />
+                    </Box>
+                )}
             </Box>
 
             {/* Bottom: logout / auth actions */}

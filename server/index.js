@@ -1,6 +1,7 @@
 // THESE ARE NODE APIs WE WISH TO USE
 const express = require('express')
 const cors = require('cors')
+const helmet = require('helmet')
 const compression = require('compression')
 const dotenv = require('dotenv')
 const cookieParser = require('cookie-parser')
@@ -10,6 +11,15 @@ const createRateLimiter = require('./middleware/rate-limit')
 // CREATE OUR SERVER
 dotenv.config()
 const PORT = process.env.PORT || 4000;
+
+// Fail fast if the JWT secret is missing or an obvious placeholder — otherwise
+// every session cookie ever issued could be forged by anyone who reads the docs.
+const WEAK_SECRETS = new Set(['', 'dev-secret', 'replace-me', 'secret', 'changeme']);
+if (!process.env.JWT_SECRET || WEAK_SECRETS.has(process.env.JWT_SECRET)) {
+    console.error('FATAL: JWT_SECRET is missing or set to a known placeholder. Set a long random value.');
+    process.exit(1);
+}
+
 const app = express()
 
 // SETUP THE MIDDLEWARE
@@ -35,12 +45,19 @@ app.use(cors({
     optionsSuccessStatus: 204
 }))
 app.set('trust proxy', 1)
+// Security headers (X-Content-Type-Options, X-Frame-Options, HSTS, etc.).
+// The API serves JSON only, so the default CSP is disabled to avoid breaking nothing for no benefit.
+app.use(helmet({ contentSecurityPolicy: false }))
 app.use(requestLogger())
 app.use(createRateLimiter())
 app.use(compression())
-app.use(express.urlencoded({ extended: true, limit: '10mb' }))
-app.use(express.json({ limit: '10mb' }))
+// 1mb is ample for playlist payloads; 10mb invited memory-exhaustion abuse.
+app.use(express.urlencoded({ extended: true, limit: '1mb' }))
+app.use(express.json({ limit: '1mb' }))
 app.use(cookieParser())
+
+// Health check for load balancers (AWS ALB/ECS) and uptime monitors.
+app.get('/health', (req, res) => res.status(200).json({ status: 'ok' }))
 
 // SETUP OUR OWN ROUTERS AS MIDDLEWARE
 const authRouter = require('./routes/auth-router')

@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useRef } from 'react'
+import { createContext, useContext, useState, useRef, useEffect } from 'react'
 import { useHistory } from 'react-router-dom'
 import {jsTPS} from "jstps"
 import storeRequestSender from './requests'
@@ -58,6 +58,9 @@ function GlobalStoreContextProvider(props) {
     // Stored in a ref (not state) so it's always current when a component reads
     // it during the re-render triggered by the LOAD_ID_NAME_PAIRS dispatch.
     const paginationRef = useRef({ currentPage: 1, totalPages: 1 });
+
+    // Tracks the in-flight getPlaylistPairs request so concurrent callers share it.
+    const pairsRequestRef = useRef(null);
 
     // THESE ARE ALL THE THINGS OUR DATA STORE WILL MANAGE
     const [store, setStore] = useState({
@@ -349,32 +352,29 @@ function GlobalStoreContextProvider(props) {
 
     // THIS FUNCTION PROCESSES CHANGING A LIST NAME
     store.changeListName = function (id, newName) {
-        // GET THE LIST
         async function asyncChangeListName(id) {
-            let response = await storeRequestSender.getPlaylistById(id);
-            if (response.data.success) {
-                let playlist = response.data.playlist;
+            try {
+                const getResponse = await storeRequestSender.getPlaylistById(id);
+                if (!getResponse.data.success) return;
+
+                const playlist = getResponse.data.playlist;
                 playlist.name = newName;
-                async function updateList(playlist) {
-                    response = await storeRequestSender.updatePlaylistById(playlist.id || playlist._id, playlist);
-                    if (response.data.success) {
-                        async function getListPairs(playlist) {
-                            response = await storeRequestSender.getPlaylistPairs();
-                            if (response.data.success) {
-                                let pairsArray = response.data.idNamePairs;
-                                storeReducer({
-                                    type: GlobalStoreActionType.CHANGE_LIST_NAME,
-                                    payload: {
-                                        idNamePairs: pairsArray,
-                                        playlist: playlist
-                                    }
-                                });
-                            }
-                        }
-                        getListPairs(playlist);
+
+                const updateResponse = await storeRequestSender.updatePlaylistById(playlist.id || playlist._id, playlist);
+                if (!updateResponse.data.success) return;
+
+                const pairsResponse = await storeRequestSender.getPlaylistPairs();
+                if (!pairsResponse.data.success) return;
+
+                storeReducer({
+                    type: GlobalStoreActionType.CHANGE_LIST_NAME,
+                    payload: {
+                        idNamePairs: pairsResponse.data.idNamePairs,
+                        playlist: playlist
                     }
-                }
-                updateList(playlist);
+                });
+            } catch (error) {
+                console.error("Error changing list name:", error);
             }
         }
         asyncChangeListName(id);
@@ -452,20 +452,32 @@ store.createNewList = async function () {
     }
 
     // THIS FUNCTION LOADS ALL THE ID, NAME PAIRS SO WE CAN LIST ALL THE LISTS
-    store.loadIdNamePairs = function () {
+    // Concurrent callers share one in-flight request — this endpoint was once
+    // hammered by an effect loop until the rate limiter returned 429s.
+    store.loadIdNamePairs = function (signal) {
         if (auth.isGuest) {
             store.loadPublishedPage(1);
-            return;
+            return Promise.resolve();
+        }
+        if (pairsRequestRef.current) {
+            return pairsRequestRef.current;
         }
         async function asyncLoadIdNamePairs() {
-            const response = await storeRequestSender.getPlaylistPairs();
-            if (response.data.success) {
-                const pairsArray = response.data.idNamePairs || response.data.data;
-                storeReducer({ type: GlobalStoreActionType.LOAD_ID_NAME_PAIRS, payload: pairsArray });
-            } else {
+            try {
+                const response = await storeRequestSender.getPlaylistPairs(signal);
+                if (response.data.success) {
+                    const pairsArray = response.data.idNamePairs || response.data.data;
+                    storeReducer({ type: GlobalStoreActionType.LOAD_ID_NAME_PAIRS, payload: pairsArray });
+                }
+            } catch (e) {
+                if (e.name !== 'AbortError') console.error('Failed to load playlist pairs', e);
+                // AbortError is expected when user navigates away — suppress silently
+            } finally {
+                pairsRequestRef.current = null;
             }
         }
-        asyncLoadIdNamePairs();
+        pairsRequestRef.current = asyncLoadIdNamePairs();
+        return pairsRequestRef.current;
     }
     store.copyPlaylist = async function(playlistId) {
     try {
@@ -569,18 +581,16 @@ store.createNewList = async function () {
     // moveItem, updateItem, updateCurrentList, undo, and redo
     store.setCurrentList = function (id) {
         async function asyncSetCurrentList(id) {
+            // Read-only: the old code PUT the playlist back unchanged before
+            // opening it, doubling latency and risking clobbering newer data.
             let response = await storeRequestSender.getPlaylistById(id);
             if (response.data.success) {
                 let playlist = response.data.playlist;
-
-                response = await storeRequestSender.updatePlaylistById(playlist.id || playlist._id, playlist);
-                if (response.data.success) {
-                    storeReducer({
-                        type: GlobalStoreActionType.SET_CURRENT_LIST,
-                        payload: playlist
-                    });
-                    history.push("/playlist/" + (playlist.id || playlist._id));
-                }
+                storeReducer({
+                    type: GlobalStoreActionType.SET_CURRENT_LIST,
+                    payload: playlist
+                });
+                history.push("/playlist/" + (playlist.id || playlist._id));
             }
         }
         asyncSetCurrentList(id);
@@ -991,7 +1001,9 @@ store.createNewList = async function () {
     try {
         const response = await storeRequestSender.addSongToPlaylist(playlistId, songId);
         if (response.data.success) {
-            store.loadIdNamePairs();
+            // Note: no loadIdNamePairs() here — on the Home page that would
+            // replace the published feed with the user's personal playlists.
+            // Screens that show personal playlists refetch on mount instead.
             store.loadSongs();
             return { success: true };
         }
@@ -1006,8 +1018,8 @@ store.createNewList = async function () {
         try {
             const response = await songApi.likeSong(songId);
             if (response.data && response.data.success) {
-                // Ensure "Liked Songs" shows up in playlist lists immediately
-                store.loadIdNamePairs();
+                // No loadIdNamePairs() here — it would overwrite the Home page's
+                // published feed with personal playlists (shared store field).
                 return { success: true, playlistId: response.data.playlistId, message: response.data.message };
             }
             return { success: false, error: response.data?.errorMessage || 'Failed to like song' };
@@ -1028,18 +1040,29 @@ store.createNewList = async function () {
         }
     };
 
-    function KeyPress(event) {
-        if (store.currentModal === CurrentModal.NONE && event.ctrlKey){
-            if(event.key === 'z'){
-                store.undo();
+    // Registered via useEffect with cleanup — assigning document.onkeydown on
+    // every render leaked stale handlers and clobbered any other listener.
+    useEffect(() => {
+        function handleKeyDown(event) {
+            // Don't hijack Ctrl+Z/Y while the user is typing in a form field.
+            const tag = event.target.tagName;
+            if (tag === 'INPUT' || tag === 'TEXTAREA' || event.target.isContentEditable) {
+                return;
             }
-            if(event.key === 'y'){
-                store.redo();
+            if (store.currentModal === CurrentModal.NONE && event.ctrlKey) {
+                if (event.key === 'z') {
+                    event.preventDefault();
+                    store.undo();
+                }
+                if (event.key === 'y') {
+                    event.preventDefault();
+                    store.redo();
+                }
             }
         }
-    }
-  
-    document.onkeydown = (event) => KeyPress(event);
+        document.addEventListener('keydown', handleKeyDown);
+        return () => document.removeEventListener('keydown', handleKeyDown);
+    });
 
     return (
         <GlobalStoreContext.Provider value={{

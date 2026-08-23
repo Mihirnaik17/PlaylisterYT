@@ -1,6 +1,10 @@
 const jwt = require("jsonwebtoken")
 
+// Tokens (and their cookies) expire after 7 days — a stolen cookie is not valid forever.
+const TOKEN_LIFETIME_SECONDS = 7 * 24 * 60 * 60;
+
 function authManager() {
+    this.TOKEN_LIFETIME_MS = TOKEN_LIFETIME_SECONDS * 1000;
     this.verify = (req, res, next) => {
         // Skip auth for OPTIONS preflight requests
         if (req.method === 'OPTIONS') {
@@ -48,7 +52,9 @@ function authManager() {
     this.signToken = (userId) => {
         return jwt.sign({
             userId: userId
-        }, process.env.JWT_SECRET);
+        }, process.env.JWT_SECRET, {
+            expiresIn: TOKEN_LIFETIME_SECONDS
+        });
     }
 
     return this;
